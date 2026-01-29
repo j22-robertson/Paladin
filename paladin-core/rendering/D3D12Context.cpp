@@ -22,8 +22,14 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     }
 
     bool adapter_found = false;
-    for (UINT adapter_index= 0; m_dxgi_factory->EnumAdapters1(adapter_index, &adapter) != DXGI_ERROR_NOT_FOUND; adapter_index++ )
+    bool able_to_support_feature = true;
+    for (UINT adapter_index= 0; able_to_support_feature; adapter_index++ )
     {
+        if (auto hr =  m_dxgi_factory->EnumAdapters1(adapter_index, &adapter); FAILED(hr)) {
+            std::cout << "Failed to match feature level. Error code: " << std::hex << hr << std::endl;
+            able_to_support_feature = false;
+        }
+
         DXGI_ADAPTER_DESC1 desc;
         adapter->GetDesc1(&desc);
 
@@ -31,7 +37,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         {
             continue;
         }
-        if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_1, _uuidof(ID3D12Device), nullptr))) {
+        if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_2, _uuidof(ID3D12Device), nullptr))) {
             std::wcout << desc.Description << std::endl;
             adapter_found = true;
             break;
@@ -40,7 +46,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     if (adapter_found) {
         std::cout << "Found DXGI device adapter" << std::endl;
-        if (const auto hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&m_device)); SUCCEEDED(hr))
+        if (const auto hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&m_device)); SUCCEEDED(hr))
         {
             if (m_device.Get()) {
                 std::cout << "Created D3D12 device" << std::endl;
@@ -78,7 +84,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     DXGI_SWAP_CHAIN_DESC swap_chain_desc = { };
 
-    swap_chain_desc.BufferCount = frame_buffer_count;
+    swap_chain_desc.BufferCount = FRAME_BUFFER_COUNT;
     swap_chain_desc.BufferDesc = backbuffer_desc;
     swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -86,12 +92,11 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     swap_chain_desc.SampleDesc = sample_desc;
     swap_chain_desc.Windowed = true;
 
-    Microsoft::WRL::ComPtr<IDXGISwapChain> temp_swap_chain;
 
     if (auto hr =m_dxgi_factory->CreateSwapChain(
         m_command_queue.Get(),
         &swap_chain_desc,
-        &temp_swap_chain
+        reinterpret_cast<IDXGISwapChain**>(m_swap_chain.GetAddressOf())
     ); SUCCEEDED(hr)) {
         std::cout << "Created swap chain successfully" << std::endl;
     }
@@ -99,8 +104,52 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         std::cout << "Failed to create swap chain. ERROR: "<<std::hex<<hr << std::endl;
     }
 
-    
+    frame_index = m_swap_chain->GetCurrentBackBufferIndex();
 
+    D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
+
+    rtv_heap_desc.NumDescriptors = FRAME_BUFFER_COUNT;
+    rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+    if (auto hr = m_device->CreateDescriptorHeap(&rtv_heap_desc,IID_PPV_ARGS(&m_rtv_descriptor_heap)); SUCCEEDED(hr)) {
+        std::cout << "Created rtv descriptor heap successfully" << std::endl;
+    }
+    else if (FAILED(hr)) {
+        std::cout << "Failed to create descriptor heap. ERROR: "<<std::hex<<hr << std::endl;
+    }
+
+    auto rtv_descriptor_size =  m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv_cpu_handle(m_rtv_descriptor_heap->GetCPUDescriptorHandleForHeapStart());
+
+    for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++) {
+        if (auto hr = m_swap_chain->GetBuffer(i, IID_PPV_ARGS(&m_render_target[i])); SUCCEEDED(hr)) {
+            std::cout << "Created render target." << std::endl;
+        }
+        else if (FAILED(hr)) {
+            std::cout << "Failed to get render target. ERROR: "<<std::hex<<hr << std::endl;
+        }
+        m_device->CreateRenderTargetView(m_render_target[i].Get(), nullptr, rtv_cpu_handle);
+        rtv_cpu_handle.ptr += rtv_descriptor_size;
+    }
+
+    for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++) {
+        if (auto hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_command_allocator[i])); SUCCEEDED(hr)) {
+            std::cout << "Created command allocator" << std::endl;
+        }
+        else if (FAILED(hr)) {
+            std::cout << "Failed to create Commannd Allocator. ERROR: "<<std::hex<<hr << std::endl;
+        }
+    }
+
+    if (auto hr = m_device->CreateCommandList(0,D3D12_COMMAND_LIST_TYPE_DIRECT,m_command_allocator[0].Get(),NULL, IID_PPV_ARGS(&m_command_list)); SUCCEEDED(hr)) {
+        std::cout << "Created Command List." << std::endl;
+    }
+    else if (FAILED(hr)) {
+        std::cout << "Failed to create Command List. ERROR: "<<std::hex<<hr << std::endl;
+    }
+    m_command_list->Close();
 
 }
 

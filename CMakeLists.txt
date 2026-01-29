@@ -3,8 +3,7 @@ project(Paladin)
 
 set(CMAKE_CXX_STANDARD 20)
 add_subdirectory(paladin-core)
-add_executable(PaladinRenderer ${PALADIN_CORE_SOURCES}
-)
+add_executable(PaladinRenderer ${PALADIN_CORE_SOURCES})
 
 
 add_subdirectory(deps/d3d12)
@@ -21,7 +20,7 @@ target_link_libraries(PaladinRenderer PRIVATE
         glfw # Windowing and input
 )
 
-target_compile_definitions(PaladinRenderer PRIVATE -PALADIN_AGILITY_SDK_VERSION=${AGILITYSDK_VERSION_MAJOR})
+target_compile_definitions(PaladinRenderer PRIVATE PALADIN_AGILITY_SDK_VERSION=${AGILITYSDK_VERSION_MAJOR})
 add_custom_command(TARGET PaladinRenderer POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:PaladinRenderer>/D3D12/"
         COMMAND ${CMAKE_COMMAND} -E copy        -t "$<TARGET_FILE_DIR:PaladinRenderer>/D3D12/" ${AGILITYSDK_D3D12CORE_DLL}

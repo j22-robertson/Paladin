@@ -9,10 +9,10 @@
 #include <dxgi1_6.h>
 #include <dxgi.h>
 #include "debuglayer/D3D12DebugLayer.h"
-#define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
 
 
+constexpr UINT FRAME_BUFFER_COUNT = 2;
 class D3D12Context {
 public:
 
@@ -20,11 +20,18 @@ public:
     ~D3D12Context();
 
 private:
-    std::uint32_t frame_buffer_count = 2;
 
 
     Microsoft::WRL::ComPtr<ID3D12Device8> m_device = nullptr;
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_command_queue = nullptr;
+    Microsoft::WRL::ComPtr<IDXGISwapChain4> m_swap_chain= nullptr;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtv_descriptor_heap = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource2> m_render_target[FRAME_BUFFER_COUNT];
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_command_allocator[FRAME_BUFFER_COUNT];
+    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList8> m_command_list = nullptr;
+
+
+    UINT frame_index;
 
 };
 #endif //PALADIN_D3DX12CONTEXT_H
