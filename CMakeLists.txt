@@ -8,6 +8,7 @@ add_executable(PaladinRenderer ${PALADIN_CORE_SOURCES}
 
 
 add_subdirectory(deps/d3d12)
+add_subdirectory(deps/glfw)
 
 target_link_libraries(PaladinRenderer PRIVATE
         agilitysdk # for latest D3D12 headers & DLLs
@@ -17,6 +18,7 @@ target_link_libraries(PaladinRenderer PRIVATE
         dxguid # GUIDs for relevant directx types
         dxc # for HLSL shader compilation
         D3D12MemoryAllocator # vram memory allocation
+        glfw # Windowing and input
 )
 
 target_compile_definitions(PaladinRenderer PRIVATE -PALADIN_AGILITY_SDK_VERSION=${AGILITYSDK_VERSION_MAJOR})

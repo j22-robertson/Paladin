@@ -1,5 +1,8 @@
 set(PALADIN_CORE_SOURCES
         paladin-core/application/IApplication.h
+        paladin-core/rendering/debuglayer/D3D12DebugLayer.cpp
+        paladin-core/rendering/debuglayer/D3D12DebugLayer.h
+        paladin-core/rendering/D3D12Context.cpp
         paladin-core/rendering/D3D12Context.h
         paladin-core/application/RenderApplication.h
         paladin-core/application/RenderApplication.cpp
