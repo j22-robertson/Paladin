@@ -18,7 +18,7 @@ target_link_libraries(PaladinRenderer PRIVATE
         dxc # for HLSL shader compilation
         D3D12MemoryAllocator # vram memory allocation
         glfw # Windowing and input
-        winpix
+        winpix # Runtime GPU Capture and CPU capture through PIX
 )
 
 target_compile_definitions(PaladinRenderer PRIVATE PALADIN_AGILITY_SDK_VERSION=${AGILITYSDK_VERSION_MAJOR})
