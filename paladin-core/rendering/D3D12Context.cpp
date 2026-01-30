@@ -3,12 +3,14 @@
 //
 #include "D3D12Context.h"
 
+#include <dxcapi.h>
 #include <iostream>
 #include <ostream>
 
 D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height) {
 
 #ifdef _DEBUG
+
     if (GetModuleHandle(reinterpret_cast<LPCSTR>(L"WinPixGpuCapturer.dll")) == 0)
     {
 
@@ -159,6 +161,76 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         std::cout << "Failed to create Command List. ERROR: "<<std::hex<<hr << std::endl;
     }
     m_command_list->Close();
+
+    for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++)
+    {
+        if (auto hr = m_device->CreateFence(0,D3D12_FENCE_FLAG_NONE,IID_PPV_ARGS(&m_fence[i])); SUCCEEDED(hr))
+        {
+            std::cout << "Created Fence." << std::endl;
+        }
+        else if (FAILED(hr))
+        {
+            std::cout << "Failed to create Fence. ERROR: "<<std::hex<<hr << std::endl;
+        }
+        fence_value[i] = 0;
+    }
+
+
+    HANDLE fence_event = CreateEvent(nullptr, false, false, nullptr);
+
+    if (fence_event == nullptr)
+    {
+        std::cout << "Unable to create fence event" << std::endl;
+    }
+
+    CD3DX12_ROOT_SIGNATURE_DESC root_signature_desc = {};
+    root_signature_desc.Init(0,nullptr,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+    Microsoft::WRL::ComPtr<ID3DBlob> signature = nullptr;
+
+    if (auto hr = D3D12SerializeRootSignature(&root_signature_desc,D3D_ROOT_SIGNATURE_VERSION_1_0,&signature,nullptr); SUCCEEDED(hr))
+    {
+        std::cout << "Succesfully serialized root signature" << std::endl;
+    }
+    else if (FAILED(hr))
+    {
+        std::cout << "Failed to serialize root signature. ERROR: "<<std::hex<<hr << std::endl;
+        return;
+    }
+
+    if (auto hr = m_device->CreateRootSignature(0,signature->GetBufferPointer(),signature->GetBufferSize(),IID_PPV_ARGS(&m_root_signature)); SUCCEEDED(hr))
+    {
+        std::cout << "Succesfully created root signature" << std::endl;
+    }
+    else if (FAILED(hr))
+    {
+        std::cout << "Failed to create root signature. ERROR: "<<std::hex<<hr << std::endl;
+    }
+    Microsoft::WRL::ComPtr<ID3DBlob> vs_blob = nullptr;
+    Microsoft::WRL::ComPtr<IDxcBlobEncoding> vs_blob_encoding = nullptr;
+
+    UINT32 code_page = CP_UTF8;
+    Microsoft::WRL::ComPtr<IDxcLibrary> m_library = nullptr;
+    if (auto hr = DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&m_library)); FAILED(hr))
+    {
+        std::cout << "Unable to create DxcLibrary ERROR: " << std::hex<<hr << std::endl;
+    }
+    Microsoft::WRL::ComPtr<IDxcCompiler3> m_compiler = nullptr;
+    if (auto hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&m_compiler)); FAILED(hr))
+    {
+        std::cout << "Unable to create DxcCompiler. ERROR: " << std::hex<<hr << std::endl;
+    }
+
+
+    if (auto hr = m_library->CreateBlobFromFile(L"../paladin-core/rendering/shaders/vs.hlsl",&code_page,vs_blob_encoding.GetAddressOf()); FAILED(hr))
+    {
+        std::cout << "Unable to create source blob for vs.hlsl ERROR: " << std::hex<<hr << std::endl;
+    }
+
+
+
+    //TODO: Clean up shader compilation code into a DXCompiler class
+
 
 }
 

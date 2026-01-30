@@ -58,8 +58,11 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Resource2> m_render_target[FRAME_BUFFER_COUNT];
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_command_allocator[FRAME_BUFFER_COUNT];
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList8> m_command_list = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Fence> m_fence[FRAME_BUFFER_COUNT];
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipeline_state = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature = nullptr;
 
-
+    UINT fence_value[FRAME_BUFFER_COUNT] = {};
     UINT frame_index;
 
 };
