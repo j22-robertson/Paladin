@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 4.0.2)
 add_subdirectory(directxagility)
 add_subdirectory(directxcompiler)
+add_subdirectory(winpixeventruntime)
 
 set(D3D12MA_AGILITY_SDK_DIRECTORY ${AGILITYSDK_DIR})
 FetchContent_Declare(d3d12_memory_allocator

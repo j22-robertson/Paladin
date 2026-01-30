@@ -7,7 +7,16 @@
 #include <ostream>
 
 D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height) {
+
 #ifdef _DEBUG
+    if (GetModuleHandle(reinterpret_cast<LPCSTR>(L"WinPixGpuCapturer.dll")) == 0)
+    {
+
+        //LPCSTR pix_path = GetLatestWinPixGpuCapturerPath_Cpp17().c_str();
+        std::wcout << "loading pix from: " << GetLatestWinPixGpuCapturerPath_Cpp17() << std::endl;
+        //LoadLibrary();
+        LoadLibraryW(GetLatestWinPixGpuCapturerPath_Cpp17().c_str());
+    }
     D3D12DebugLayer::Get().Init();
     UINT factory_flags = DXGI_CREATE_FACTORY_DEBUG;
 #else

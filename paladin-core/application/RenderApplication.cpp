@@ -22,6 +22,10 @@ void RenderApplication::run() {
 void RenderApplication::Setup() {
     std::cout << "Hello World from Paladin"<< std::endl;
     glfwInit();
+
+
+
+
     window = glfwCreateWindow(640, 480, "PaladinRenderApp", nullptr, nullptr);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
