@@ -36,12 +36,13 @@ DXShaderCompiler::DXShaderCompiler()
 
 }
 
-Microsoft::WRL::ComPtr<IDxcBlob> DXShaderCompiler::LoadShader(const std::filesystem::path& shader)
+bool DXShaderCompiler::LoadShader(DXShader& shader)
 {
     Microsoft::WRL::ComPtr<IDxcBlobEncoding> shader_encoding = nullptr;
-    if (auto hr = m_library->CreateBlobFromFile(L"../paladin-core/rendering/shaders/vs.hlsl",&code_page,shader_encoding.GetAddressOf()); FAILED(hr))
+    if (auto hr = m_library->CreateBlobFromFile(shader.file_path.c_str(),&code_page,shader_encoding.GetAddressOf()); FAILED(hr))
     {
-        std::cout << "Unable to create source blob for: "<< shader << " ERROR: " << std::hex<<hr << std::endl;
+        std::wcout << "Unable to create source blob for: "<< shader.shader_input_file << " ERROR: " << std::hex<<hr << std::endl;
+        return false;
     }
 
     std::vector<std::wstring> wide_strings;
@@ -55,10 +56,23 @@ Microsoft::WRL::ComPtr<IDxcBlob> DXShaderCompiler::LoadShader(const std::filesys
 
     std::vector<LPCWSTR> arguments = {};
     arguments.push_back(L"-E"); // Entrypoint
-    arguments.push_back(L"main");
+    arguments.push_back(shader.entry_point.c_str());
 
     arguments.push_back(L"-T"); // Shader profile
-    arguments.push_back(L"vs_6_6");
+    switch (shader.type)
+    {
+    case VertexShader:
+        arguments.push_back(L"vs_6_6");
+        break;
+    case FragmentShader:
+        arguments.push_back(L"ps_6_6");
+        break;
+    case NONE:
+        std::wcout << shader.shader_input_file << " does not have a specified shader type" << std::endl;
+        return false;
+        break;
+    }
+
 
     arguments.push_back(DXC_ARG_ENABLE_STRICTNESS); // Enable strictness
     arguments.push_back(DXC_ARG_WARNINGS_ARE_ERRORS);
@@ -89,7 +103,7 @@ Microsoft::WRL::ComPtr<IDxcBlob> DXShaderCompiler::LoadShader(const std::filesys
         else
         {
             Microsoft::WRL::ComPtr<IDxcBlob> compiled_shader_code = nullptr;
-            if (hr = compilation_result->GetResult(&compiled_shader_code); FAILED(hr))
+            if (hr = compilation_result->GetResult(&compiled_shader_code); SUCCEEDED(hr))
             {
                 Microsoft::WRL::ComPtr<IDxcOperationResult> validation_result = nullptr;
 #ifdef _DEBUG
@@ -131,15 +145,15 @@ Microsoft::WRL::ComPtr<IDxcBlob> DXShaderCompiler::LoadShader(const std::filesys
                     }
                 }
 #endif
-
-
-                return compiled_shader_code;
+                shader.GetCompiledShader() = compiled_shader_code.Get();
+                return true;
             }
         }
     }
     else if (FAILED(hr))
     {
-        std::cout << "Unable to compile shader: "<< shader << " ERROR: " << std::hex << hr << std::endl;
+        std::wcout << "Unable to compile shader: "<< shader.shader_input_file << " ERROR: " << std::hex << hr << std::endl;
     }
 
+    return false;
 }

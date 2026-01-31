@@ -8,12 +8,13 @@
 #include <iostream>
 #include <filesystem>
 #include <dxcapi.h>
+#include "render-utils/DXShader.h"
 class DXShaderCompiler
 {
 public:
     DXShaderCompiler();
 
-   Microsoft::WRL::ComPtr<IDxcBlob> LoadShader(const std::filesystem::path& shader);
+   bool LoadShader(DXShader& shader);
 private:
     Microsoft::WRL::ComPtr<IDxcCompiler3> m_compiler = nullptr;
     Microsoft::WRL::ComPtr<IDxcLibrary> m_library = nullptr;

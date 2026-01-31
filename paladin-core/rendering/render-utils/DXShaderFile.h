@@ -1,8 +1,0 @@
-//
-// Created by jalr on 31-01-2026.
-//
-
-#ifndef PALADIN_DXSHADERFILE_H
-#define PALADIN_DXSHADERFILE_H
-
-#endif //PALADIN_DXSHADERFILE_H
