@@ -176,12 +176,13 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     }
 
 
-    HANDLE fence_event = CreateEvent(nullptr, false, false, nullptr);
-
+    fence_event = CreateEvent(nullptr, false, false, nullptr);
     if (fence_event == nullptr)
     {
-        std::cout << "Unable to create fence event" << std::endl;
+        std::cout << "Failed to create fence event." << std::endl;
+        return;
     }
+
 
     CD3DX12_ROOT_SIGNATURE_DESC root_signature_desc = {};
     root_signature_desc.Init(0,nullptr,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
@@ -206,26 +207,192 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     {
         std::cout << "Failed to create root signature. ERROR: "<<std::hex<<hr << std::endl;
     }
-    Microsoft::WRL::ComPtr<ID3DBlob> vs_blob = nullptr;
-    Microsoft::WRL::ComPtr<IDxcBlobEncoding> vs_blob_encoding = nullptr;
-
 
     DXShader vertex_shader = DXShader(VertexShader, L"vs.vert",L"main");
-    DXShader fragment_shader = DXShader(FragmentShader, L"fs.frag",L"main");
+    D3D12_SHADER_BYTECODE vertex_shader_bytecode = {};
+
+
     if (m_shader_compiler.LoadShader(vertex_shader))
     {
-        std::cout << "Successfully loaded shader" << std::endl;
+        std::cout << "Successfully loaded vertex shader" << std::endl;
+        vertex_shader_bytecode.BytecodeLength = vertex_shader.GetCompiledShader()->GetBufferSize();
+        vertex_shader_bytecode.pShaderBytecode = vertex_shader.GetCompiledShader()->GetBufferPointer();
+
     }
     else
     {
-        std::cout << "Failed to load shader" << std::endl;
+        std::cout << "Failed to load vertex shader" << std::endl;
     }
-    //TODO: Clean up shader compilation code into a DXCompiler class
+
+    D3D12_SHADER_BYTECODE fragment_shader_bytecode = {};
+    DXShader fragment_shader = DXShader(FragmentShader, L"fs.frag",L"main");
+    if (m_shader_compiler.LoadShader(fragment_shader))
+    {
+        fragment_shader_bytecode.BytecodeLength = fragment_shader.GetCompiledShader()->GetBufferSize();
+        fragment_shader_bytecode.pShaderBytecode = fragment_shader.GetCompiledShader()->GetBufferPointer();
+        std::cout << "Successfully loaded fragment shader" << std::endl;
+    }
+    else
+    {
+        std::cout << "Failed to load fragment shader" << std::endl;
+    }
 
 
+
+
+    D3D12_INPUT_ELEMENT_DESC input_layout[] ={
+        {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
+        {"COLOR",0,DXGI_FORMAT_R32G32B32_FLOAT,0,sizeof(float)*3,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
+    };
+
+    D3D12_INPUT_LAYOUT_DESC input_layout_desc ={};
+
+    input_layout_desc.NumElements = sizeof(input_layout)/sizeof(D3D12_INPUT_ELEMENT_DESC);
+    input_layout_desc.pInputElementDescs = input_layout;
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
+
+    pso_desc.InputLayout = input_layout_desc;
+    pso_desc.pRootSignature = m_root_signature.Get();
+    pso_desc.VS = vertex_shader_bytecode;
+    pso_desc.PS = fragment_shader_bytecode;
+    pso_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pso_desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    pso_desc.SampleDesc = sample_desc;
+    pso_desc.SampleMask = 0xfffffff;
+    pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC2(D3D12_DEFAULT);
+    pso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    pso_desc.NumRenderTargets = 1;
+    pso_desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+    pso_desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC2(D3D12_DEFAULT);
+    pso_desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+
+    if (auto hr = m_device->CreateGraphicsPipelineState(&pso_desc,IID_PPV_ARGS(&m_pipeline_state)); SUCCEEDED(hr))
+    {
+        std::cout << "Successfully created pipeline state" << std::endl;
+    }
+    else if (FAILED(hr))
+    {
+        std::cout << "Failed to create pipeline state. ERROR: "<<std::hex<<hr << std::endl;
+    }
+
+
+    m_viewport.TopLeftX = 0;
+    m_viewport.TopLeftY = 0;
+    m_viewport.Width = static_cast<float>(window_width);
+    m_viewport.Height = static_cast<float>(window_height);
+    m_viewport.MinDepth = 0.0f;
+    m_viewport.MaxDepth = 1.0f;
+
+    m_scissor.left = 0;
+    m_scissor.top = 0;
+    m_scissor.right = static_cast<LONG>(window_width);
+    m_scissor.bottom = static_cast<LONG>(window_height);
 }
 
+bool D3D12Context::Render()
+{
+    if (!WaitForPreviousFrame())
+    {
+        return false;
+    }
+    if (!UpdatePipeline())
+    {
+        return false;
+    }
+    ID3D12CommandList* command_lists[] = {m_command_list.Get()};
+
+    m_command_queue->ExecuteCommandLists(_countof(command_lists),command_lists);
+    fence_value[frame_index]++;
+    if (auto hr = m_command_queue->Signal(m_fence[frame_index].Get(),fence_value[frame_index]); FAILED(hr))
+    {
+        std::cout << "Failed to signal fence. ERROR:" << std::hex << hr << std::endl;
+        return false;
+    }
+
+    if (auto hr = m_swap_chain->Present(0,0); FAILED(hr))
+    {
+        std::cout << "Failed to present swap chain. ERROR:" << std::hex << hr << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+
+
+bool D3D12Context::WaitForPreviousFrame()
+{
+    frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+
+    const UINT64 fence_waiting = fence_value[frame_index];
+    if (m_fence[frame_index]->GetCompletedValue()<fence_waiting){
+        if (auto hr = m_fence[frame_index]->SetEventOnCompletion(fence_waiting,fence_event); FAILED(hr))
+        {
+            std::cout << "Failed to set fence. ERROR:" << std::hex << hr << std::endl;
+            return false;
+        }
+        WaitForSingleObject(fence_event, INFINITE);
+    }
+
+    return true;
+}
+
+bool D3D12Context::UpdatePipeline()
+{
+
+    if (auto hr = m_command_allocator[frame_index]->Reset(); FAILED(hr))
+    {
+        std::cout << "Failed to reset command allocator. ERROR:" << std::hex << hr << std::endl;
+        return false;
+    }
+    if (auto hr = m_command_list->Reset(m_command_allocator[frame_index].Get(),m_pipeline_state.Get()); FAILED(hr))
+    {
+        std::cout << "Failed to reset command list. ERROR:" << std::hex << hr << std::endl;
+        return false;
+    }
+
+
+    m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
+    m_command_list->RSSetViewports(1, &m_viewport);
+    m_command_list->RSSetScissorRects(1,&m_scissor);
+
+    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_render_target[frame_index].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+    m_command_list->ResourceBarrier(1,&barrier);
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(m_rtv_descriptor_heap->GetCPUDescriptorHandleForHeapStart(),frame_index,m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
+    m_command_list->OMSetRenderTargets(1, &rtv_handle, false, nullptr);
+    const float clear_colour[] = { 0.0f,0.2f,0.4f,1.0f };
+    m_command_list->ClearRenderTargetView(rtv_handle,clear_colour,0,nullptr);
+
+
+    auto barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(m_render_target[frame_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+    m_command_list->ResourceBarrier(1, &barrier2);
+    if (auto hr = m_command_list->Close();FAILED(hr))
+    {
+        std::cout << "Failed to close command list. ERROR:" << std::hex << hr << std::endl;
+        return false;
+    }
+    return true;
+}
+
+
 D3D12Context::~D3D12Context() {
+    for (UINT i = 0; i < FRAME_BUFFER_COUNT; ++i)
+    {
+        fence_value[i]++;
+        m_command_queue->Signal(m_fence[i].Get(), fence_value[i]);
+    }
+    for (UINT i = 0; i < FRAME_BUFFER_COUNT; ++i)
+    {
+        if (m_fence[i]->GetCompletedValue() < fence_value[i])
+        {
+            m_fence[i]->SetEventOnCompletion(fence_value[i], fence_event);
+            WaitForSingleObject(fence_event, INFINITE);
+        }
+    }
+    CloseHandle(fence_event);
 #ifdef _DEBUG
     D3D12DebugLayer::Get().Shutdown();
 #endif

@@ -47,10 +47,14 @@ class D3D12Context {
 public:
 
     D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height);
+
+    bool Render();
+
     ~D3D12Context();
 
 private:
-
+    bool WaitForPreviousFrame();
+    bool UpdatePipeline();
 
     Microsoft::WRL::ComPtr<ID3D12Device8> m_device = nullptr;
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_command_queue = nullptr;
@@ -64,6 +68,11 @@ private:
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature = nullptr;
 
     DXShaderCompiler m_shader_compiler = DXShaderCompiler();
+
+    D3D12_VIEWPORT m_viewport = {};
+    D3D12_RECT m_scissor = {};
+
+    HANDLE fence_event = nullptr;
 
     UINT fence_value[FRAME_BUFFER_COUNT] = {};
     UINT frame_index;

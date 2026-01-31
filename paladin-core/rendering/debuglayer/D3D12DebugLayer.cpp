@@ -9,7 +9,10 @@ bool D3D12DebugLayer::Init() {
 #ifdef _DEBUG
     if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&m_d3d12Debug)))) {
         m_d3d12Debug->EnableDebugLayer();
+
+        //TODO: Add a new Cmake profile to disable this line so that PIX doesnt crash
         m_d3d12Debug->SetEnableGPUBasedValidation(true);
+        
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&m_dred_settings))))
         {
             m_dred_settings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);

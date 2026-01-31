@@ -157,3 +157,5 @@ bool DXShaderCompiler::LoadShader(DXShader& shader)
 
     return false;
 }
+
+

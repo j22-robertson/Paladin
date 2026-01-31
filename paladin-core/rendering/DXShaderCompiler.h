@@ -13,8 +13,8 @@ class DXShaderCompiler
 {
 public:
     DXShaderCompiler();
+    bool LoadShader(DXShader& shader);
 
-   bool LoadShader(DXShader& shader);
 private:
     Microsoft::WRL::ComPtr<IDxcCompiler3> m_compiler = nullptr;
     Microsoft::WRL::ComPtr<IDxcLibrary> m_library = nullptr;

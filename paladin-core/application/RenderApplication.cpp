@@ -36,10 +36,12 @@ void RenderApplication::Setup() {
     auto hwnd = glfwGetWin32Window(window);
 
     m_render_context = std::make_unique<D3D12Context>(hwnd, window_width, window_height);
-
     while (!glfwWindowShouldClose(window)) {
-        //glfwSwapBuffers(window);
-
+        if (!m_render_context->Render())
+        {
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+            break;
+        }
         glfwPollEvents();
     }
 }
