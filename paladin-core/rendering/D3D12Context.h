@@ -9,6 +9,7 @@
 #include <dxgi1_6.h>
 #include <dxgi.h>
 #include "debuglayer/D3D12DebugLayer.h"
+#include "DXShaderCompiler.h"
 
 #include <filesystem>
 #include <shlobj.h>
@@ -61,6 +62,8 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence[FRAME_BUFFER_COUNT];
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipeline_state = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature = nullptr;
+
+    DXShaderCompiler m_shader_compiler = DXShaderCompiler();
 
     UINT fence_value[FRAME_BUFFER_COUNT] = {};
     UINT frame_index;

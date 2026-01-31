@@ -21,6 +21,8 @@ target_link_libraries(PaladinRenderer PRIVATE
         winpix # Runtime GPU Capture and CPU capture through PIX
 )
 
+target_compile_definitions(PaladinRenderer PRIVATE PALADIN_ROOT_DIR="${PROJECT_SOURCE_DIR}")
+
 target_compile_definitions(PaladinRenderer PRIVATE PALADIN_AGILITY_SDK_VERSION=${AGILITYSDK_VERSION_MAJOR})
 add_custom_command(TARGET PaladinRenderer POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:PaladinRenderer>/D3D12/"

@@ -16,8 +16,11 @@ public:
 
 private:
 #ifdef _DEBUG
-    Microsoft::WRL::ComPtr<ID3D12Debug6> m_d3d12Debug;
-    Microsoft::WRL::ComPtr<IDXGIDebug1> m_dxgiDebug;
+    Microsoft::WRL::ComPtr<ID3D12Debug6> m_d3d12Debug = nullptr;
+    Microsoft::WRL::ComPtr<IDXGIDebug1> m_dxgiDebug = nullptr;
+
+    //https://learn.microsoft.com/en-us/windows/win32/direct3d12/use-dred
+    Microsoft::WRL::ComPtr<ID3D12DeviceRemovedExtendedDataSettings2> m_dred_settings = nullptr;
 #endif
 
 public:

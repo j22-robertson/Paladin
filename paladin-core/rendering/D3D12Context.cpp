@@ -209,7 +209,8 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     Microsoft::WRL::ComPtr<ID3DBlob> vs_blob = nullptr;
     Microsoft::WRL::ComPtr<IDxcBlobEncoding> vs_blob_encoding = nullptr;
 
-    UINT32 code_page = CP_UTF8;
+
+    /*
     Microsoft::WRL::ComPtr<IDxcLibrary> m_library = nullptr;
     if (auto hr = DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&m_library)); FAILED(hr))
     {
@@ -225,9 +226,21 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     if (auto hr = m_library->CreateBlobFromFile(L"../paladin-core/rendering/shaders/vs.hlsl",&code_page,vs_blob_encoding.GetAddressOf()); FAILED(hr))
     {
         std::cout << "Unable to create source blob for vs.hlsl ERROR: " << std::hex<<hr << std::endl;
+    }*/
+    std::filesystem::path root = PALADIN_ROOT_DIR;
+
+    std::filesystem::path shader = root / "paladin-core/rendering/shaders/vs.hlsl";
+
+    if (std::filesystem::exists(shader))
+    {
+        std::cout << shader << std::endl;
+    }
+    else
+    {
+        std::cout << "unable to find path" << std::endl;
     }
 
-
+    auto vertex_shader = m_shader_compiler.LoadShader(shader);
 
     //TODO: Clean up shader compilation code into a DXCompiler class
 
