@@ -5,13 +5,13 @@
 #include "RenderApplication.h"
 
 RenderApplication::~RenderApplication() {
-
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
     if (m_render_context) {
         delete m_render_context;
         m_render_context = nullptr;
     }
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     glfwTerminate();
 }
 

@@ -552,6 +552,7 @@ bool D3D12Context::UpdatePipeline()
 
 
 D3D12Context::~D3D12Context() {
+    WaitForPreviousFrame();
     for (UINT i = 0; i < FRAME_BUFFER_COUNT; ++i)
     {
         fence_value[i]++;
