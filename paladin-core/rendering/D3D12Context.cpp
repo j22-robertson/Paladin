@@ -160,7 +160,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     else if (FAILED(hr)) {
         std::cout << "Failed to create Command List. ERROR: "<<std::hex<<hr << std::endl;
     }
-    m_command_list->Close();
+   // m_command_list->Close();
 
     for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++)
     {
@@ -265,7 +265,8 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     pso_desc.NumRenderTargets = 1;
     pso_desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
     pso_desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC2(D3D12_DEFAULT);
-    pso_desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    //pso_desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    pso_desc.DepthStencilState.DepthEnable = false;
 
     if (auto hr = m_device->CreateGraphicsPipelineState(&pso_desc,IID_PPV_ARGS(&m_pipeline_state)); SUCCEEDED(hr))
     {
@@ -275,6 +276,70 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     {
         std::cout << "Failed to create pipeline state. ERROR: "<<std::hex<<hr << std::endl;
     }
+
+    int vertex_buffer_size = sizeof(triangle_vertices);
+
+    auto heap_properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+    auto resource_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(vertex_buffer_size);
+
+    if (auto hr = m_device->CreateCommittedResource(&heap_properties,
+        D3D12_HEAP_FLAG_NONE,
+        &resource_buffer_desc,
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
+        IID_PPV_ARGS(&triangle_vertex_buffer));FAILED(hr)) {
+            std::cout << "Failed to allocate memory for Vertex Buffer. ERROR CODE: "<< std::hex << hr << std::endl;
+            return;
+        }
+
+    triangle_vertex_buffer->SetName(L"Triangle VBO");
+
+    auto upload_buffer_size =vertex_buffer_size;
+
+    auto temp_heap_properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    auto temp_resource_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(upload_buffer_size);
+
+    if (auto hr = m_device->CreateCommittedResource(&temp_heap_properties,
+          D3D12_HEAP_FLAG_NONE,
+          &temp_resource_buffer_desc,
+          D3D12_RESOURCE_STATE_GENERIC_READ,
+          nullptr,
+          IID_PPV_ARGS(&temporary_upload_heap)); FAILED(hr)) {
+        std::cout << "Failed to create upload heap. ERROR CODE: "<< std::hex << hr << std::endl;
+        return;
+    }
+
+    temporary_upload_heap->SetName(L"Temporary Upload Heap");
+
+    D3D12_SUBRESOURCE_DATA vertex_data = {};
+
+    vertex_data.pData = reinterpret_cast<BYTE*>(triangle_vertices);
+    vertex_data.RowPitch = vertex_buffer_size;
+    vertex_data.SlicePitch = vertex_buffer_size;
+
+    UpdateSubresources(m_command_list.Get(),
+        triangle_vertex_buffer.Get(),
+        temporary_upload_heap.Get(),
+        0,
+        0,
+        1,
+        &vertex_data);
+    auto vertex_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(triangle_vertex_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+
+    m_command_list->ResourceBarrier(1, &vertex_transition_barrier);
+    m_command_list->Close();
+
+    ID3D12CommandList* cmd_lists[] = { m_command_list.Get()};
+    m_command_queue->ExecuteCommandLists(_countof(cmd_lists), cmd_lists);
+    fence_value[frame_index]++;
+    auto hr =  m_command_queue->Signal(m_fence[frame_index].Get(), fence_value[frame_index]);
+
+    if (FAILED(hr)) {
+        std::cout << "Failed to signal fence, error: " << std::hex << hr << std::endl;
+    }
+    vertex_buffer_view.BufferLocation = triangle_vertex_buffer->GetGPUVirtualAddress();
+    vertex_buffer_view.SizeInBytes = vertex_buffer_size;
+    vertex_buffer_view.StrideInBytes = sizeof(Vertex);
 
 
     m_viewport.TopLeftX = 0;
@@ -292,6 +357,8 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
 bool D3D12Context::Render()
 {
+    auto frame_color = PIX_COLOR(64,255,0);
+    PIXScopedEvent(m_command_queue.Get(), frame_color, "FRAME");
     if (!WaitForPreviousFrame())
     {
         return false;
@@ -360,11 +427,16 @@ bool D3D12Context::UpdatePipeline()
     auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_render_target[frame_index].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
     m_command_list->ResourceBarrier(1,&barrier);
-
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(m_rtv_descriptor_heap->GetCPUDescriptorHandleForHeapStart(),frame_index,m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
     m_command_list->OMSetRenderTargets(1, &rtv_handle, false, nullptr);
     const float clear_colour[] = { 0.0f,0.2f,0.4f,1.0f };
     m_command_list->ClearRenderTargetView(rtv_handle,clear_colour,0,nullptr);
+
+    m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
+
+    m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_command_list->IASetVertexBuffers(0,1,&vertex_buffer_view);
+    m_command_list->DrawInstanced(3,1,0,0);
 
 
     auto barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(m_render_target[frame_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);

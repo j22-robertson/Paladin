@@ -1,5 +1,21 @@
-float4 main(float3 pos : POSITION) : SV_POSITION
+struct VS_INPUT
 {
-    // just pass vertex position straight through
-    return float4(pos, 1.0f);
+    float3 pos : POSITION;
+    float4 color: COLOR;
+};
+
+struct VS_OUTPUT
+{
+    float4 pos : SV_POSITION;
+    float4 color : COLOR;
+};
+
+
+VS_OUTPUT main(VS_INPUT input)
+{
+    VS_OUTPUT output = (VS_OUTPUT)0;
+
+    output.pos = float4(input.pos, 1.0f);
+    output.color = input.color;
+    return output;
 }

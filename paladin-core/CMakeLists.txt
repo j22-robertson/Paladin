@@ -1,6 +1,6 @@
 set(PALADIN_CORE_SOURCES
         paladin-core/application/IApplication.h
-        paladin-core/rendering/render-utils/DXShaderFile.h
+        paladin-core/rendering/render-utils/DXShader.h
         paladin-core/rendering/DXShaderCompiler.cpp
         paladin-core/rendering/DXShaderCompiler.h
         paladin-core/rendering/debuglayer/D3D12DebugLayer.cpp

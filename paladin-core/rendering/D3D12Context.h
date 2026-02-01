@@ -8,11 +8,23 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <dxgi.h>
+#include "D3D12MemAlloc.h"
 #include "debuglayer/D3D12DebugLayer.h"
 #include "DXShaderCompiler.h"
+#include "DirectXMath.h"
+
+#include "WinPixEventRuntime/pix3.h"
 
 #include <filesystem>
 #include <shlobj.h>
+
+struct Vertex {
+    Vertex(float x, float y, float z, float r, float g, float b, float a) : pos(x, y, z), color(r, g, b, a) {}
+    DirectX::XMFLOAT3 pos;
+    DirectX::XMFLOAT4 color;
+};
+
+
 static std::wstring GetLatestWinPixGpuCapturerPath_Cpp17()
 {
     LPWSTR programFilesPath = nullptr;
@@ -66,6 +78,16 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence[FRAME_BUFFER_COUNT];
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipeline_state = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature = nullptr;
+
+    Microsoft::WRL::ComPtr<ID3D12Resource> triangle_vertex_buffer = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> temporary_upload_heap= nullptr;
+    D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view ={};
+    Vertex triangle_vertices[3] = {
+        { 0.0f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+        { 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
+        { -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+    };
+
 
     DXShaderCompiler m_shader_compiler = DXShaderCompiler();
 
