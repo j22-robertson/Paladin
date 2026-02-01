@@ -1,0 +1,13 @@
+set(PALADIN_SOURCES
+        paladin/application/IApplication.h
+        paladin/rendering/render-utils/DXShader.h
+        paladin/rendering/DXShaderCompiler.cpp
+        paladin/rendering/DXShaderCompiler.h
+        paladin/rendering/debuglayer/D3D12DebugLayer.cpp
+        paladin/rendering/debuglayer/D3D12DebugLayer.h
+        paladin/rendering/D3D12Context.cpp
+        paladin/rendering/D3D12Context.h
+        paladin/application/RenderApplication.h
+        paladin/application/RenderApplication.cpp
+        paladin/main.cpp
+PARENT_SCOPE)

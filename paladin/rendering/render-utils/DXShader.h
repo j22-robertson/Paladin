@@ -27,7 +27,7 @@ class DXShader
         shader_input_file = input_file;
         //TODO: There is likely a much better way to handle these file paths
         std::filesystem::path root_dir  =  PALADIN_ROOT_DIR;
-        file_path =  root_dir / "paladin-core/rendering/shaders" / input_file;
+        file_path =  root_dir / "paladin/rendering/shaders" / input_file;
         type = input_type;
         entry_point = _entry_point;
     }

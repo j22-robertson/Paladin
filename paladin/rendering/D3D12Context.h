@@ -14,7 +14,7 @@
 #include "DirectXMath.h"
 
 #include "WinPixEventRuntime/pix3.h"
-
+#include "profiling/Profiling.h"
 #include <filesystem>
 #include <shlobj.h>
 
@@ -25,40 +25,13 @@ struct Vertex {
 };
 
 
-static std::wstring GetLatestWinPixGpuCapturerPath_Cpp17()
-{
-    LPWSTR programFilesPath = nullptr;
-    SHGetKnownFolderPath(FOLDERID_ProgramFiles, KF_FLAG_DEFAULT, NULL, &programFilesPath);
-
-    std::filesystem::path pixInstallationPath = programFilesPath;
-    pixInstallationPath /= "Microsoft PIX";
-
-    std::wstring newestVersionFound;
-
-    for (auto const& directory_entry : std::filesystem::directory_iterator(pixInstallationPath))
-    {
-        if (directory_entry.is_directory())
-        {
-            if (newestVersionFound.empty() || newestVersionFound < directory_entry.path().filename().c_str())
-            {
-                newestVersionFound = directory_entry.path().filename().c_str();
-            }
-        }
-    }
-
-    if (newestVersionFound.empty())
-    {
-        return L"No pix installation found";
-    }
-
-    return pixInstallationPath/ newestVersionFound / L"WinPixGpuCapturer.dll";
-}
-
-constexpr UINT FRAME_BUFFER_COUNT = 2;
+constexpr UINT FRAME_BUFFER_COUNT = 3;
 class D3D12Context {
 public:
 
     D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height);
+
+    Microsoft::WRL::ComPtr<ID3D12Resource> UploadVertices();
 
     bool Render();
 
@@ -98,6 +71,10 @@ private:
 
     UINT fence_value[FRAME_BUFFER_COUNT] = {};
     UINT frame_index;
+
+
+    /// PIX COLORS FOR SCOPED EVENTS AND MARKERS
+    const UINT32 frame_color = PIX_COLOR(64,255,0);
 
 };
 #endif //PALADIN_D3DX12CONTEXT_H

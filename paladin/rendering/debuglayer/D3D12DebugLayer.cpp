@@ -6,12 +6,16 @@
 #include <dxgi1_3.h>
 
 bool D3D12DebugLayer::Init() {
+
 #ifdef _DEBUG
     if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&m_d3d12Debug)))) {
         m_d3d12Debug->EnableDebugLayer();
+#ifdef PIX_ENABLE
+        m_d3d12Debug->SetEnableGPUBasedValidation(false);
+#else
+        m_d3d12Debug->SetEnableGPUBasedValidation(true);
+#endif
 
-        //TODO: Add a new Cmake profile to disable this line so that PIX doesnt crash
-        //m_d3d12Debug->SetEnableGPUBasedValidation(true);
         
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&m_dred_settings))))
         {

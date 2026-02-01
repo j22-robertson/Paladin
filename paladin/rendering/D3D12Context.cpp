@@ -10,7 +10,7 @@
 D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height) {
 
 #ifdef _DEBUG
-
+#ifdef PIX_ENABLE
     if (GetModuleHandle(reinterpret_cast<LPCSTR>(L"WinPixGpuCapturer.dll")) == 0)
     {
 
@@ -19,11 +19,13 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         //LoadLibrary();
         LoadLibraryW(GetLatestWinPixGpuCapturerPath_Cpp17().c_str());
     }
+#endif
     D3D12DebugLayer::Get().Init();
     UINT factory_flags = DXGI_CREATE_FACTORY_DEBUG;
 #else
     UINT factory_flags = 0;
 #endif
+
 
     Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter = nullptr;
 
@@ -355,9 +357,65 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     m_scissor.bottom = static_cast<LONG>(window_height);
 }
 
+Microsoft::WRL::ComPtr<ID3D12Resource> D3D12Context::UploadVertices() {
+
+    int vertex_buffer_size = sizeof(triangle_vertices);
+
+    auto heap_properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+    auto resource_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(vertex_buffer_size);
+
+    if (auto hr = m_device->CreateCommittedResource(&heap_properties,
+        D3D12_HEAP_FLAG_NONE,
+        &resource_buffer_desc,
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
+        IID_PPV_ARGS(&triangle_vertex_buffer));FAILED(hr)) {
+        std::cout << "Failed to allocate memory for Vertex Buffer. ERROR CODE: "<< std::hex << hr << std::endl;
+        return nullptr;
+        }
+
+    triangle_vertex_buffer->SetName(L"Triangle VBO");
+
+    auto upload_buffer_size =vertex_buffer_size;
+
+    auto temp_heap_properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    auto temp_resource_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(upload_buffer_size);
+
+    if (auto hr = m_device->CreateCommittedResource(&temp_heap_properties,
+          D3D12_HEAP_FLAG_NONE,
+          &temp_resource_buffer_desc,
+          D3D12_RESOURCE_STATE_GENERIC_READ,
+          nullptr,
+          IID_PPV_ARGS(&temporary_upload_heap)); FAILED(hr)) {
+        std::cout << "Failed to create upload heap. ERROR CODE: "<< std::hex << hr << std::endl;
+        return nullptr;
+          }
+
+    temporary_upload_heap->SetName(L"Temporary Upload Heap");
+
+    D3D12_SUBRESOURCE_DATA vertex_data = {};
+
+    vertex_data.pData = reinterpret_cast<BYTE*>(triangle_vertices);
+    vertex_data.RowPitch = vertex_buffer_size;
+    vertex_data.SlicePitch = vertex_buffer_size;
+
+    UpdateSubresources(m_command_list.Get(),
+        triangle_vertex_buffer.Get(),
+        temporary_upload_heap.Get(),
+        0,
+        0,
+        1,
+        &vertex_data);
+    auto vertex_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(triangle_vertex_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+
+    m_command_list->ResourceBarrier(1, &vertex_transition_barrier);
+
+    return nullptr;
+}
+
 bool D3D12Context::Render()
 {
-    auto frame_color = PIX_COLOR(64,255,0);
+
     PIXScopedEvent(m_command_queue.Get(), frame_color, "FRAME");
     if (!WaitForPreviousFrame())
     {

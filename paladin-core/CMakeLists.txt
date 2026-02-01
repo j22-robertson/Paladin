@@ -1,13 +1,6 @@
+cmake_minimum_required(VERSION 4.0.2)
 set(PALADIN_CORE_SOURCES
-        paladin-core/application/IApplication.h
-        paladin-core/rendering/render-utils/DXShader.h
-        paladin-core/rendering/DXShaderCompiler.cpp
-        paladin-core/rendering/DXShaderCompiler.h
-        paladin-core/rendering/debuglayer/D3D12DebugLayer.cpp
-        paladin-core/rendering/debuglayer/D3D12DebugLayer.h
-        paladin-core/rendering/D3D12Context.cpp
-        paladin-core/rendering/D3D12Context.h
-        paladin-core/application/RenderApplication.h
-        paladin-core/application/RenderApplication.cpp
-        paladin-core/main.cpp
-PARENT_SCOPE)
+        paladin-core/profiling/Profiling.h
+        paladin-core/Logger.cpp
+        paladin-core/Logger.h
+        PARENT_SCOPE)

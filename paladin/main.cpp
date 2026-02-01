@@ -1,5 +1,4 @@
 #include "application/RenderApplication.h"
-
 extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = PALADIN_AGILITY_SDK_VERSION; }
 extern "C" { __declspec(dllexport) extern const char8_t* D3D12SDKPath = u8".\\D3D12\\"; }
 int main()
