@@ -26,7 +26,7 @@ void RenderApplication::Setup() {
 
 
 
-    window = glfwCreateWindow(640, 480, "PaladinRenderApp", nullptr, nullptr);
+    window = glfwCreateWindow(window_width, window_height, "PaladinRenderApp", nullptr, nullptr);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
     if (window == nullptr) {
