@@ -7,6 +7,8 @@
 #include <iostream>
 #include <ostream>
 
+#include "imgui_impl_glfw.h"
+
 D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height) {
 
 #ifdef _DEBUG
@@ -118,6 +120,21 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     }
 
     frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+
+    D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc = {};
+
+    //TODO: Change num descriptors
+    srv_heap_desc.NumDescriptors =1;
+    srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+    if (auto hr = m_device->CreateDescriptorHeap(&srv_heap_desc,IID_PPV_ARGS(&m_srv_descriptor_heap)); SUCCEEDED(hr)) {
+        std::cout << "Created srv descriptor heap successfully" << std::endl;
+    }
+    else if (FAILED(hr)) {
+        std::cout << "Failed to create srv descriptor heap. ERROR: "<<std::hex<<hr << std::endl;
+    }
+
 
     D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
 
@@ -355,6 +372,23 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     m_scissor.top = 0;
     m_scissor.right = static_cast<LONG>(window_width);
     m_scissor.bottom = static_cast<LONG>(window_height);
+
+    ImGui_ImplDX12_InitInfo imgui_init_info = {};
+    imgui_init_info.Device = m_device.Get();
+    imgui_init_info.CommandQueue = m_command_queue.Get();
+    imgui_init_info.NumFramesInFlight = FRAME_BUFFER_COUNT;
+    imgui_init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+    imgui_init_info.SrvDescriptorHeap = m_srv_descriptor_heap.Get();
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE srv_handle(m_srv_descriptor_heap->GetCPUDescriptorHandleForHeapStart(),frame_index,m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+    ImGui_ImplDX12_Init(m_device.Get(),
+        FRAME_BUFFER_COUNT,DXGI_FORMAT_R8G8B8A8_UNORM,
+        m_srv_descriptor_heap.Get(),
+        srv_handle,
+        m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
+    //imgui_init_info.SrvDescriptorHeap =
+    //ImGui_ImplDX12_Init()
 }
 
 Microsoft::WRL::ComPtr<ID3D12Resource> D3D12Context::UploadVertices() {
@@ -416,6 +450,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> D3D12Context::UploadVertices() {
 bool D3D12Context::Render()
 {
 
+
     PIXScopedEvent(m_command_queue.Get(), frame_color, "FRAME");
     if (!WaitForPreviousFrame())
     {
@@ -476,6 +511,10 @@ bool D3D12Context::UpdatePipeline()
         std::cout << "Failed to reset command list. ERROR:" << std::hex << hr << std::endl;
         return false;
     }
+    ImGui_ImplDX12_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    ImGui::ShowDemoWindow();
 
 
     m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
@@ -496,6 +535,10 @@ bool D3D12Context::UpdatePipeline()
     m_command_list->IASetVertexBuffers(0,1,&vertex_buffer_view);
     m_command_list->DrawInstanced(3,1,0,0);
 
+    ID3D12DescriptorHeap* heaps[] = {m_srv_descriptor_heap.Get() };
+    m_command_list->SetDescriptorHeaps(1, heaps);
+    ImGui::Render();
+    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_command_list.Get());
 
     auto barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(m_render_target[frame_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     m_command_list->ResourceBarrier(1, &barrier2);
@@ -522,6 +565,7 @@ D3D12Context::~D3D12Context() {
             WaitForSingleObject(fence_event, INFINITE);
         }
     }
+    ImGui_ImplDX12_Shutdown();
     CloseHandle(fence_event);
 #ifdef _DEBUG
     D3D12DebugLayer::Get().Shutdown();

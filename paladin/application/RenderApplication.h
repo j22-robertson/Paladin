@@ -13,8 +13,9 @@
 #include "tracy/Tracy.hpp"
 #include "profiling/Profiling.h"
 #include "../rendering/D3D12Context.h"
-
-
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+//TODO: Create a window class
 class RenderApplication final : IApplication {
 public:
     ~RenderApplication() override;

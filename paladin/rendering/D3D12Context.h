@@ -12,7 +12,8 @@
 #include "debuglayer/D3D12DebugLayer.h"
 #include "DXShaderCompiler.h"
 #include "DirectXMath.h"
-
+#include "imgui_impl_dx12.h"
+#include  "imgui.h"
 #include "WinPixEventRuntime/pix3.h"
 #include "profiling/Profiling.h"
 #include <filesystem>
@@ -45,6 +46,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_command_queue = nullptr;
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_swap_chain= nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtv_descriptor_heap = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource2> m_render_target[FRAME_BUFFER_COUNT];
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_command_allocator[FRAME_BUFFER_COUNT];
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList8> m_command_list = nullptr;

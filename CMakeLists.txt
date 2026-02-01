@@ -15,6 +15,9 @@ add_executable(PaladinRenderer ${PALADIN_SOURCES})
 add_subdirectory(deps/d3d12)
 add_subdirectory(deps/glfw)
 add_subdirectory(deps/tracy)
+add_subdirectory(deps/imgui)
+
+target_link_libraries(imgui PUBLIC glfw)
 
 target_link_libraries(PaladinRenderer PRIVATE
         PaladinCore
@@ -28,6 +31,7 @@ target_link_libraries(PaladinRenderer PRIVATE
         glfw # Windowing and input
         winpix # Runtime GPU Capture and CPU capture through PIX
         TracyClient # Additional runtime profiling capabilities
+        imgui
 )
 
 target_compile_definitions(PaladinRenderer PRIVATE PALADIN_ROOT_DIR="${PROJECT_SOURCE_DIR}")
