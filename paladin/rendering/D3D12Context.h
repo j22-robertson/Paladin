@@ -14,7 +14,6 @@
 #include "DirectXMath.h"
 #include "imgui_impl_dx12.h"
 #include  "imgui.h"
-#include "WinPixEventRuntime/pix3.h"
 #include "profiling/Profiling.h"
 #include <filesystem>
 #include <shlobj.h>

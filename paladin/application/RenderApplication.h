@@ -10,8 +10,9 @@
 #include <glfw/glfw3native.h>
 #include <iostream>
 #include <memory>
-#include "tracy/Tracy.hpp"
+
 #include "profiling/Profiling.h"
+#define TRACY_IMPORTS
 #include "../rendering/D3D12Context.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"

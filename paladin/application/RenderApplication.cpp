@@ -19,8 +19,8 @@ RenderApplication::~RenderApplication() {
 void RenderApplication::run() {
     PALADIN_LOG(INFO, "STARTING APPLICATION")
     Setup();
-
     while (!glfwWindowShouldClose(window)) {
+        FrameMark;
 
         if (!m_render_context->Render())
         {

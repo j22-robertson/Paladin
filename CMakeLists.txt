@@ -3,7 +3,9 @@ project(Paladin)
 
 set(CMAKE_CXX_STANDARD 20)
 
-
+if (WIN32)
+    set(CMAKE_OBJECT_PATH_MAX 360)
+endif ()
 add_subdirectory(paladin-core)
 add_library(PaladinCore STATIC ${PALADIN_CORE_SOURCES})
 target_include_directories(PaladinCore PUBLIC paladin-core/)
@@ -32,7 +34,7 @@ target_link_libraries(PaladinRenderer PRIVATE
         D3D12MemoryAllocator # vram memory allocation
         glfw # Windowing and input
         winpix # Runtime GPU Capture and CPU capture through PIX
-        TracyClient # Additional runtime profiling capabilities
+        Tracy::TracyClient # Additional runtime profiling capabilities
         imgui
 )
 
@@ -54,11 +56,14 @@ option(ENABLE_LOGGING "Enable logging" ON)
 if(ENABLE_LOGGING)
     target_compile_definitions(PaladinCore PRIVATE PALADIN_LOG_ENABLE)
     target_compile_definitions(PaladinRenderer PRIVATE PALADIN_LOG_ENABLE)
+    target_compile_definitions(PaladinCore PRIVATE TRACY_ENABLE)
 endif ()
 
 option(ENABLE_PROFILING "Enable PIX and Tracy" OFF)
 if(ENABLE_PROFILING)
     target_compile_definitions(PaladinRenderer PRIVATE
     PIX_ENABLE
-    TRACY_ENABLE)
+    TRACY_ENABLE
+    TRACY_EXPORTS)
 endif ()
+

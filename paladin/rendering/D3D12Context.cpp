@@ -13,14 +13,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
 #ifdef _DEBUG
 #ifdef PIX_ENABLE
-    if (GetModuleHandle(reinterpret_cast<LPCSTR>(L"WinPixGpuCapturer.dll")) == 0)
-    {
-
-
-        std::wstring pix_path = GetLatestWinPixGpuCapturerPath_Cpp17();
-        PALADIN_LOG(INFO, "Loading PIX from: " + ConvertWString(pix_path))
-        LoadLibraryW(GetLatestWinPixGpuCapturerPath_Cpp17().c_str());
-    }
+LoadWinPixEventRuntime();
 #endif
     D3D12DebugLayer::Get().Init();
     UINT factory_flags = DXGI_CREATE_FACTORY_DEBUG;
@@ -449,8 +442,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> D3D12Context::UploadVertices() {
 
 bool D3D12Context::Render()
 {
-
-
+    ZoneScoped("D3D12Context::Render", true);
     PIXScopedEvent(m_command_queue.Get(), frame_color, "FRAME");
     if (!WaitForPreviousFrame())
     {
@@ -483,6 +475,7 @@ bool D3D12Context::Render()
 
 bool D3D12Context::WaitForPreviousFrame()
 {
+    ZoneScoped("D3D12Context::WaitForPreviousFrame", true);
     frame_index = m_swap_chain->GetCurrentBackBufferIndex();
 
     const UINT64 fence_waiting = fence_value[frame_index];
@@ -500,6 +493,7 @@ bool D3D12Context::WaitForPreviousFrame()
 
 bool D3D12Context::UpdatePipeline()
 {
+    ZoneScoped("D3D12Context::UpdatePipeline", true);
 
     if (auto hr = m_command_allocator[frame_index]->Reset(); FAILED(hr))
     {

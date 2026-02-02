@@ -4,14 +4,15 @@
 
 #ifndef PALADIN_PROFILING_H
 #define PALADIN_PROFILING_H
-
+#define TRACY_ENABLE 1
+#include <tracy/Tracy.hpp>
 #ifdef PIX_ENABLE
 #include <filesystem>
 #include <shlobj_core.h>
 
-class Profiling {
+#include "Logger.h"
 
-};
+#include "WinPixEventRuntime/pix3.h"
 static std::wstring GetLatestWinPixGpuCapturerPath_Cpp17()
 {
     LPWSTR programFilesPath = nullptr;
@@ -39,6 +40,16 @@ static std::wstring GetLatestWinPixGpuCapturerPath_Cpp17()
     }
 
     return pixInstallationPath/ newestVersionFound / L"WinPixGpuCapturer.dll";
+}
+
+static void LoadWinPixEventRuntime()
+{
+    if (GetModuleHandle(reinterpret_cast<LPCSTR>(L"WinPixGpuCapturer.dll")) == 0)
+    {
+        std::wstring pix_path = GetLatestWinPixGpuCapturerPath_Cpp17();
+        PALADIN_LOG(INFO, "Loading PIX from: " + ConvertWString(pix_path))
+        LoadLibraryW(GetLatestWinPixGpuCapturerPath_Cpp17().c_str());
+    }
 }
 #endif
 
