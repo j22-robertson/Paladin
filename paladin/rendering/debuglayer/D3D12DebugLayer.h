@@ -6,7 +6,9 @@
 #define PALADIN_D3D12DEBUGLAYER_H
 #include <wrl/client.h>
 #include <d3dx12/d3dx12.h>
+#include <dxgi1_3.h>
 #include <dxgidebug.h>
+#include "Logger.h"
 
 class D3D12DebugLayer {
 public:

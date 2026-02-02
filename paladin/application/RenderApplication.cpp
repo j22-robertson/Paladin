@@ -13,9 +13,11 @@ RenderApplication::~RenderApplication() {
     ImGui::DestroyContext();
 
     glfwTerminate();
+    PALADIN_LOG(INFO, "ENDING APPLICATION")
 }
 
 void RenderApplication::run() {
+    PALADIN_LOG(INFO, "STARTING APPLICATION")
     Setup();
 
     while (!glfwWindowShouldClose(window)) {
@@ -30,7 +32,6 @@ void RenderApplication::run() {
 }
 
 void RenderApplication::Setup() {
-    std::cout << "Hello World from Paladin"<< std::endl;
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
@@ -48,7 +49,7 @@ void RenderApplication::Setup() {
 
     if (window == nullptr) {
         glfwTerminate();
-        std::cerr << "Failed to create GLFW window" << std::endl;
+        PALADIN_LOG(ERR, "Failed to create GLFW window")
     }
     auto hwnd = glfwGetWin32Window(window);
     ImGui_ImplGlfw_InitForOther(window,true);

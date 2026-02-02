@@ -15,6 +15,7 @@
 #include "../rendering/D3D12Context.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
+#include "Logger.h"
 //TODO: Create a window class
 class RenderApplication final : IApplication {
 public:

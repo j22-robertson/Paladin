@@ -16,9 +16,9 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     if (GetModuleHandle(reinterpret_cast<LPCSTR>(L"WinPixGpuCapturer.dll")) == 0)
     {
 
-        //LPCSTR pix_path = GetLatestWinPixGpuCapturerPath_Cpp17().c_str();
-        std::wcout << "loading pix from: " << GetLatestWinPixGpuCapturerPath_Cpp17() << std::endl;
-        //LoadLibrary();
+
+        std::wstring pix_path = GetLatestWinPixGpuCapturerPath_Cpp17();
+        PALADIN_LOG(INFO, "Loading PIX from: " + ConvertWString(pix_path))
         LoadLibraryW(GetLatestWinPixGpuCapturerPath_Cpp17().c_str());
     }
 #endif
@@ -33,8 +33,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     Microsoft::WRL::ComPtr<IDXGIFactory2> m_dxgi_factory = nullptr;
     if (auto hr = CreateDXGIFactory2(factory_flags,IID_PPV_ARGS(&m_dxgi_factory)); FAILED(hr)) {
-
-        std::cout << "Created DXGIFactory" << std::endl;
+        PALADIN_LOG(INFO, "Created DXGI Factory")
     }
 
     bool adapter_found = false;
@@ -42,10 +41,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     for (UINT adapter_index= 0; able_to_support_feature; adapter_index++ )
     {
         if (auto hr =  m_dxgi_factory->EnumAdapters1(adapter_index, &adapter); FAILED(hr)) {
-
-            std::stringstream ss;
-            ss << "Failed to match feature level. Error code: " << std::hex << hr << std::endl;
-            PALADIN_LOG(ERR, ss.str());
+            PALADIN_LOG(ERR, ErrorResult("Failed to match feature level." , hr))
             able_to_support_feature = false;
         }
 
@@ -57,20 +53,20 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
             continue;
         }
         if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_2, _uuidof(ID3D12Device), nullptr))) {
-            std::wcout << desc.Description << std::endl;
+            std::wstring gpu_name = desc.Description;
+            PALADIN_LOG(INFO, "Found Graphics Device: " + ConvertWString(gpu_name))
             adapter_found = true;
             break;
         }
     }
 
     if (adapter_found) {
-        std::cout << "Found DXGI device adapter" << std::endl;
+        PALADIN_LOG(INFO, "Found DXGI Device Adapter")
         if (const auto hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&m_device)); SUCCEEDED(hr))
         {
             if (m_device.Get()) {
-                std::cout << "Created D3D12 device" << std::endl;
+                PALADIN_LOG(INFO, "Created D3D12 Device")
             }
-            std::cout << "Created device" << std::endl;
         }
         else if (FAILED(hr)){
             PALADIN_LOG(ERR, ErrorResult("Failed to create device.",hr))
@@ -83,7 +79,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
     if (auto hr = m_device->CreateCommandQueue(&command_queue_desc,IID_PPV_ARGS(&m_command_queue)); SUCCEEDED(hr)) {
-        std::cout << "Created command queue" << std::endl;
         PALADIN_LOG(INFO, "Created command queue")
     }
     else if (FAILED(hr)) {
@@ -118,7 +113,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         &swap_chain_desc,
         reinterpret_cast<IDXGISwapChain**>(m_swap_chain.GetAddressOf())
     ); SUCCEEDED(hr)) {
-        std::cout << "Created swap chain successfully" << std::endl;
+        PALADIN_LOG(INFO, "Succesfully created swap chain")
     }
     else if (FAILED(hr)) {
         PALADIN_LOG(ERR,ErrorResult("Failed to create swap chain",hr))
@@ -148,7 +143,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
     if (auto hr = m_device->CreateDescriptorHeap(&rtv_heap_desc,IID_PPV_ARGS(&m_rtv_descriptor_heap)); SUCCEEDED(hr)) {
-        std::cout << "Created rtv descriptor heap successfully" << std::endl;
+        PALADIN_LOG(INFO, "Succesfully created rtv descriptor heap")
     }
     else if (FAILED(hr)) {
         PALADIN_LOG(ERR, ErrorResult("Failed to create rtv descriptor heap", hr))
@@ -191,11 +186,12 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     {
         if (auto hr = m_device->CreateFence(0,D3D12_FENCE_FLAG_NONE,IID_PPV_ARGS(&m_fence[i])); SUCCEEDED(hr))
         {
-            std::cout << "Created Fence." << std::endl;
+            PALADIN_LOG(INFO, "Created Fence.")
+
         }
         else if (FAILED(hr))
         {
-            std::cout << "Failed to create Fence. ERROR: "<<std::hex<<hr << std::endl;
+            PALADIN_LOG(ERR, ErrorResult("Failed to create Fence", hr))
         }
         fence_value[i] = 0;
     }
@@ -227,11 +223,12 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     if (auto hr = m_device->CreateRootSignature(0,signature->GetBufferPointer(),signature->GetBufferSize(),IID_PPV_ARGS(&m_root_signature)); SUCCEEDED(hr))
     {
-        std::cout << "Succesfully created root signature" << std::endl;
+        PALADIN_LOG(INFO, "Succesfully created root signature");
+        //std::cout << "Succesfully created root signature" << std::endl;
     }
     else if (FAILED(hr))
     {
-        std::cout << "Failed to create root signature. ERROR: "<<std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to create root signature", hr))
     }
 
     DXShader vertex_shader = DXShader(VertexShader, L"vs.vert",L"main");
@@ -240,7 +237,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     if (m_shader_compiler.LoadShader(vertex_shader))
     {
-        std::cout << "Successfully loaded vertex shader" << std::endl;
         vertex_shader_bytecode.BytecodeLength = vertex_shader.GetCompiledShader()->GetBufferSize();
         vertex_shader_bytecode.pShaderBytecode = vertex_shader.GetCompiledShader()->GetBufferPointer();
         PALADIN_LOG(INFO, "Loaded: " + ConvertWString(vertex_shader.shader_input_file) )
