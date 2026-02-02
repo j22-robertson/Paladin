@@ -42,8 +42,9 @@ PaladinLogger::~PaladinLogger()
 
 void PaladinLogger::Log(LogContext context, const std::string& message)
 {
-    std::time_t now = std::time(0);
-    std::tm* time_info = std::localtime(&now);
+    std::time_t now = std::time(nullptr);
+
+    const std::tm* time_info = std::localtime(&now);
     char time_stamp[20];
     strftime(time_stamp, sizeof(time_stamp), "%Y-%m-%d %H:%M:%S", time_info);
 

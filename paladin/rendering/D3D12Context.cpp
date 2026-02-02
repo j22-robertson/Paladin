@@ -99,6 +99,7 @@ LoadWinPixEventRuntime();
     swap_chain_desc.OutputWindow = hwnd;
     swap_chain_desc.SampleDesc = sample_desc;
     swap_chain_desc.Windowed = true;
+    swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
 
     if (auto hr =m_dxgi_factory->CreateSwapChain(
@@ -414,11 +415,11 @@ Microsoft::WRL::ComPtr<ID3D12Resource> D3D12Context::UploadVertices() {
           D3D12_RESOURCE_STATE_GENERIC_READ,
           nullptr,
           IID_PPV_ARGS(&temporary_upload_heap)); FAILED(hr)) {
-        std::cout << "Failed to create upload heap. ERROR CODE: "<< std::hex << hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to create upload buffer.", hr))
         return nullptr;
           }
 
-    temporary_upload_heap->SetName(L"Temporary Upload Heap");
+    temporary_upload_heap->SetName(L"Temporary Upload");
 
     D3D12_SUBRESOURCE_DATA vertex_data = {};
 
@@ -443,7 +444,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> D3D12Context::UploadVertices() {
 bool D3D12Context::Render()
 {
     ZoneScoped("D3D12Context::Render", true);
-    PIXScopedEvent(m_command_queue.Get(), frame_color, "FRAME");
+    PIXScopedEvent(m_command_queue.Get(), frame_color, "D3D12Context::Render");
     if (!WaitForPreviousFrame())
     {
         return false;
@@ -458,13 +459,13 @@ bool D3D12Context::Render()
     fence_value[frame_index]++;
     if (auto hr = m_command_queue->Signal(m_fence[frame_index].Get(),fence_value[frame_index]); FAILED(hr))
     {
-        std::cout << "Failed to signal fence. ERROR:" << std::hex << hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to signal fence post UpdatePipeline", hr))
         return false;
     }
 
-    if (auto hr = m_swap_chain->Present(0,0); FAILED(hr))
+    if (auto hr = m_swap_chain->Present(0,DXGI_PRESENT_ALLOW_TEARING); FAILED(hr))
     {
-        std::cout << "Failed to present swap chain. ERROR:" << std::hex << hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to present swap chain", hr))
         return false;
     }
 
@@ -482,7 +483,7 @@ bool D3D12Context::WaitForPreviousFrame()
     if (m_fence[frame_index]->GetCompletedValue()<fence_waiting){
         if (auto hr = m_fence[frame_index]->SetEventOnCompletion(fence_waiting,fence_event); FAILED(hr))
         {
-            std::cout << "Failed to set fence. ERROR:" << std::hex << hr << std::endl;
+            PALADIN_LOG(ERR, ErrorResult("Failed to set fence event",hr))
             return false;
         }
         WaitForSingleObject(fence_event, INFINITE);
@@ -497,12 +498,14 @@ bool D3D12Context::UpdatePipeline()
 
     if (auto hr = m_command_allocator[frame_index]->Reset(); FAILED(hr))
     {
-        std::cout << "Failed to reset command allocator. ERROR:" << std::hex << hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to reset command allocator.", hr))
+
         return false;
     }
     if (auto hr = m_command_list->Reset(m_command_allocator[frame_index].Get(),m_pipeline_state.Get()); FAILED(hr))
     {
-        std::cout << "Failed to reset command list. ERROR:" << std::hex << hr << std::endl;
+        //std::cout << "Failed to reset command allocator. ERROR:" << std::hex << hr << std::endl;
+        //std::cout << "Failed to reset command list. ERROR:" << std::hex << hr << std::endl;
         return false;
     }
     ImGui_ImplDX12_NewFrame();

@@ -7,7 +7,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
-#include <ctime>
+#include <time.h>
 #include <fstream>
 #include <filesystem>
 #include <cstdlib>
@@ -46,11 +46,10 @@ inline std::string ConvertWString(std::wstring& wstr)
     return str;
 }
 
-inline std::string ErrorResult(std::string message, long result)
+inline std::string ErrorResult(const std::string& message, const long result)
 {
-    std::stringstream ss;
-    ss << std::hex << result << " : "<< message;
-    return ss.str();
+    return  std::format("{:08X} : {}", static_cast<uint32_t>(result), message);
+
 }
 
 class PaladinLogger {

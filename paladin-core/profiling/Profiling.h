@@ -6,6 +6,7 @@
 #define PALADIN_PROFILING_H
 #define TRACY_ENABLE 1
 #include <tracy/Tracy.hpp>
+#include <tracy/TracyD3D12.hpp>
 #ifdef PIX_ENABLE
 #include <filesystem>
 #include <shlobj_core.h>
