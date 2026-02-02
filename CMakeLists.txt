@@ -8,6 +8,7 @@ add_subdirectory(paladin-core)
 add_library(PaladinCore STATIC ${PALADIN_CORE_SOURCES})
 target_include_directories(PaladinCore PUBLIC paladin-core/)
 
+target_compile_definitions(PaladinCore PRIVATE PALADIN_ROOT_DIR="${PROJECT_SOURCE_DIR}")
 add_subdirectory(paladin)
 add_executable(PaladinRenderer ${PALADIN_SOURCES})
 
@@ -18,6 +19,7 @@ add_subdirectory(deps/tracy)
 add_subdirectory(deps/imgui)
 
 target_link_libraries(imgui PUBLIC glfw)
+
 
 target_link_libraries(PaladinRenderer PRIVATE
         PaladinCore

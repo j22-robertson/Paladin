@@ -33,6 +33,9 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     Microsoft::WRL::ComPtr<IDXGIFactory2> m_dxgi_factory = nullptr;
     if (SUCCEEDED(CreateDXGIFactory2(factory_flags,IID_PPV_ARGS(&m_dxgi_factory)))) {
+
+        PaladinLogger::Get().log(WARN, "Created DXGIFactory");
+
         std::cout << "Created DXGIFactory" << std::endl;
     }
 
