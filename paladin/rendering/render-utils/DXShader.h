@@ -9,9 +9,6 @@
 #include <wrl/client.h>
 #include <filesystem>
 
-
-
-
 enum ShaderType
 {
     VertexShader,
@@ -37,9 +34,9 @@ class DXShader
     }
 
     ShaderType type = NONE;
-    std::wstring shader_input_file;
     std::filesystem::path file_path;
     std::wstring entry_point;
+    std::wstring shader_input_file;
 private:
     Microsoft::WRL::ComPtr<IDxcBlob> compiled_shader = nullptr;
 

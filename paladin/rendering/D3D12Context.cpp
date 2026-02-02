@@ -32,9 +32,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter = nullptr;
 
     Microsoft::WRL::ComPtr<IDXGIFactory2> m_dxgi_factory = nullptr;
-    if (SUCCEEDED(CreateDXGIFactory2(factory_flags,IID_PPV_ARGS(&m_dxgi_factory)))) {
-
-        PaladinLogger::Get().log(WARN, "Created DXGIFactory");
+    if (auto hr = CreateDXGIFactory2(factory_flags,IID_PPV_ARGS(&m_dxgi_factory)); FAILED(hr)) {
 
         std::cout << "Created DXGIFactory" << std::endl;
     }
@@ -44,7 +42,10 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     for (UINT adapter_index= 0; able_to_support_feature; adapter_index++ )
     {
         if (auto hr =  m_dxgi_factory->EnumAdapters1(adapter_index, &adapter); FAILED(hr)) {
-            std::cout << "Failed to match feature level. Error code: " << std::hex << hr << std::endl;
+
+            std::stringstream ss;
+            ss << "Failed to match feature level. Error code: " << std::hex << hr << std::endl;
+            PALADIN_LOG(ERR, ss.str());
             able_to_support_feature = false;
         }
 
@@ -72,7 +73,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
             std::cout << "Created device" << std::endl;
         }
         else if (FAILED(hr)){
-            std::cout << "Failed to create device. Error code: " << std::hex << hr << std::endl;
+            PALADIN_LOG(ERR, ErrorResult("Failed to create device.",hr))
             return;
         }
     }
@@ -83,9 +84,10 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     if (auto hr = m_device->CreateCommandQueue(&command_queue_desc,IID_PPV_ARGS(&m_command_queue)); SUCCEEDED(hr)) {
         std::cout << "Created command queue" << std::endl;
+        PALADIN_LOG(INFO, "Created command queue")
     }
     else if (FAILED(hr)) {
-        std::cout << "Failed to create command queue. Error code: " << std::hex << hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to create command queue", hr))
     }
 
 
@@ -119,7 +121,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         std::cout << "Created swap chain successfully" << std::endl;
     }
     else if (FAILED(hr)) {
-        std::cout << "Failed to create swap chain. ERROR: "<<std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR,ErrorResult("Failed to create swap chain",hr))
     }
 
     frame_index = m_swap_chain->GetCurrentBackBufferIndex();
@@ -132,10 +134,10 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
     if (auto hr = m_device->CreateDescriptorHeap(&srv_heap_desc,IID_PPV_ARGS(&m_srv_descriptor_heap)); SUCCEEDED(hr)) {
-        std::cout << "Created srv descriptor heap successfully" << std::endl;
+        PALADIN_LOG(INFO, "Created srv descriptor heap")
     }
     else if (FAILED(hr)) {
-        std::cout << "Failed to create srv descriptor heap. ERROR: "<<std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to create srv descriptor heap", hr))
     }
 
 
@@ -149,7 +151,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         std::cout << "Created rtv descriptor heap successfully" << std::endl;
     }
     else if (FAILED(hr)) {
-        std::cout << "Failed to create descriptor heap. ERROR: "<<std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to create rtv descriptor heap", hr))
     }
 
     auto rtv_descriptor_size =  m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -158,10 +160,10 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++) {
         if (auto hr = m_swap_chain->GetBuffer(i, IID_PPV_ARGS(&m_render_target[i])); SUCCEEDED(hr)) {
-            std::cout << "Created render target." << std::endl;
+            PALADIN_LOG(INFO, "Created render target")
         }
         else if (FAILED(hr)) {
-            std::cout << "Failed to get render target. ERROR: "<<std::hex<<hr << std::endl;
+            PALADIN_LOG(ERR, ErrorResult("Failed to create render target", hr))
         }
         m_device->CreateRenderTargetView(m_render_target[i].Get(), nullptr, rtv_cpu_handle);
         rtv_cpu_handle.ptr += rtv_descriptor_size;
@@ -169,18 +171,19 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++) {
         if (auto hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_command_allocator[i])); SUCCEEDED(hr)) {
-            std::cout << "Created command allocator" << std::endl;
+            PALADIN_LOG(INFO, "Created command allocator")
         }
         else if (FAILED(hr)) {
-            std::cout << "Failed to create Commannd Allocator. ERROR: "<<std::hex<<hr << std::endl;
+            PALADIN_LOG(ERR, ErrorResult("Failed to create command allocator", hr))
+
         }
     }
 
     if (auto hr = m_device->CreateCommandList(0,D3D12_COMMAND_LIST_TYPE_DIRECT,m_command_allocator[0].Get(),NULL, IID_PPV_ARGS(&m_command_list)); SUCCEEDED(hr)) {
-        std::cout << "Created Command List." << std::endl;
+        PALADIN_LOG(INFO, "Created Command List")
     }
     else if (FAILED(hr)) {
-        std::cout << "Failed to create Command List. ERROR: "<<std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to create command list", hr))
     }
    // m_command_list->Close();
 
@@ -201,7 +204,8 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     fence_event = CreateEvent(nullptr, false, false, nullptr);
     if (fence_event == nullptr)
     {
-        std::cout << "Failed to create fence event." << std::endl;
+        PALADIN_LOG(ERR, "Failed to create fence event.")
+
         return;
     }
 
@@ -213,11 +217,11 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     if (auto hr = D3D12SerializeRootSignature(&root_signature_desc,D3D_ROOT_SIGNATURE_VERSION_1_0,&signature,nullptr); SUCCEEDED(hr))
     {
-        std::cout << "Succesfully serialized root signature" << std::endl;
+        PALADIN_LOG(INFO, "Succesfully serialized root signature")
     }
     else if (FAILED(hr))
     {
-        std::cout << "Failed to serialize root signature. ERROR: "<<std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to serialize root signature",hr))
         return;
     }
 
@@ -239,25 +243,22 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         std::cout << "Successfully loaded vertex shader" << std::endl;
         vertex_shader_bytecode.BytecodeLength = vertex_shader.GetCompiledShader()->GetBufferSize();
         vertex_shader_bytecode.pShaderBytecode = vertex_shader.GetCompiledShader()->GetBufferPointer();
-
+        PALADIN_LOG(INFO, "Loaded: " + ConvertWString(vertex_shader.shader_input_file) )
     }
     else
     {
-        std::cout << "Failed to load vertex shader" << std::endl;
+        PALADIN_LOG(ERR, "Unable to load: " + ConvertWString(vertex_shader.shader_input_file))
     }
 
     D3D12_SHADER_BYTECODE fragment_shader_bytecode = {};
     DXShader fragment_shader = DXShader(FragmentShader, L"fs.frag",L"main");
-    if (m_shader_compiler.LoadShader(fragment_shader))
+    if (!m_shader_compiler.LoadShader(fragment_shader))
     {
-        fragment_shader_bytecode.BytecodeLength = fragment_shader.GetCompiledShader()->GetBufferSize();
-        fragment_shader_bytecode.pShaderBytecode = fragment_shader.GetCompiledShader()->GetBufferPointer();
-        std::cout << "Successfully loaded fragment shader" << std::endl;
+        PALADIN_LOG(ERR, "Unable to load: " + ConvertWString(fragment_shader.shader_input_file))
+        return;
     }
-    else
-    {
-        std::cout << "Failed to load fragment shader" << std::endl;
-    }
+    fragment_shader_bytecode.BytecodeLength = fragment_shader.GetCompiledShader()->GetBufferSize();
+    fragment_shader_bytecode.pShaderBytecode = fragment_shader.GetCompiledShader()->GetBufferPointer();
 
 
 
@@ -292,11 +293,11 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     if (auto hr = m_device->CreateGraphicsPipelineState(&pso_desc,IID_PPV_ARGS(&m_pipeline_state)); SUCCEEDED(hr))
     {
-        std::cout << "Successfully created pipeline state" << std::endl;
+        PALADIN_LOG(INFO, "Successfully created pipeline state")
     }
     else if (FAILED(hr))
     {
-        std::cout << "Failed to create pipeline state. ERROR: "<<std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to create pipeline state.", hr))
     }
 
     int vertex_buffer_size = sizeof(triangle_vertices);
@@ -310,7 +311,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         D3D12_RESOURCE_STATE_COPY_DEST,
         nullptr,
         IID_PPV_ARGS(&triangle_vertex_buffer));FAILED(hr)) {
-            std::cout << "Failed to allocate memory for Vertex Buffer. ERROR CODE: "<< std::hex << hr << std::endl;
+            PALADIN_LOG(ERR,ErrorResult("Failed to aallocate memory for Vertex Buffer", hr))
             return;
         }
 
@@ -327,7 +328,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
           D3D12_RESOURCE_STATE_GENERIC_READ,
           nullptr,
           IID_PPV_ARGS(&temporary_upload_heap)); FAILED(hr)) {
-        std::cout << "Failed to create upload heap. ERROR CODE: "<< std::hex << hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to create upload heap", hr))
         return;
     }
 
@@ -357,7 +358,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     auto hr =  m_command_queue->Signal(m_fence[frame_index].Get(), fence_value[frame_index]);
 
     if (FAILED(hr)) {
-        std::cout << "Failed to signal fence, error: " << std::hex << hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to signal fence.", hr))
     }
     vertex_buffer_view.BufferLocation = triangle_vertex_buffer->GetGPUVirtualAddress();
     vertex_buffer_view.SizeInBytes = vertex_buffer_size;

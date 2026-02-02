@@ -10,10 +10,11 @@ PaladinLogger::PaladinLogger()
     if (std::filesystem::exists(paladin_log_folder))
     {
         paladin_log_file_path = paladin_log_folder / "paladin-log.txt";
-
         if (!paladin_log_file.is_open())
         {
-            paladin_log_file.open(paladin_log_file_path, std::ios::app);
+
+            paladin_log_file.open(paladin_log_file_path);
+            paladin_log_file.clear();
         }
     }
     else
@@ -39,7 +40,7 @@ PaladinLogger::~PaladinLogger()
     paladin_log_file.close();
 }
 
-void PaladinLogger::log(LogContext context, const std::string& message)
+void PaladinLogger::Log(LogContext context, const std::string& message)
 {
     std::time_t now = std::time(0);
     std::tm* time_info = std::localtime(&now);
@@ -47,7 +48,7 @@ void PaladinLogger::log(LogContext context, const std::string& message)
     strftime(time_stamp, sizeof(time_stamp), "%Y-%m-%d %H:%M:%S", time_info);
 
     std::stringstream log_entry;
-    log_entry << "[" << time_stamp << "] " << log_context_to_string(context) << message << std::endl;
+    log_entry << "[" << time_stamp << "] " << ContextToString(context)<<":" << message << std::endl;
     std::cout << log_entry.str();
 
     if (paladin_log_file.is_open())
@@ -63,7 +64,7 @@ PaladinLogger& PaladinLogger::Get()
     return instance;
 }
 
-std::string PaladinLogger::log_context_to_string(LogContext context)
+std::string PaladinLogger::ContextToString(LogContext context)
 {
     switch (context) {
     case DEBUG:

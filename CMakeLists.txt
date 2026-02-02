@@ -50,6 +50,11 @@ add_custom_command(TARGET PaladinRenderer POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:PaladinRenderer> $<TARGET_RUNTIME_DLLS:PaladinRenderer>
         COMMAND_EXPAND_LISTS
 )
+option(ENABLE_LOGGING "Enable logging" ON)
+if(ENABLE_LOGGING)
+    target_compile_definitions(PaladinCore PRIVATE PALADIN_LOG_ENABLE)
+    target_compile_definitions(PaladinRenderer PRIVATE PALADIN_LOG_ENABLE)
+endif ()
 
 option(ENABLE_PROFILING "Enable PIX and Tracy" OFF)
 if(ENABLE_PROFILING)

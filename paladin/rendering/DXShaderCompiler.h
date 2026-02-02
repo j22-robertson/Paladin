@@ -8,7 +8,7 @@
 #include <iostream>
 #include <filesystem>
 #include <dxcapi.h>
-
+#include "Logger.h"
 #include "render-utils/DXShader.h"
 class DXShaderCompiler
 {

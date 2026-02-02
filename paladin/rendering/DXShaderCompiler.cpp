@@ -7,33 +7,31 @@
 ///https://www.wihlidal.com/blog/pipeline/2018-09-16-dxil-signing-post-compile/
 #include "DXShaderCompiler.h"
 
+#include <codecvt>
+
 DXShaderCompiler::DXShaderCompiler()
 {
     if (auto hr = DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&m_library)); FAILED(hr))
     {
-        std::cout << "Unable to create DxcLibrary ERROR: " << std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Unable to create DxcLibrary",hr))
     }
-
     if (auto hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&m_compiler)); FAILED(hr))
     {
-        std::cout << "Unable to create DxcCompiler. ERROR: " << std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Unable to create DXcCompiler",hr))
     }
-
     if (auto hr = DxcCreateInstance(CLSID_DxcValidator, IID_PPV_ARGS(&m_validator)); FAILED(hr))
     {
-        std::cout << "Unable to create DxcValidator. ERROR: " << std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Unable to create DxcValidator.", hr))
     }
     if (auto hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&m_utils)); FAILED(hr))
     {
-        std::cout << "Unable to load DxcUtils. ERROR: " << std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Unable to load DxcUtils.",hr))
     }
 
     if (auto hr = m_utils->CreateDefaultIncludeHandler(&m_includeHandler); FAILED(hr))
     {
-        std::cout << "Unable to create DxcIncludeHandler. ERROR: " << std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Unable to create DxcIncludeHandler.",hr))
     }
-
-
 }
 
 bool DXShaderCompiler::LoadShader(DXShader& shader)
@@ -41,7 +39,7 @@ bool DXShaderCompiler::LoadShader(DXShader& shader)
     Microsoft::WRL::ComPtr<IDxcBlobEncoding> shader_encoding = nullptr;
     if (auto hr = m_library->CreateBlobFromFile(shader.file_path.c_str(),&code_page,shader_encoding.GetAddressOf()); FAILED(hr))
     {
-        std::wcout << "Unable to create source blob for: "<< shader.shader_input_file << " ERROR: " << std::hex<<hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Unable to create source blob for: " + ConvertWString(shader.shader_input_file),hr))
         return false;
     }
 
@@ -68,7 +66,7 @@ bool DXShaderCompiler::LoadShader(DXShader& shader)
         arguments.push_back(L"ps_6_6");
         break;
     case NONE:
-        std::wcout << shader.shader_input_file << " does not have a specified shader type" << std::endl;
+        PALADIN_LOG(WARN, ConvertWString(shader.shader_input_file) + " does not have a specified shader type")
         return false;
         break;
     }
@@ -89,14 +87,15 @@ bool DXShaderCompiler::LoadShader(DXShader& shader)
         compilation_result->GetStatus(&hr);
         if (FAILED(hr))
         {
-            std::cout << "Failed to compile shader: " << std::hex << hr << std::endl;
+            PALADIN_LOG(ERR, ErrorResult("Failed to compile shader : "+ ConvertWString(shader.shader_input_file),hr))
             Microsoft::WRL::ComPtr<IDxcBlobEncoding> error_encoding = nullptr;
             if (compilation_result)
             {
                 auto error = compilation_result->GetErrorBuffer(error_encoding.GetAddressOf());
                 if (SUCCEEDED(error) && error_encoding)
                 {
-                    std::cout << "Error buffer: " << static_cast<const char*>(error_encoding->GetBufferPointer()) << std::endl;
+                    std::string s = static_cast<const char*>(error_encoding->GetBufferPointer());
+                    PALADIN_LOG(ERR, "Error Buffer:" + s );
                 }
             }
         }
