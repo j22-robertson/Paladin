@@ -99,7 +99,7 @@ LoadWinPixEventRuntime();
     swap_chain_desc.OutputWindow = hwnd;
     swap_chain_desc.SampleDesc = sample_desc;
     swap_chain_desc.Windowed = true;
-    swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
 
 
     if (auto hr =m_dxgi_factory->CreateSwapChain(
@@ -174,6 +174,7 @@ LoadWinPixEventRuntime();
     else if (FAILED(hr)) {
         PALADIN_LOG(ERR, ErrorResult("Failed to create command list", hr))
     }
+
    // m_command_list->Close();
 
     for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++)
@@ -381,6 +382,17 @@ LoadWinPixEventRuntime();
         m_srv_descriptor_heap.Get(),
         srv_handle,
         m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
+
+#ifdef TRACY_ENABLE
+    m_tracy_context = TracyD3D12Context(m_device.Get(),m_command_queue.Get())
+    if (m_tracy_context == nullptr) {
+        PALADIN_LOG(ERR, "Unable to create tracy context.")
+    }
+    else {
+        PALADIN_LOG(INFO,"Tracy context created.");
+    }
+#endif
+
     //imgui_init_info.SrvDescriptorHeap =
     //ImGui_ImplDX12_Init()
 }
@@ -443,12 +455,17 @@ Microsoft::WRL::ComPtr<ID3D12Resource> D3D12Context::UploadVertices() {
 
 bool D3D12Context::Render()
 {
-    ZoneScoped("D3D12Context::Render", true);
-    PIXScopedEvent(m_command_queue.Get(), frame_color, "D3D12Context::Render");
+    //ZoneScoped("D3D12Context::Render", true);
+    PALADIN_SCOPED_CPU_PROFILE("D3D12Context::Render", ProfileColors::Red);
+    PALADIN_BEGIN_GPU_PROFILE(m_command_queue.Get(), ProfileColors::Green, "D3D12Context::Render")
+    //PIXScopedEvent(m_command_queue.Get(), frame_color, "D3D12Context::Render");
     if (!WaitForPreviousFrame())
     {
         return false;
     }
+    TracyD3D12Collect(m_tracy_context)
+
+    TracyD3D12NewFrame(m_tracy_context)
     if (!UpdatePipeline())
     {
         return false;
@@ -463,11 +480,13 @@ bool D3D12Context::Render()
         return false;
     }
 
-    if (auto hr = m_swap_chain->Present(0,DXGI_PRESENT_ALLOW_TEARING); FAILED(hr))
+    if (auto hr = m_swap_chain->Present(0,0); FAILED(hr))
     {
         PALADIN_LOG(ERR, ErrorResult("Failed to present swap chain", hr))
         return false;
     }
+
+
 
     return true;
 }
@@ -494,51 +513,56 @@ bool D3D12Context::WaitForPreviousFrame()
 
 bool D3D12Context::UpdatePipeline()
 {
-    ZoneScoped("D3D12Context::UpdatePipeline", true);
+    PALADIN_SCOPED_CPU_PROFILE("D3D12Context::UpdatePipeline",ProfileColors::Red);
 
     if (auto hr = m_command_allocator[frame_index]->Reset(); FAILED(hr))
     {
         PALADIN_LOG(ERR, ErrorResult("Failed to reset command allocator.", hr))
-
         return false;
     }
     if (auto hr = m_command_list->Reset(m_command_allocator[frame_index].Get(),m_pipeline_state.Get()); FAILED(hr))
     {
-        //std::cout << "Failed to reset command allocator. ERROR:" << std::hex << hr << std::endl;
-        //std::cout << "Failed to reset command list. ERROR:" << std::hex << hr << std::endl;
+        PALADIN_LOG(ERR, ErrorResult("Failed to reset command allocator.", hr))
         return false;
     }
-    ImGui_ImplDX12_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-    ImGui::ShowDemoWindow();
+
+    {
+        PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Draw Commands", ProfileColors::Green)
+
+        ImGui_ImplDX12_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        ImGui::ShowDemoWindow();
 
 
-    m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
-    m_command_list->RSSetViewports(1, &m_viewport);
-    m_command_list->RSSetScissorRects(1,&m_scissor);
+        m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
+        m_command_list->RSSetViewports(1, &m_viewport);
+        m_command_list->RSSetScissorRects(1,&m_scissor);
 
-    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_render_target[frame_index].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+        auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_render_target[frame_index].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-    m_command_list->ResourceBarrier(1,&barrier);
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(m_rtv_descriptor_heap->GetCPUDescriptorHandleForHeapStart(),frame_index,m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
-    m_command_list->OMSetRenderTargets(1, &rtv_handle, false, nullptr);
-    const float clear_colour[] = { 0.0f,0.2f,0.4f,1.0f };
-    m_command_list->ClearRenderTargetView(rtv_handle,clear_colour,0,nullptr);
+        m_command_list->ResourceBarrier(1,&barrier);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(m_rtv_descriptor_heap->GetCPUDescriptorHandleForHeapStart(),frame_index,m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
+        m_command_list->OMSetRenderTargets(1, &rtv_handle, false, nullptr);
+        const float clear_colour[] = { 0.0f,0.2f,0.4f,1.0f };
+        m_command_list->ClearRenderTargetView(rtv_handle,clear_colour,0,nullptr);
 
-    m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
+        m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
 
-    m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    m_command_list->IASetVertexBuffers(0,1,&vertex_buffer_view);
-    m_command_list->DrawInstanced(3,1,0,0);
+        m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        m_command_list->IASetVertexBuffers(0,1,&vertex_buffer_view);
+        m_command_list->DrawInstanced(3,1,0,0);
 
-    ID3D12DescriptorHeap* heaps[] = {m_srv_descriptor_heap.Get() };
-    m_command_list->SetDescriptorHeaps(1, heaps);
-    ImGui::Render();
-    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_command_list.Get());
+        ID3D12DescriptorHeap* heaps[] = {m_srv_descriptor_heap.Get() };
+        m_command_list->SetDescriptorHeaps(1, heaps);
+        ImGui::Render();
+        ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_command_list.Get());
 
-    auto barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(m_render_target[frame_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-    m_command_list->ResourceBarrier(1, &barrier2);
+        auto barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(m_render_target[frame_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+        m_command_list->ResourceBarrier(1, &barrier2);
+
+    }
+
     if (auto hr = m_command_list->Close();FAILED(hr))
     {
         std::cout << "Failed to close command list. ERROR:" << std::hex << hr << std::endl;
@@ -563,6 +587,7 @@ D3D12Context::~D3D12Context() {
             WaitForSingleObject(fence_event, INFINITE);
         }
     }
+    TracyD3D12Destroy(m_tracy_context)
     ImGui_ImplDX12_Shutdown();
     CloseHandle(fence_event);
 #ifdef _DEBUG

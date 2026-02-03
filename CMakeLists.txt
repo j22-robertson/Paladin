@@ -4,7 +4,7 @@ project(Paladin)
 set(CMAKE_CXX_STANDARD 20)
 
 if (WIN32)
-    set(CMAKE_OBJECT_PATH_MAX 560)
+    set(CMAKE_OBJECT_PATH_MAX 660)
 endif ()
 add_subdirectory(paladin-core)
 add_library(PaladinCore STATIC ${PALADIN_CORE_SOURCES})
@@ -15,16 +15,45 @@ add_subdirectory(paladin)
 add_executable(PaladinRenderer ${PALADIN_SOURCES})
 
 
+option(ENABLE_TRACY "Enable Tracy" OFF)
+option(ENABLE_PIX "Enable PIX" OFF)
+
+if(ENABLE_TRACY AND ENABLE_PIX)
+    message(FATAL_ERROR "Conflict: Unable to use PIX and Tracy simultaneously")
+endif ()
+
+if(ENABLE_TRACY)
+    set(TRACY_ENABLE ON CACHE BOOL "" FORCE)
+    target_compile_definitions(PaladinCore PRIVATE
+            TRACY_ENABLE
+    TRACY_NO_CALLSTACK)
+    target_compile_definitions(PaladinRenderer PRIVATE
+            TRACY_ENABLE
+            TRACY_EXPORTS
+            TRACY_NO_CALLSTACK)
+else ()
+    set(TRACY_ENABLE OFF CACHE BOOL "" FORCE)
+endif ()
+
+if(ENABLE_PIX)
+    set(TRACY_ENABLE OFF CACHE BOOL "" FORCE)
+    target_compile_definitions(PaladinRenderer PRIVATE PIX_ENABLE)
+endif ()
+
+
+
 add_subdirectory(deps/d3d12)
 add_subdirectory(deps/glfw)
 add_subdirectory(deps/tracy)
 add_subdirectory(deps/imgui)
+add_subdirectory(deps/assimp)
 
 target_link_libraries(imgui PUBLIC glfw)
 
 
+
 target_link_libraries(PaladinRenderer PRIVATE
-        PaladinCore
+        PaladinCore # Core library for Paladin
         agilitysdk # for latest D3D12 headers & DLLs
         agilitysdk_d3dx12 # d3dx12 helper library from the agility sdk
         d3d12 # core library, assumed to be agility sdk compatible
@@ -35,7 +64,8 @@ target_link_libraries(PaladinRenderer PRIVATE
         glfw # Windowing and input
         winpix # Runtime GPU Capture and CPU capture through PIX
         Tracy::TracyClient # Additional runtime profiling capabilities
-        imgui
+        imgui # GUI
+        assimp # Mesh loading
 )
 
 target_compile_definitions(PaladinRenderer PRIVATE PALADIN_ROOT_DIR="${PROJECT_SOURCE_DIR}")
@@ -56,14 +86,6 @@ option(ENABLE_LOGGING "Enable logging" ON)
 if(ENABLE_LOGGING)
     target_compile_definitions(PaladinCore PRIVATE PALADIN_LOG_ENABLE)
     target_compile_definitions(PaladinRenderer PRIVATE PALADIN_LOG_ENABLE)
-    target_compile_definitions(PaladinCore PRIVATE TRACY_ENABLE)
-endif ()
 
-option(ENABLE_PROFILING "Enable PIX and Tracy" OFF)
-if(ENABLE_PROFILING)
-    target_compile_definitions(PaladinRenderer PRIVATE
-    PIX_ENABLE
-    TRACY_ENABLE
-    TRACY_EXPORTS)
 endif ()
 

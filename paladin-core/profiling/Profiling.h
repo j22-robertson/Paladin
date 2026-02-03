@@ -4,16 +4,43 @@
 
 #ifndef PALADIN_PROFILING_H
 #define PALADIN_PROFILING_H
-#define TRACY_ENABLE 1
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyD3D12.hpp>
+
+#include "WinPixEventRuntime/pix3.h"
+namespace ProfileColors {
+    static constexpr unsigned int Red    = 0xFFFF0000;
+    static constexpr unsigned int Green  = 0xFF00FF00;
+    static constexpr unsigned int Blue   = 0xFF0000FF;
+}
+/// PIX COLORS FOR SCOPED EVENTS AND MARKERS
+ const UINT32 frame_color = PIX_COLOR(64,255,0);
+#ifdef TRACY_ENABLE
+#define PALADIN_SCOPED_CPU_PROFILE(name, color) ZoneScopedNC(name, color);
+#define PALADIN_SCOPED_GPU_PROFILE(ctx, command_list, name) TracyD3D12Zone(ctx, command_list, name);
+#define PALADIN_SCOPED_GPU_PROFILE_C(ctx, command_list, name, color) TracyD3D12ZoneC(ctx, command_list, name, color);
+#define PALADIN_BEGIN_GPU_PROFILE()
+#elif PIX_ENABLE
+#define PALADIN_SCOPED_CPU_PROFILE(name, color) PIXScopedEvent(color,name)
+#define PALADIN_SCOPED_GPU_PROFILE(ctx, command_list, name) PIXScopedEvent(command_list, name)
+#define PALADIN_SCOPED_GPU_PROFILE_C(ctx, command_list, name, color) PIXScopedEvent(command_list, color, name);
+#define PALADIN_BEGIN_GPU_PROFILE(command_queue,color,name) PIXScopedEvent(command_queue, frame_color, name);
+#else
+#define PALADIN_SCOPED_CPU_PROFILE(name,color)
+#define PALADIN_SCOPED_GPU_PROFILE(ctx, command_list, name)
+#define PALADIN_BEGIN_GPU_PROFILE()
+#endif
+
+
+
+
+
 #ifdef PIX_ENABLE
 #include <filesystem>
 #include <shlobj_core.h>
 
 #include "Logger.h"
 
-#include "WinPixEventRuntime/pix3.h"
 static std::wstring GetLatestWinPixGpuCapturerPath_Cpp17()
 {
     LPWSTR programFilesPath = nullptr;

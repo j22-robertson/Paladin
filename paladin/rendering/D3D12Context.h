@@ -74,9 +74,9 @@ private:
     UINT fence_value[FRAME_BUFFER_COUNT] = {};
     UINT frame_index;
 
-
-    /// PIX COLORS FOR SCOPED EVENTS AND MARKERS
-    const UINT32 frame_color = PIX_COLOR(64,255,0);
+#ifdef TRACY_ENABLE
+    tracy::D3D12QueueCtx* m_tracy_context = nullptr;
+#endif
 
 };
 #endif //PALADIN_D3DX12CONTEXT_H

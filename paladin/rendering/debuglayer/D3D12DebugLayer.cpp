@@ -7,14 +7,18 @@
 
 bool D3D12DebugLayer::Init() {
     PALADIN_LOG(INFO, "Enabling D3D12DebugLayer")
+
 #ifdef _DEBUG
     if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&m_d3d12Debug)))) {
         m_d3d12Debug->EnableDebugLayer();
 #ifdef PIX_ENABLE
         PALADIN_LOG(INFO, "PIX Enabled: Setting GPU validation to false")
         m_d3d12Debug->SetEnableGPUBasedValidation(false);
+#elif TRACY_ENABLE
+        PALADIN_LOG(INFO, "Tracy Enabled: Setting GPU validation to false")
+        m_d3d12Debug->SetEnableGPUBasedValidation(false);
 #else
-        PALADIN_LOG(Info, "PIX Disabled: Enable GPU Based validation")
+        PALADIN_LOG(INFO, "PIX Disabled: Enable GPU Based validation")
         m_d3d12Debug->SetEnableGPUBasedValidation(true);
 #endif
 
@@ -35,6 +39,7 @@ bool D3D12DebugLayer::Init() {
     return false;
 }
 void D3D12DebugLayer::Shutdown() {
+   Microsoft::WRL::ComPtr<ID3D12DeviceRemovedExtendedData2> m_dred = nullptr;
 #ifdef _DEBUG
     if (m_dxgiDebug) {
         OutputDebugStringW(L"DXGI Debug Report Living Device Objects:\n");
