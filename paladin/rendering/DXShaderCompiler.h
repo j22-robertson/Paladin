@@ -10,6 +10,7 @@
 #include <dxcapi.h>
 #include "Logger.h"
 #include "render-utils/DXShader.h"
+#include "profiling/Profiling.h"
 class DXShaderCompiler
 {
 public:

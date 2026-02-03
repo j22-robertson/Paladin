@@ -10,11 +10,10 @@
 #include "imgui_impl_glfw.h"
 
 D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height) {
-
-#ifdef _DEBUG
 #ifdef PIX_ENABLE
-LoadWinPixEventRuntime();
+    LoadWinPixEventRuntime();
 #endif
+#ifdef _DEBUG
     D3D12DebugLayer::Get().Init();
     UINT factory_flags = DXGI_CREATE_FACTORY_DEBUG;
 #else
@@ -107,7 +106,7 @@ LoadWinPixEventRuntime();
         &swap_chain_desc,
         reinterpret_cast<IDXGISwapChain**>(m_swap_chain.GetAddressOf())
     ); SUCCEEDED(hr)) {
-        PALADIN_LOG(INFO, "Succesfully created swap chain")
+        PALADIN_LOG(INFO, "Successfully created swap chain")
     }
     else if (FAILED(hr)) {
         PALADIN_LOG(ERR,ErrorResult("Failed to create swap chain",hr))
@@ -137,7 +136,7 @@ LoadWinPixEventRuntime();
     rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
     if (auto hr = m_device->CreateDescriptorHeap(&rtv_heap_desc,IID_PPV_ARGS(&m_rtv_descriptor_heap)); SUCCEEDED(hr)) {
-        PALADIN_LOG(INFO, "Succesfully created rtv descriptor heap")
+        PALADIN_LOG(INFO, "Successfully created rtv descriptor heap")
     }
     else if (FAILED(hr)) {
         PALADIN_LOG(ERR, ErrorResult("Failed to create rtv descriptor heap", hr))
@@ -208,7 +207,7 @@ LoadWinPixEventRuntime();
 
     if (auto hr = D3D12SerializeRootSignature(&root_signature_desc,D3D_ROOT_SIGNATURE_VERSION_1_0,&signature,nullptr); SUCCEEDED(hr))
     {
-        PALADIN_LOG(INFO, "Succesfully serialized root signature")
+        PALADIN_LOG(INFO, "Successfully serialized root signature")
     }
     else if (FAILED(hr))
     {
@@ -218,8 +217,7 @@ LoadWinPixEventRuntime();
 
     if (auto hr = m_device->CreateRootSignature(0,signature->GetBufferPointer(),signature->GetBufferSize(),IID_PPV_ARGS(&m_root_signature)); SUCCEEDED(hr))
     {
-        PALADIN_LOG(INFO, "Succesfully created root signature");
-        //std::cout << "Succesfully created root signature" << std::endl;
+        PALADIN_LOG(INFO, "Successfully created root signature");
     }
     else if (FAILED(hr))
     {
@@ -232,8 +230,7 @@ LoadWinPixEventRuntime();
 
     if (m_shader_compiler.LoadShader(vertex_shader))
     {
-        vertex_shader_bytecode.BytecodeLength = vertex_shader.GetCompiledShader()->GetBufferSize();
-        vertex_shader_bytecode.pShaderBytecode = vertex_shader.GetCompiledShader()->GetBufferPointer();
+        vertex_shader_bytecode = vertex_shader.GetBytecode();
         PALADIN_LOG(INFO, "Loaded: " + ConvertWString(vertex_shader.shader_input_file) )
     }
     else
@@ -248,8 +245,7 @@ LoadWinPixEventRuntime();
         PALADIN_LOG(ERR, "Unable to load: " + ConvertWString(fragment_shader.shader_input_file))
         return;
     }
-    fragment_shader_bytecode.BytecodeLength = fragment_shader.GetCompiledShader()->GetBufferSize();
-    fragment_shader_bytecode.pShaderBytecode = fragment_shader.GetCompiledShader()->GetBufferPointer();
+    fragment_shader_bytecode = fragment_shader.GetBytecode();
 
 
 
@@ -398,7 +394,7 @@ LoadWinPixEventRuntime();
 }
 
 Microsoft::WRL::ComPtr<ID3D12Resource> D3D12Context::UploadVertices() {
-
+    //TODO: UploadModel takes model data and uploads it to a GPU buffer for access, return handle for use in application
     int vertex_buffer_size = sizeof(triangle_vertices);
 
     auto heap_properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
@@ -455,10 +451,8 @@ Microsoft::WRL::ComPtr<ID3D12Resource> D3D12Context::UploadVertices() {
 
 bool D3D12Context::Render()
 {
-    //ZoneScoped("D3D12Context::Render", true);
     PALADIN_SCOPED_CPU_PROFILE("D3D12Context::Render", ProfileColors::Red);
     PALADIN_BEGIN_GPU_PROFILE(m_command_queue.Get(), ProfileColors::Green, "D3D12Context::Render")
-    //PIXScopedEvent(m_command_queue.Get(), frame_color, "D3D12Context::Render");
     if (!WaitForPreviousFrame())
     {
         return false;
@@ -470,9 +464,12 @@ bool D3D12Context::Render()
     {
         return false;
     }
-    ID3D12CommandList* command_lists[] = {m_command_list.Get()};
+    {
+        PALADIN_SCOPED_CPU_PROFILE("Execute Command Lists", ProfileColors::Red);
+        ID3D12CommandList* command_lists[] = {m_command_list.Get()};
+        m_command_queue->ExecuteCommandLists(_countof(command_lists),command_lists);
+    }
 
-    m_command_queue->ExecuteCommandLists(_countof(command_lists),command_lists);
     fence_value[frame_index]++;
     if (auto hr = m_command_queue->Signal(m_fence[frame_index].Get(),fence_value[frame_index]); FAILED(hr))
     {
@@ -495,7 +492,7 @@ bool D3D12Context::Render()
 
 bool D3D12Context::WaitForPreviousFrame()
 {
-    ZoneScoped("D3D12Context::WaitForPreviousFrame", true);
+    PALADIN_SCOPED_CPU_PROFILE("WaitForPreviousFrame", ProfileColors::Red);
     frame_index = m_swap_chain->GetCurrentBackBufferIndex();
 
     const UINT64 fence_waiting = fence_value[frame_index];
@@ -514,7 +511,6 @@ bool D3D12Context::WaitForPreviousFrame()
 bool D3D12Context::UpdatePipeline()
 {
     PALADIN_SCOPED_CPU_PROFILE("D3D12Context::UpdatePipeline",ProfileColors::Red);
-
     if (auto hr = m_command_allocator[frame_index]->Reset(); FAILED(hr))
     {
         PALADIN_LOG(ERR, ErrorResult("Failed to reset command allocator.", hr))
@@ -535,7 +531,6 @@ bool D3D12Context::UpdatePipeline()
         ImGui::ShowDemoWindow();
 
 
-        m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
         m_command_list->RSSetViewports(1, &m_viewport);
         m_command_list->RSSetScissorRects(1,&m_scissor);
 

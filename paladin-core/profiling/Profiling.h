@@ -16,7 +16,11 @@ namespace ProfileColors {
 /// PIX COLORS FOR SCOPED EVENTS AND MARKERS
  const UINT32 frame_color = PIX_COLOR(64,255,0);
 #ifdef TRACY_ENABLE
-#define PALADIN_SCOPED_CPU_PROFILE(name, color) ZoneScopedNC(name, color);
+#define PALADIN_SCOPED_CPU_PROFILE(name, color)\
+    ZoneScoped;\
+    ZoneColor(color);\
+    ZoneName(name, strlen(name))
+
 #define PALADIN_SCOPED_GPU_PROFILE(ctx, command_list, name) TracyD3D12Zone(ctx, command_list, name);
 #define PALADIN_SCOPED_GPU_PROFILE_C(ctx, command_list, name, color) TracyD3D12ZoneC(ctx, command_list, name, color);
 #define PALADIN_BEGIN_GPU_PROFILE()
@@ -28,6 +32,7 @@ namespace ProfileColors {
 #else
 #define PALADIN_SCOPED_CPU_PROFILE(name,color)
 #define PALADIN_SCOPED_GPU_PROFILE(ctx, command_list, name)
+#define PALADIN_SCOPED_GPU_PROFILE_C(ctx, command_list, name, color);
 #define PALADIN_BEGIN_GPU_PROFILE()
 #endif
 

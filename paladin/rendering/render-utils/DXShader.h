@@ -5,6 +5,7 @@
 #ifndef PALADIN_DXSHADERFILE_H
 #define PALADIN_DXSHADERFILE_H
 #include <dxcapi.h>
+#include <d3d12.h>
 #include <string>
 #include <wrl/client.h>
 #include <filesystem>
@@ -27,6 +28,12 @@ class DXShader
         file_path =  root_dir / "paladin/rendering/shaders" / input_file;
         type = input_type;
         entry_point = _entry_point;
+    }
+    D3D12_SHADER_BYTECODE GetBytecode() {
+        D3D12_SHADER_BYTECODE shader_bytecode{};
+        shader_bytecode.BytecodeLength = compiled_shader->GetBufferSize();
+        shader_bytecode.pShaderBytecode = compiled_shader->GetBufferPointer();
+        return shader_bytecode;
     }
     Microsoft::WRL::ComPtr<IDxcBlob>& GetCompiledShader()
     {
