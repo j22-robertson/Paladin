@@ -1,0 +1,24 @@
+Future
+- GLM over DXMath for future cross platform rendering (VK, Metal)
+- Abstraction over Context/Backend and other rendering classes (Shader, ShaderCompiler etc)
+- Shader hot reloading
+- Meshlet generation
+- Render graph
+
+Maybe short term
+- Bindless rendering
+
+Short term
+- Asset loader
+- Load Images
+- Load Meshes, Models, Textures
+- DXMA for memory allocation
+- MeshOptimizer for mesh LODS
+- Create Buffer generically for VB IB Instance Buffer Tex etc
+- DxcShaderIncludeHandler to share common code between shaders
+
+Short term but unsure of implementation
+- Frame manager to manage fences?
+- Ring buffer?
+- Enhanced barriers/Resource state tracking
+- PSO hash map PSO can be swapped out
