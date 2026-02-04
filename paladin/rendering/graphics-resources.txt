@@ -9,3 +9,9 @@ https://abseil.io/fast/hints.html
 
 https://simoncoenen.com/blog/programming/StaticReflection
 https://rtarun9.github.io/blogs/bindless_rendering/
+https://voxel.wiki/wiki/vertex-pulling/
+https://gpuopen.com/learn/mesh_shaders/mesh_shaders-from_vertex_shader_to_mesh_shader/
+https://microsoft.github.io/DirectX-Specs/d3d/MeshShader.html
+
+DX12
+https://github.com/microsoft/DirectXShaderCompiler/wiki/Using-dxc.exe-and-dxcompiler.dll
