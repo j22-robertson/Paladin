@@ -1,7 +1,7 @@
 Future
 - GLM over DXMath for future cross platform rendering (VK, Metal)
 - Abstraction over Context/Backend and other rendering classes (Shader, ShaderCompiler etc)
-- Shader hot reloading
+- Shader hot reloading https://solarianprogrammer.com/2019/01/13/cpp-17-filesystem-write-file-watcher-monitor/
 - Meshlet generation
 - Render graph
 
