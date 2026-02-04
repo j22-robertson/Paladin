@@ -4,8 +4,8 @@
 
 #ifndef PALADIN_DXSHADERFILE_H
 #define PALADIN_DXSHADERFILE_H
-#include <dxcapi.h>
-#include <d3d12.h>
+#include "dxcapi.h"
+#include "d3d12.h"
 #include <string>
 #include <wrl/client.h>
 #include <filesystem>

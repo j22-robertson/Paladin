@@ -16,18 +16,25 @@ namespace ProfileColors {
 /// PIX COLORS FOR SCOPED EVENTS AND MARKERS
  const UINT32 frame_color = PIX_COLOR(64,255,0);
 #ifdef TRACY_ENABLE
+// Tracy
 #define PALADIN_SCOPED_CPU_PROFILE(name, color)\
     ZoneScoped;\
     ZoneColor(color);\
     ZoneName(name, strlen(name))
-
+// Tracy
 #define PALADIN_SCOPED_GPU_PROFILE(ctx, command_list, name) TracyD3D12Zone(ctx, command_list, name);
+// Tracy
 #define PALADIN_SCOPED_GPU_PROFILE_C(ctx, command_list, name, color) TracyD3D12ZoneC(ctx, command_list, name, color);
+// Not used by Tracy
 #define PALADIN_BEGIN_GPU_PROFILE()
 #elif PIX_ENABLE
+// Pix
 #define PALADIN_SCOPED_CPU_PROFILE(name, color) PIXScopedEvent(color,name)
+// Pix
 #define PALADIN_SCOPED_GPU_PROFILE(ctx, command_list, name) PIXScopedEvent(command_list, name)
+// Pix
 #define PALADIN_SCOPED_GPU_PROFILE_C(ctx, command_list, name, color) PIXScopedEvent(command_list, color, name);
+// Pix
 #define PALADIN_BEGIN_GPU_PROFILE(command_queue,color,name) PIXScopedEvent(command_queue, frame_color, name);
 #else
 #define PALADIN_SCOPED_CPU_PROFILE(name,color)
