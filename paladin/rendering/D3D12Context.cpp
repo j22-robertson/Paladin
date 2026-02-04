@@ -460,28 +460,39 @@ bool D3D12Context::Render()
     TracyD3D12Collect(m_tracy_context)
 
     TracyD3D12NewFrame(m_tracy_context)
-    if (!UpdatePipeline())
+
     {
-        return false;
+        PALADIN_SCOPED_CPU_PROFILE("D3D12Context::UpdatePipeline",ProfileColors::Red);
+        if (!UpdatePipeline())
+        {
+            return false;
+        }
     }
+
+
     {
         PALADIN_SCOPED_CPU_PROFILE("Execute Command Lists", ProfileColors::Red);
         ID3D12CommandList* command_lists[] = {m_command_list.Get()};
         m_command_queue->ExecuteCommandLists(_countof(command_lists),command_lists);
     }
 
-    fence_value[frame_index]++;
-    if (auto hr = m_command_queue->Signal(m_fence[frame_index].Get(),fence_value[frame_index]); FAILED(hr))
+
     {
-        PALADIN_LOG(ERR, ErrorResult("Failed to signal fence post UpdatePipeline", hr))
-        return false;
+        PALADIN_SCOPED_CPU_PROFILE("Signal and present" ,ProfileColors::Green);
+        fence_value[frame_index]++;
+        if (auto hr = m_command_queue->Signal(m_fence[frame_index].Get(),fence_value[frame_index]); FAILED(hr))
+        {
+            PALADIN_LOG(ERR, ErrorResult("Failed to signal fence post UpdatePipeline", hr))
+            return false;
+        }
+
+        if (auto hr = m_swap_chain->Present(0,0); FAILED(hr))
+        {
+            PALADIN_LOG(ERR, ErrorResult("Failed to present swap chain", hr))
+            return false;
+        }
     }
 
-    if (auto hr = m_swap_chain->Present(0,0); FAILED(hr))
-    {
-        PALADIN_LOG(ERR, ErrorResult("Failed to present swap chain", hr))
-        return false;
-    }
 
 
 
@@ -510,7 +521,7 @@ bool D3D12Context::WaitForPreviousFrame()
 
 bool D3D12Context::UpdatePipeline()
 {
-    PALADIN_SCOPED_CPU_PROFILE("D3D12Context::UpdatePipeline",ProfileColors::Red);
+
     if (auto hr = m_command_allocator[frame_index]->Reset(); FAILED(hr))
     {
         PALADIN_LOG(ERR, ErrorResult("Failed to reset command allocator.", hr))

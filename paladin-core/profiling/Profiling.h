@@ -23,10 +23,11 @@ namespace ProfileColors {
     ZoneName(name, strlen(name))
 // Tracy
 #define PALADIN_SCOPED_GPU_PROFILE(ctx, command_list, name) TracyD3D12Zone(ctx, command_list, name);
+
 // Tracy
 #define PALADIN_SCOPED_GPU_PROFILE_C(ctx, command_list, name, color) TracyD3D12ZoneC(ctx, command_list, name, color);
 // Not used by Tracy
-#define PALADIN_BEGIN_GPU_PROFILE()
+#define PALADIN_BEGIN_GPU_PROFILE(command_queue,color,name)
 #elif PIX_ENABLE
 // Pix
 #define PALADIN_SCOPED_CPU_PROFILE(name, color) PIXScopedEvent(color,name)
@@ -40,7 +41,7 @@ namespace ProfileColors {
 #define PALADIN_SCOPED_CPU_PROFILE(name,color)
 #define PALADIN_SCOPED_GPU_PROFILE(ctx, command_list, name)
 #define PALADIN_SCOPED_GPU_PROFILE_C(ctx, command_list, name, color);
-#define PALADIN_BEGIN_GPU_PROFILE()
+#define PALADIN_BEGIN_GPU_PROFILE(command_queue,color,name)
 #endif
 
 
