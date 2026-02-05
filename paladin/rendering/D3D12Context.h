@@ -56,6 +56,11 @@ private:
 
     Microsoft::WRL::ComPtr<ID3D12Resource> triangle_vertex_buffer = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> temporary_upload_heap= nullptr;
+
+
+    DXShader vertex_shader;
+    DXShader fragment_shader;
+
     D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view ={};
     Vertex triangle_vertices[3] = {
         { 0.0f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },

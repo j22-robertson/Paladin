@@ -224,7 +224,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         PALADIN_LOG(ERR, ErrorResult("Failed to create root signature", hr))
     }
 
-    DXShader vertex_shader = DXShader(VertexShader, L"vs.vert",L"main");
+    vertex_shader = DXShader(VertexShader, L"vs.vert",L"main");
     D3D12_SHADER_BYTECODE vertex_shader_bytecode = {};
 
 
@@ -239,7 +239,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     }
 
     D3D12_SHADER_BYTECODE fragment_shader_bytecode = {};
-    DXShader fragment_shader = DXShader(FragmentShader, L"fs.frag",L"main");
+    fragment_shader = DXShader(FragmentShader, L"fs.frag",L"main");
     if (!m_shader_compiler.LoadShader(fragment_shader))
     {
         PALADIN_LOG(ERR, "Unable to load: " + ConvertWString(fragment_shader.shader_input_file))
@@ -275,7 +275,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     pso_desc.NumRenderTargets = 1;
     pso_desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
     pso_desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC2(D3D12_DEFAULT);
-    //pso_desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
     pso_desc.DepthStencilState.DepthEnable = false;
 
     if (auto hr = m_device->CreateGraphicsPipelineState(&pso_desc,IID_PPV_ARGS(&m_pipeline_state)); SUCCEEDED(hr))
@@ -457,9 +456,62 @@ bool D3D12Context::Render()
     {
         return false;
     }
-    TracyD3D12Collect(m_tracy_context)
 
+    TracyD3D12Collect(m_tracy_context)
     TracyD3D12NewFrame(m_tracy_context)
+
+    {
+        if (vertex_shader.NeedsRecompilation()) {
+            if (m_shader_compiler.LoadShader(vertex_shader)) {
+                PALADIN_LOG(INFO, "Recompiling "+ConvertWString(vertex_shader.shader_input_file))
+                DXGI_SAMPLE_DESC sample_desc{};
+                sample_desc.Count = 1;
+                sample_desc.Quality=0;
+
+                D3D12_INPUT_ELEMENT_DESC input_layout[] ={
+                    {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
+                    {"COLOR",0,DXGI_FORMAT_R32G32B32_FLOAT,0,sizeof(float)*3,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
+                };
+
+                D3D12_INPUT_LAYOUT_DESC input_layout_desc ={};
+
+                input_layout_desc.NumElements = sizeof(input_layout)/sizeof(D3D12_INPUT_ELEMENT_DESC);
+                input_layout_desc.pInputElementDescs = input_layout;
+
+                D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
+
+                pso_desc.InputLayout = input_layout_desc;
+                pso_desc.pRootSignature = m_root_signature.Get();
+                pso_desc.VS = vertex_shader.GetBytecode();
+                pso_desc.PS = fragment_shader.GetBytecode();
+                pso_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+                pso_desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+                pso_desc.SampleDesc = sample_desc;
+                pso_desc.SampleMask = 0xfffffff;
+                pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC2(D3D12_DEFAULT);
+                pso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+                pso_desc.NumRenderTargets = 1;
+                pso_desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+                pso_desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC2(D3D12_DEFAULT);
+                pso_desc.DepthStencilState.DepthEnable = false;
+
+                if (auto hr = m_device->CreateGraphicsPipelineState(&pso_desc,IID_PPV_ARGS(&m_pipeline_state)); SUCCEEDED(hr))
+                {
+                    PALADIN_LOG(INFO, "Successfully created pipeline state")
+                }
+                else if (FAILED(hr))
+                {
+                    PALADIN_LOG(ERR, ErrorResult("Failed to create pipeline state.", hr))
+                }
+
+            }
+            else {
+                return false;
+            }
+        }
+
+
+    }
 
     {
         PALADIN_SCOPED_CPU_PROFILE("D3D12Context::UpdatePipeline",ProfileColors::Red);
