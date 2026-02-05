@@ -47,6 +47,15 @@ add_subdirectory(deps/glfw)
 add_subdirectory(deps/tracy)
 add_subdirectory(deps/imgui)
 add_subdirectory(deps/assimp)
+add_subdirectory(deps/glm)
+
+set(GLM_FORCE_LEFT_HANDED ON CACHE BOOL "" FORCE)
+#https://github.com/g-truc/glm/blob/master/manual.md#section2_16
+set(GLM_FORCE_DEPTH_ZERO_TO_ONE ON CACHE BOOL "" FORCE)
+#https://github.com/g-truc/glm/blob/master/manual.md#section2_17
+set(GLM_FORCE_DEFAULT_ALIGNED_GENTYPES ON CACHE BOOL "" FORCE)
+
+target_compile_definitions(PaladinRenderer PUBLIC GLM_ENABLE_EXPERIMENTAL)
 
 target_link_libraries(imgui PUBLIC glfw)
 
@@ -66,6 +75,7 @@ target_link_libraries(PaladinRenderer PRIVATE
         Tracy::TracyClient # Additional runtime profiling capabilities
         imgui # GUI
         assimp # Mesh loading
+        glm::glm
 )
 
 target_compile_definitions(PaladinRenderer PRIVATE PALADIN_ROOT_DIR="${PROJECT_SOURCE_DIR}")

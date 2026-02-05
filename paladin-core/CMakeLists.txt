@@ -3,4 +3,6 @@ set(PALADIN_CORE_SOURCES
         paladin-core/profiling/Profiling.h
         paladin-core/Logger.cpp
         paladin-core/Logger.h
+        paladin-core/Camera.h
+        paladin-core/Transform.h
         PARENT_SCOPE)
