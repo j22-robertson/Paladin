@@ -32,16 +32,17 @@ class DXShader
         last_changed = std::filesystem::last_write_time(file_path);
     }
     bool NeedsRecompilation() {
+
         auto current_write_time = std::filesystem::last_write_time(file_path);
+        if (current_write_time==last_changed)[[likely]] {
+            return false;
+        }
         auto now = std::filesystem::file_time_type::clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now-current_write_time).count();
         if (duration<100) {
             return false;
         }
-        if (current_write_time!=last_changed)[[unlikely]] {
-            return true;
-        }
-        return false;
+        return true;
     }
     D3D12_SHADER_BYTECODE GetBytecode() {
         D3D12_SHADER_BYTECODE shader_bytecode{};

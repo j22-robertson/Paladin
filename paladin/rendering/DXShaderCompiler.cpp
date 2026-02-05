@@ -39,6 +39,7 @@ bool DXShaderCompiler::LoadShader(DXShader& shader)
 {
     auto s = "Compiling:"+ConvertWString(shader.shader_input_file);
     PALADIN_SCOPED_CPU_PROFILE(s.data(),ProfileColors::Red);
+    shader.last_changed = std::filesystem::last_write_time(shader.file_path);
     Microsoft::WRL::ComPtr<IDxcBlobEncoding> shader_encoding = nullptr;
 
     if (auto hr = m_library->CreateBlobFromFile(shader.file_path.c_str(),&code_page,shader_encoding.GetAddressOf()); FAILED(hr))
@@ -148,7 +149,7 @@ bool DXShaderCompiler::LoadShader(DXShader& shader)
                     }
                 }
 #endif
-                shader.last_changed = std::filesystem::last_write_time(shader.file_path);
+
                 shader.GetCompiledShader() = compiled_shader_code.Get();
                 return true;
             }

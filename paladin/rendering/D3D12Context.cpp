@@ -249,7 +249,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
 
 
-
+    //TODO: Maybe unnecessary if vertex pulling
     D3D12_INPUT_ELEMENT_DESC input_layout[] ={
         {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
         {"COLOR",0,DXGI_FORMAT_R32G32B32_FLOAT,0,sizeof(float)*3,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
@@ -461,7 +461,8 @@ bool D3D12Context::Render()
     TracyD3D12NewFrame(m_tracy_context)
 
     {
-        if (vertex_shader.NeedsRecompilation()) {
+        PALADIN_SCOPED_CPU_PROFILE("VS Hot Reload", ProfileColors::Blue);
+        if (vertex_shader.NeedsRecompilation())[[unlikely]] {
             if (m_shader_compiler.LoadShader(vertex_shader)) {
                 PALADIN_LOG(INFO, "Recompiling "+ConvertWString(vertex_shader.shader_input_file))
                 DXGI_SAMPLE_DESC sample_desc{};
@@ -506,11 +507,9 @@ bool D3D12Context::Render()
 
             }
             else {
-                return false;
+                PALADIN_LOG(ERR, "Unable to compile vertex shader")
             }
         }
-
-
     }
 
     {
