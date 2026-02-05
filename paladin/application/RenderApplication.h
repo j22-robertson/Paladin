@@ -26,6 +26,9 @@ public:
     bool Update(float delta_time) override;
     void Render(float delta_time) override;
 private:
+
+    bool close_requested = false;
+
     D3D12Context* m_render_context = nullptr;
     std::uint32_t window_width = 800;
     std::uint32_t window_height = 600;

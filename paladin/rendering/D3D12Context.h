@@ -36,12 +36,20 @@ public:
 
     bool Render();
 
+    void OnResize(std::uint32_t new_width, std::uint32_t new_height) {
+        m_window_width = new_width;
+        m_window_height = new_height;
+        m_resized = true;
+    }
+
+    bool m_resized = false;
     ~D3D12Context();
 
 private:
     bool WaitForPreviousFrame();
     bool UpdatePipeline();
-
+    void FlushDevice();
+    bool Resize(std::uint32_t new_width, std::uint32_t new_height);
     Microsoft::WRL::ComPtr<ID3D12Device8> m_device = nullptr;
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_command_queue = nullptr;
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_swap_chain= nullptr;
@@ -57,6 +65,8 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Resource> triangle_vertex_buffer = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> temporary_upload_heap= nullptr;
 
+    std::uint32_t m_window_width;
+    std::uint32_t m_window_height;
 
     DXShader vertex_shader;
     DXShader fragment_shader;

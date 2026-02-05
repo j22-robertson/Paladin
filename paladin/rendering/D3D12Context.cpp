@@ -20,6 +20,8 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     UINT factory_flags = 0;
 #endif
 
+    m_window_width = window_width;
+    m_window_height = window_height;
 
     Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter = nullptr;
 
@@ -452,10 +454,19 @@ bool D3D12Context::Render()
 {
     PALADIN_SCOPED_CPU_PROFILE("D3D12Context::Render", ProfileColors::Red);
     PALADIN_BEGIN_GPU_PROFILE(m_command_queue.Get(), ProfileColors::Green, "D3D12Context::Render")
+    {
+        PALADIN_SCOPED_CPU_PROFILE("ResizeEvent", ProfileColors::Blue);
+        if (m_resized) {
+            Resize(m_window_width,m_window_height);
+        }
+    }
+
     if (!WaitForPreviousFrame())
     {
         return false;
     }
+
+
 
     TracyD3D12Collect(m_tracy_context)
     TracyD3D12NewFrame(m_tracy_context)
@@ -550,6 +561,58 @@ bool D3D12Context::Render()
     return true;
 }
 
+bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
+    m_resized = false;
+
+    FlushDevice();
+    m_command_list->Close();
+
+    for (int i = 0; i < FRAME_BUFFER_COUNT; i++) {
+        m_render_target[i].Reset();
+    }
+    m_viewport.TopLeftX = 0;
+    m_viewport.TopLeftY = 0;
+    m_viewport.Width = static_cast<float>(new_width);
+    m_viewport.Height = static_cast<float>(new_height);
+    m_viewport.MinDepth = 0.0f;
+    m_viewport.MaxDepth = 1.0f;
+
+    m_scissor.left = 0;
+    m_scissor.top = 0;
+    m_scissor.right = static_cast<LONG>(new_width);
+    m_scissor.bottom = static_cast<LONG>(new_height);
+
+
+    DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
+    if (auto hr = m_swap_chain->GetDesc1(&swap_chain_desc); FAILED(hr)) {
+        PALADIN_LOG(ERR, ErrorResult("Failed to get swap chain desc on resize", hr))
+        return false;
+    }
+
+    if (auto hr = m_swap_chain->ResizeBuffers(FRAME_BUFFER_COUNT, new_width, new_height, swap_chain_desc.Format, swap_chain_desc.Flags);FAILED(hr)) {
+        D3D12DebugLayer::Get().LogDebugMessages(m_device.Get());
+        PALADIN_LOG(ERR, ErrorResult("Failed to resize buffers", hr))
+        return false;
+    }
+
+    auto rtv_descriptor_size =  m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv_cpu_handle(m_rtv_descriptor_heap->GetCPUDescriptorHandleForHeapStart());
+
+    for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++) {
+        if (auto hr = m_swap_chain->GetBuffer(i, IID_PPV_ARGS(&m_render_target[i])); SUCCEEDED(hr)) {
+            //PALADIN_LOG(INFO, "Created render target")
+        }
+        else if (FAILED(hr)) {
+            PALADIN_LOG(ERR, ErrorResult("Failed to create render target", hr))
+        }
+        m_device->CreateRenderTargetView(m_render_target[i].Get(), nullptr, rtv_cpu_handle);
+        rtv_cpu_handle.ptr += rtv_descriptor_size;
+    }
+
+    frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+    return true;
+}
 
 
 bool D3D12Context::WaitForPreviousFrame()
@@ -626,6 +689,18 @@ bool D3D12Context::UpdatePipeline()
         return false;
     }
     return true;
+}
+
+void D3D12Context::FlushDevice() {
+    auto gpu_flush_value = ++fence_value[frame_index];
+
+    if (auto hr = m_command_queue->Signal(m_fence[frame_index].Get(),gpu_flush_value); FAILED(hr)) {
+        std::cout << "Failed to signal fence for flush. ERROR:" << std::hex << hr << std::endl;
+    }
+    if (auto hr = m_fence[frame_index]->SetEventOnCompletion(gpu_flush_value, fence_event);FAILED(hr)) {
+        std::cout << "Failed to complete event for flush. ERROR:" << std::hex << hr << std::endl;
+    }
+    WaitForSingleObject(fence_event, INFINITE);
 }
 
 

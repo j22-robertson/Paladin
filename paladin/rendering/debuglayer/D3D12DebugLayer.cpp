@@ -38,6 +38,34 @@ bool D3D12DebugLayer::Init() {
 #endif
     return false;
 }
+
+void D3D12DebugLayer::LogDebugMessages(ID3D12Device8 *device) {
+#ifdef _DEBUG
+    Microsoft::WRL::ComPtr<ID3D12InfoQueue> debug_info;
+    if (auto hr = device->QueryInterface(IID_PPV_ARGS(&debug_info)); SUCCEEDED(hr)) {
+        auto message_count = debug_info->GetNumMessagesAllowedByStorageFilter();
+        for (int i = 0; i < message_count; i++) {
+            D3D12_MESSAGE debug_message = {};
+            SIZE_T message_length = 0;
+            if (auto hr = debug_info->GetMessageA(i, nullptr, &message_length); FAILED(hr)) {
+                PALADIN_LOG(ERR, ErrorResult("Unable to retrieve debug message length", hr));
+            }
+            else {
+                if (auto hr = debug_info->GetMessageA(i, &debug_message, &message_length); FAILED(hr)) {
+                    PALADIN_LOG(ERR, ErrorResult("Unable to retrieve debug message", hr));
+                }
+                else {
+                    PALADIN_LOG(DEBUG, "DX12:"+std::string(debug_message.pDescription, debug_message.DescriptionByteLength-1));
+                }
+            }
+        }
+    }
+    else {
+        PALADIN_LOG(ERR, ErrorResult("Unable to get debug log", hr));
+    }
+#endif
+}
+
 void D3D12DebugLayer::Shutdown() {
    Microsoft::WRL::ComPtr<ID3D12DeviceRemovedExtendedData2> m_dred = nullptr;
 #ifdef _DEBUG

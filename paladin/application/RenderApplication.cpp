@@ -46,6 +46,19 @@ void RenderApplication::Setup() {
 
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwSetWindowUserPointer(window,this);
+
+
+    glfwSetFramebufferSizeCallback(window,[](GLFWwindow* window, int width, int height) {
+        auto application = static_cast<RenderApplication*>(glfwGetWindowUserPointer(window));
+        auto clamped_width = std::clamp(width, 100,1920);
+        auto clamped_height = std::clamp(height, 100, 1080);
+
+
+        application->window_width = clamped_width;
+        application->window_height = clamped_height;
+        application->m_render_context->OnResize(clamped_width,clamped_height);
+    });
 
     if (window == nullptr) {
         glfwTerminate();

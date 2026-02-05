@@ -13,6 +13,8 @@
 class D3D12DebugLayer {
 public:
     bool Init();
+
+    static void LogDebugMessages(ID3D12Device8* device);
     void Shutdown();
 
 
