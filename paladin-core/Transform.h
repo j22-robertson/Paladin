@@ -21,8 +21,11 @@ namespace Axis {
 class Transform {
     Transform() = default;
 
+    [[nodiscard]] bool HasUpdated() const {
+        return has_updated;
+    }
 
-    const glm::vec3& GetPosition() const {
+    [[nodiscard]] const glm::vec3& GetPosition() const {
         return position;
     }
 

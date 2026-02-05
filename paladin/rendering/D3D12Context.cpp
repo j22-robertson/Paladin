@@ -454,18 +454,18 @@ bool D3D12Context::Render()
 {
     PALADIN_SCOPED_CPU_PROFILE("D3D12Context::Render", ProfileColors::Red);
     PALADIN_BEGIN_GPU_PROFILE(m_command_queue.Get(), ProfileColors::Green, "D3D12Context::Render")
+
+
+    if (!WaitForPreviousFrame())
+    {
+        return false;
+    }
     {
         PALADIN_SCOPED_CPU_PROFILE("ResizeEvent", ProfileColors::Blue);
         if (m_resized) {
             Resize(m_window_width,m_window_height);
         }
     }
-
-    if (!WaitForPreviousFrame())
-    {
-        return false;
-    }
-
 
 
     TracyD3D12Collect(m_tracy_context)
@@ -565,6 +565,7 @@ bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
     m_resized = false;
 
     FlushDevice();
+    m_command_list->Reset(m_command_allocator[frame_index].Get(), nullptr);
     m_command_list->Close();
 
     for (int i = 0; i < FRAME_BUFFER_COUNT; i++) {
