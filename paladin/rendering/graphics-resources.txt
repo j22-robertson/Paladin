@@ -15,3 +15,4 @@ https://microsoft.github.io/DirectX-Specs/d3d/MeshShader.html
 
 DX12
 https://github.com/microsoft/DirectXShaderCompiler/wiki/Using-dxc.exe-and-dxcompiler.dll
+https://alain.xyz/books/raw-directx12/
