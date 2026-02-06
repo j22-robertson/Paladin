@@ -76,7 +76,7 @@ private:
 
 
 
-    glm::mat4 RotationMatrix() const
+    [[nodiscard]] glm::mat4 RotationMatrix() const
     {
 
         const glm::quat pitch_rotation = glm::angleAxis(pitch, glm::vec3{ 1.f,0.0f,0.0f });
@@ -86,14 +86,14 @@ private:
         return glm::toMat4(yaw_rotation) * glm::toMat4(pitch_rotation);
     }
 
-    glm::mat4 ViewMatrix() const {
+    [[nodiscard]] glm::mat4 ViewMatrix() const {
         const glm::mat4 cameraTranslation = glm::translate(glm::mat4(1.0f), position);
         const glm::mat4 cameraRotation = RotationMatrix();
         return glm::inverse(cameraTranslation * cameraRotation);
 
     }
 
-    glm::mat4 GetProjection() const {
+    [[nodiscard]] glm::mat4 GetProjection() const {
         return glm::perspective(fov, aspect_ratio, near_plane, far_plane);
     }
 };
