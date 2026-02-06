@@ -150,6 +150,28 @@ bool DXShaderCompiler::LoadShader(DXShader& shader)
                 }
 #endif
 
+                Microsoft::WRL::ComPtr<IDxcBlob> reflection_data = nullptr;
+
+                Microsoft::WRL::ComPtr<ID3D12ShaderReflection> reflection = nullptr;
+
+                Microsoft::WRL::ComPtr<IDxcContainerReflection> reflection_container = nullptr;
+
+                DxcCreateInstance(CLSID_DxcContainerReflection, IID_PPV_ARGS(&reflection_container));
+
+                reflection_container->Load(compiled_shader_code.Get());
+
+                UINT32 part_index = 0;
+
+                reflection_container->FindFirstPartKind(DXC_PART_DXIL,&part_index);
+                reflection_container->GetPartReflection(part_index, IID_PPV_ARGS(&reflection));
+
+                D3D12_SHADER_DESC shader_desc ={};
+
+                if (auto hr = reflection->GetDesc(&shader_desc); FAILED(hr))
+                {
+                    PALADIN_LOG(ERR,ErrorResult("Unable to get reflection description for:"+ConvertWString(shader.shader_input_file),hr));
+                }
+
                 shader.GetCompiledShader() = compiled_shader_code.Get();
                 return true;
             }

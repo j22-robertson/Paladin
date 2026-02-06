@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <dxcapi.h>
 #include "Logger.h"
+#include "d3d12shader.h"
 #include "render-utils/DXShader.h"
 #include "profiling/Profiling.h"
 class DXShaderCompiler
