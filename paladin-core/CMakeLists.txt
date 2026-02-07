@@ -8,4 +8,7 @@ set(PALADIN_CORE_SOURCES
         paladin-core/utility/StringHash.h
         paladin-core/asset-pipeline/AssetManager.cpp
         paladin-core/asset-pipeline/AssetManager.h
+        paladin-core/asset-pipeline/AssetRegistry.cpp
+        paladin-core/asset-pipeline/AssetRegistry.h
+        paladin-core/asset/Asset.h
         PARENT_SCOPE)
