@@ -18,6 +18,9 @@
 #define TRACY_IMPORTS
 #include "../rendering/D3D12Context.h"
 #include "imgui.h"
+#include "utility/StringHash.h"
+#include <unordered_map>
+#include <unordered_set>
 #include "imgui_impl_glfw.h"
 #include "Logger.h"
 //TODO: Create a window class

@@ -14,6 +14,11 @@ enum ShaderType
 {
     VertexShader,
     FragmentShader,
+    /*
+    ComputeShader,
+    MeshShader,
+    AmplificationShader,
+    */
     NONE,
     //TODO: Add more shader types
 };
@@ -31,7 +36,7 @@ class DXShader
         entry_point = _entry_point;
         last_changed = std::filesystem::last_write_time(file_path);
     }
-    bool NeedsRecompilation() {
+    bool NeedsRecompilation() const {
 
         auto current_write_time = std::filesystem::last_write_time(file_path);
         if (current_write_time==last_changed)[[likely]] {

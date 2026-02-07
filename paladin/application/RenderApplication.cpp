@@ -4,6 +4,8 @@
 
 #include "RenderApplication.h"
 
+
+
 RenderApplication::~RenderApplication() {
     if (m_render_context) {
         delete m_render_context;
@@ -17,7 +19,6 @@ RenderApplication::~RenderApplication() {
 }
 
 void RenderApplication::run() {
-    PALADIN_LOG(INFO, "STARTING APPLICATION")
     Setup();
     while (!glfwWindowShouldClose(window)) {
         FrameMark;
