@@ -59,6 +59,9 @@ target_compile_definitions(PaladinRenderer PUBLIC GLM_ENABLE_EXPERIMENTAL)
 
 target_link_libraries(imgui PUBLIC glfw)
 
+target_link_libraries(PaladinCore PRIVATE
+assimp)
+
 
 
 target_link_libraries(PaladinRenderer PRIVATE

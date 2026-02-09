@@ -20,7 +20,7 @@ enum MaterialProperty
 };
 
 
-class Material : public Asset
+class MaterialAsset : public Asset
 {
 public:
     [[nodiscard]] AssetHandle GetTexture(const MaterialProperty property, AssetHandle texture) const
