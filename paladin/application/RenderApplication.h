@@ -13,7 +13,6 @@
 
 #include "Camera.h"
 #include "Transform.h"
-#include "asset-pipeline/AssetManager.h"
 #include "profiling/Profiling.h"
 #define TRACY_IMPORTS
 #include "../rendering/D3D12Context.h"
@@ -23,6 +22,10 @@
 #include <unordered_set>
 #include "imgui_impl_glfw.h"
 #include "Logger.h"
+#include "asset-pipeline/AssetRegistry.h"
+#include "asset/Texture2D.h"
+#include "utility/GenIndices.h"
+
 //TODO: Create a window class
 class RenderApplication final : IApplication {
 public:
@@ -41,6 +44,8 @@ private:
     GLFWwindow* window = nullptr;
 
     Camera m_camera{};
+
+    std::unique_ptr<AssetRegistry> m_asset_registry = nullptr;
 
     //D3D12Context* m_render_context = nullptr;
 };

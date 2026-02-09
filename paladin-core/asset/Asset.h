@@ -8,10 +8,9 @@
 #include <typeinfo>
 #include "utility/StringHash.h"
 #include <concepts>
-using AssetID = std::uint64_t;
-constexpr AssetID INVALID_ASSET_ID = std::numeric_limits<AssetID>::max();
+#include "utility/GenIndices.h"
 
-
+using AssetHandle = GenKey;
 class Asset {
 public:
 

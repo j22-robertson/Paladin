@@ -4,6 +4,7 @@
 
 #include "RenderApplication.h"
 
+#include "asset/Mesh.h"
 
 
 RenderApplication::~RenderApplication() {
@@ -39,6 +40,10 @@ void RenderApplication::Setup() {
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+
+    m_asset_registry = std::make_unique<AssetRegistry>();
+    m_asset_registry->LoadAsset<Texture2DAsset>("Testing.png");
+    m_asset_registry->LoadAsset<ModelAsset>("Testing.model");
 
     glfwInit();
     window = glfwCreateWindow(window_width, window_height, "Paladin-Triangle", nullptr, nullptr);
