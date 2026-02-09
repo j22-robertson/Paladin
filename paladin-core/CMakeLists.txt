@@ -6,6 +6,7 @@ set(PALADIN_CORE_SOURCES
         paladin-core/Camera.h
         paladin-core/Transform.h
         paladin-core/utility/StringHash.h
+        paladin-core/utility/GenIndices.h
         paladin-core/asset-pipeline/AssetManager.cpp
         paladin-core/asset-pipeline/AssetManager.h
         paladin-core/asset-pipeline/AssetRegistry.cpp
