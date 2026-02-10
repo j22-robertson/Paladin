@@ -24,7 +24,13 @@ class Texture2DAsset;
 class MaterialAsset : public Asset
 {
 public:
-    [[nodiscard]] AssetHandle<Texture2DAsset> GetTexture(const MaterialProperty property, AssetHandle<Texture2DAsset> texture) const
+    void SetName(std::string new_name) {
+        name = new_name;
+    }
+    const std::string& GetName() {
+        return name;
+    }
+    [[nodiscard]] AssetHandle<Texture2DAsset> GetTexture(const MaterialProperty property) const
     {
         return textures.at(property);
     }
@@ -34,5 +40,6 @@ public:
     }
 private:
     std::unordered_map<MaterialProperty, AssetHandle<Texture2DAsset>> textures;
+    std::string name;
 };
 #endif //PALADIN_MATERIAL_H

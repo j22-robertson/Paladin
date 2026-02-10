@@ -37,13 +37,30 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
         MaterialAsset material_asset;
 
         aiMaterial* material = scene->mMaterials[i];
+        if (material == nullptr) continue;
         aiString path{};
         material->GetTexture(aiTextureType_BASE_COLOR, 0 , &path);
+        if (path.Empty()) continue;
         auto albedo = m_asset_registry->ImportAsset<Texture2DAsset>(path.C_Str());
         MaterialAsset new_material{};
 
+        aiString metallic_roughness_path {};
+
+
+        material->GetTexture(aiTextureType_GLTF_METALLIC_ROUGHNESS, 0, &metallic_roughness_path);
+        auto metallic_roughness = m_asset_registry->ImportAsset<Texture2DAsset>(metallic_roughness_path.C_Str());
+
+        aiString normal_path{};
+        material->GetTexture(aiTextureType_NORMALS, 0, &normal_path);
+        auto normal = m_asset_registry->ImportAsset<Texture2DAsset>(normal_path.C_Str());
+        aiString matname;
+        new_material.SetName(file+" Material:"+std::to_string(i));
         new_material.SetTexture(Albedo, albedo);
-        m_asset_registry->InsertAsset<MaterialAsset>(std::make_unique<MaterialAsset>(new_material));
+        new_material.SetTexture(Roughness, metallic_roughness);
+        new_material.SetTexture(Metallic, metallic_roughness);
+        new_material.SetTexture(Normal, normal);
+        auto material_handle = m_asset_registry->InsertAsset<MaterialAsset>(std::make_unique<MaterialAsset>(new_material));
+        materials.push_back(material_handle);
     }
 
     auto& node = scene->mRootNode;
@@ -58,8 +75,11 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
 
     PALADIN_LOG(INFO, "Loading model asset" + file)
     //m_asset_registry->LoadAsset<Texture2DAsset>("Testing");
+    ModelAsset model_asset = {
+        .meshes = {},
+        .materials = materials};
 
-    return {};
+    return m_asset_registry->InsertAsset(std::make_unique<ModelAsset>(model_asset));
 }
 
 void ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene)

@@ -30,11 +30,8 @@ AssetHandle<Texture2DAsset> TextureImporter::LoadAsset(std::string file)
     int width, height, channels;
     unsigned char* data = stbi_load(full_path.generic_string().c_str(), &width,&height,&channels,4);
     if (data != nullptr) {
-        PALADIN_LOG(INFO, "Succesfully loaded image!")
-
-        return m_asset_registry->InsertAsset<Texture2DAsset>(std::make_unique<Texture2DAsset>());
+        PALADIN_LOG(INFO, "Succesfully loaded image!");
+        return m_asset_registry->InsertAsset<Texture2DAsset>(std::make_unique<Texture2DAsset>(width,height,channels,std::make_unique<unsigned char>(*data)));
     }
-    delete data;
-    data = nullptr;
     return {};
 }

@@ -17,7 +17,7 @@ class IAssetManager : public IAssetManagerBase
 public:
     T* GetAsset(AssetHandle<T> handle) {
         if (asset_index_allocator.IsValid(handle.inner)) {
-            return asset_storage[handle.inner].get();
+            return asset_storage[handle.inner.index].get();
         }
         return nullptr;
     }
@@ -67,7 +67,7 @@ public:
 private:
     bool lazy_load = false;
     GenerationalIndexAllocator asset_index_allocator;
-    std::vector<std::unique_ptr<Asset>> asset_storage;
+    std::vector<std::unique_ptr<T>> asset_storage;
 
     std::unordered_set<std::uint32_t> to_load;
     std::unordered_set<std::uint32_t> registered;

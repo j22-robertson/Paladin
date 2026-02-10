@@ -8,13 +8,13 @@
 #include "asset/AssetTraits.h"
 class Texture2DAsset: public Asset
 {
-    struct Texture2D
-    {
-        std::uint32_t width =0;
-        std::uint32_t height = 0;
-    };
-
-    Texture2D texture;
+public:
+    Texture2DAsset(std::uint32_t w,std::uint32_t h,std::uint32_t c,std::unique_ptr<unsigned char> p): width(w), height(h), channels(c), pixel_data(std::move(p)) {
+    }
+    std::uint32_t width = 0;
+    std::uint32_t height = 0;
+    std::uint32_t channels = 0;
+    std::unique_ptr<unsigned char> pixel_data;
 };
 
 template<>

@@ -20,13 +20,18 @@ using AssetManager = std::unique_ptr<IAssetManagerBase>;
 using AssetImporter = std::unique_ptr<IAssetImporterBase>;
 
 
-
 class AssetRegistry {
 public:
     AssetRegistry()
     {
         asset_importers.insert({typeid(Texture2DAsset).hash_code(),std::make_unique<TextureImporter>(*this)});
         asset_importers.insert({typeid(ModelAsset).hash_code(),std::make_unique<ModelImporter>(*this)});
+
+        asset_managers.insert({typeid(Texture2DAsset).hash_code(),std::make_unique<IAssetManager<Texture2DAsset>>()});
+        asset_managers.insert({typeid(ModelAsset).hash_code(),std::make_unique<IAssetManager<Texture2DAsset>>()});
+        asset_managers.insert({typeid(MaterialAsset).hash_code(),std::make_unique<IAssetManager<Texture2DAsset>>()});
+        asset_managers.insert({typeid(MeshAsset).hash_code(),std::make_unique<IAssetManager<Texture2DAsset>>()});
+
     }
 
 
