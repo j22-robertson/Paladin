@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "IAssetManagerBase.h"
+#include "profiling/Profiling.h"
 
 // TODO: Maybe Optional is better here?
 template<typename T>
@@ -47,6 +48,7 @@ public:
         return new_asset_handles;
     }
     AssetHandle<T> InsertAsset(std::unique_ptr<T> asset) {
+        PALADIN_SCOPED_CPU_PROFILE(std::string("Insert:"+std::string(typeid(T).name())).c_str(), ProfileColors::Green);
         if (asset == nullptr) {
             PALADIN_LOG(ERR, "Inserted asset of type:"+std::string(typeid(T).name())+" is null")
             return {};
@@ -64,10 +66,14 @@ public:
             asset_index_allocator.Deallocate(handle.inner);
         }
     }
+    bool IsValid(AssetHandle<T>& handle) {
+        return asset_index_allocator.IsValid(handle);
+    }
 private:
     bool lazy_load = false;
     GenerationalIndexAllocator asset_index_allocator;
     std::vector<std::unique_ptr<T>> asset_storage;
+
 
     std::unordered_set<std::uint32_t> to_load;
     std::unordered_set<std::uint32_t> registered;

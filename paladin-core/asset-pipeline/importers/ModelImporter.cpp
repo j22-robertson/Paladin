@@ -6,6 +6,7 @@
 #include "Vertex.h"
 #include "../../../cmake-build-debug/_deps/glm-src/glm/vec3.hpp"
 #include "asset-pipeline/AssetRegistry.h"
+#include "profiling/Profiling.h"
 
 
 AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
@@ -26,15 +27,19 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
     std::vector<AssetHandle<MeshAsset>> loaded_meshes;
 
     Assimp::Importer importer;
-    PALADIN_LOG(INFO, "LOADING ASSET:"+file)
+  //  PALADIN_LOG(INFO, "LOADING ASSET:"+file)
 
     const aiScene* scene = importer.ReadFile(full_path.generic_string(), aiProcess_Triangulate|aiProcess_CalcTangentSpace);
     if (!scene) return {};
-    std::vector<AssetHandle<MaterialAsset>> materials;
+    std::vector<AssetHandle<MaterialAsset>> materials = std::vector<AssetHandle<MaterialAsset>>();
 
     for (int i = 0; i < scene->mNumMaterials; i++)
     {
-        MaterialAsset material_asset;
+        std::string mat_name = file+" Material:"+std::to_string(i);
+
+
+        PALADIN_SCOPED_CPU_PROFILE(mat_name.c_str(), ProfileColors::Red);
+        auto new_material = std::make_unique<MaterialAsset>();
 
         aiMaterial* material = scene->mMaterials[i];
         if (material == nullptr) continue;
@@ -42,8 +47,6 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
         material->GetTexture(aiTextureType_BASE_COLOR, 0 , &path);
         if (path.Empty()) continue;
         auto albedo = m_asset_registry->ImportAsset<Texture2DAsset>(path.C_Str());
-        MaterialAsset new_material{};
-
         aiString metallic_roughness_path {};
 
 
@@ -53,14 +56,15 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
         aiString normal_path{};
         material->GetTexture(aiTextureType_NORMALS, 0, &normal_path);
         auto normal = m_asset_registry->ImportAsset<Texture2DAsset>(normal_path.C_Str());
-        aiString matname;
-        new_material.SetName(file+" Material:"+std::to_string(i));
-        new_material.SetTexture(Albedo, albedo);
-        new_material.SetTexture(Roughness, metallic_roughness);
-        new_material.SetTexture(Metallic, metallic_roughness);
-        new_material.SetTexture(Normal, normal);
-        auto material_handle = m_asset_registry->InsertAsset<MaterialAsset>(std::make_unique<MaterialAsset>(new_material));
+
+        new_material->SetName(file+" Material:"+std::to_string(i));
+        new_material->SetTexture(Albedo, albedo);
+        new_material->SetTexture(Roughness, metallic_roughness);
+        new_material->SetTexture(Metallic, metallic_roughness);
+        new_material->SetTexture(Normal, normal);
+        auto material_handle = m_asset_registry->InsertAsset<MaterialAsset>(std::move(new_material));
         materials.push_back(material_handle);
+
     }
 
     auto& node = scene->mRootNode;
@@ -71,15 +75,10 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
         return {};
     }
 
+    model->materials = std::move(materials);
 
 
-    PALADIN_LOG(INFO, "Loading model asset" + file)
-    //m_asset_registry->LoadAsset<Texture2DAsset>("Testing");
-    ModelAsset model_asset = {
-        .meshes = {},
-        .materials = materials};
-
-    return m_asset_registry->InsertAsset(std::make_unique<ModelAsset>(model_asset));
+    return m_asset_registry->InsertAsset(std::move(model));
 }
 
 void ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene)

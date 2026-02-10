@@ -6,15 +6,15 @@
 #define PALADIN_TEXTURE2D_H
 #include "Asset.h"
 #include "asset/AssetTraits.h"
-class Texture2DAsset: public Asset
-{
+#include "stb_image.h"
+class Texture2DAsset: public Asset {
 public:
-    Texture2DAsset(std::uint32_t w,std::uint32_t h,std::uint32_t c,std::unique_ptr<unsigned char> p): width(w), height(h), channels(c), pixel_data(std::move(p)) {
+    Texture2DAsset(std::uint32_t w,std::uint32_t h,std::uint32_t c,std::vector<unsigned char> p): width(w), height(h), channels(c), pixels(p){
     }
     std::uint32_t width = 0;
     std::uint32_t height = 0;
     std::uint32_t channels = 0;
-    std::unique_ptr<unsigned char> pixel_data;
+    std::vector<unsigned char> pixels;
 };
 
 template<>

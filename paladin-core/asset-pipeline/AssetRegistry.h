@@ -48,6 +48,11 @@ public:
     // Insert a single asset
     template<typename T> requires IsPaladinAsset<T>
     AssetHandle<T> InsertAsset(std::unique_ptr<T> asset);
+    template<typename T> requires IsPaladinAsset<T>
+    bool IsValid(AssetHandle<T> handle);
+
+    template<typename T> requires IsPaladinAsset<T>
+    void Remove(AssetHandle<T> handle);
 private:
 
     template<typename T> requires IsImportable<T>
@@ -73,6 +78,7 @@ T* AssetRegistry::GetAsset(AssetHandle<T> handle) {
 template<typename T> requires IsImportable<T>
 AssetHandle<T> AssetRegistry::ImportAsset(std::string file)
 {
+    PALADIN_SCOPED_CPU_PROFILE("ImportAsset", ProfileColors::Green);
     if (auto importer = GetImporter<T>(); importer!= nullptr)[[likely]] {
         return importer->LoadAsset(file);
     }
@@ -90,6 +96,7 @@ IAssetImporter<T>* AssetRegistry::GetImporter() {
 }
 template<typename T> requires IsPaladinAsset<T>
 std::vector<AssetHandle<T>> AssetRegistry::InsertAssets(std::vector<std::unique_ptr<T>> assets) {
+
     if (auto manager = GetManager<T>(); manager != nullptr) {
         return manager->InsertAssets(assets);
     }
@@ -98,10 +105,26 @@ std::vector<AssetHandle<T>> AssetRegistry::InsertAssets(std::vector<std::unique_
 
 template<typename T> requires IsPaladinAsset<T>
 AssetHandle<T> AssetRegistry::InsertAsset(std::unique_ptr<T> asset) {
+    PALADIN_SCOPED_CPU_PROFILE("InsertAsset", ProfileColors::Green);
     if (auto manager = GetManager<T>(); manager != nullptr) {
         return manager->InsertAsset(std::move(asset));
     }
     return {};
+}
+
+template<typename T> requires IsPaladinAsset<T>
+bool AssetRegistry::IsValid(AssetHandle<T> handle) {
+    if (auto manager = GetManager<T>(); manager != nullptr) {
+        return manager->IsValid(handle);
+    }
+    return false;
+}
+template<typename T> requires IsPaladinAsset<T>
+void AssetRegistry::Remove(AssetHandle<T> handle) {
+    if (IsValid(handle)) {
+        auto manager = GetManager<T>();
+        manager->Remove(handle);
+    }
 }
 
 template<typename T> requires IsPaladinAsset<T>

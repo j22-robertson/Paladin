@@ -14,6 +14,7 @@
 #include "assimp/Importer.hpp"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
+#include "profiling/Profiling.h"
 
 class AssetRegistry;
 class ModelImporter : public IAssetImporter<ModelAsset>

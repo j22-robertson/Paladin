@@ -4,18 +4,18 @@
 
 #ifndef PALADIN_PROFILING_H
 #define PALADIN_PROFILING_H
-#include <tracy/Tracy.hpp>
-#include <tracy/TracyD3D12.hpp>
 
-#include "WinPixEventRuntime/pix3.h"
+
+
 namespace ProfileColors {
     static constexpr unsigned int Red    = 0xFFFF0000;
     static constexpr unsigned int Green  = 0xFF00FF00;
     static constexpr unsigned int Blue   = 0xFF0000FF;
 }
 /// PIX COLORS FOR SCOPED EVENTS AND MARKERS
- const UINT32 frame_color = PIX_COLOR(64,255,0);
 #ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#include <tracy/TracyD3D12.hpp>
 // Tracy
 #define PALADIN_SCOPED_CPU_PROFILE(name, color)\
     ZoneScoped;\
@@ -29,6 +29,7 @@ namespace ProfileColors {
 // Not used by Tracy
 #define PALADIN_BEGIN_GPU_PROFILE(command_queue,color,name)
 #elif PIX_ENABLE
+#include "WinPixEventRuntime/pix3.h"
 // Pix
 #define PALADIN_SCOPED_CPU_PROFILE(name, color) PIXScopedEvent(color,name)
 // Pix

@@ -41,15 +41,19 @@ void RenderApplication::Setup() {
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 
+    AssetHandle<ModelAsset> sponza = {};
     m_asset_registry = std::make_unique<AssetRegistry>();
-
-    auto sponza = m_asset_registry->ImportAsset<ModelAsset>("Sponza.gltf");
+    {
+        PALADIN_SCOPED_CPU_PROFILE("Loading Sponza",ProfileColors::Blue );
+        sponza = m_asset_registry->ImportAsset<ModelAsset>("Sponza.gltf");
+    }
+/*
     auto model = m_asset_registry->GetAsset<ModelAsset>(sponza);
 
     for (auto mat_handle : model->materials) {
         auto material =  m_asset_registry->GetAsset<MaterialAsset>(mat_handle);
         PALADIN_LOG(INFO, "Material name:"+material->GetName())
-    }
+    }*/
 
     glfwInit();
     window = glfwCreateWindow(window_width, window_height, "Paladin-Triangle", nullptr, nullptr);

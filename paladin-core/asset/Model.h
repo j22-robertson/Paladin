@@ -13,8 +13,8 @@ class MaterialAsset;
 struct ModelAsset : public Asset
 {
 public:
-    std::vector<AssetHandle<MeshAsset>> meshes;
-    std::vector<AssetHandle<MaterialAsset>> materials;
+    std::vector<AssetHandle<MeshAsset>> meshes = std::vector<AssetHandle<MeshAsset>>();
+    std::vector<AssetHandle<MaterialAsset>> materials = std::vector<AssetHandle<MaterialAsset>>();
 };
 
 template<>

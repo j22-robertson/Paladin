@@ -64,7 +64,8 @@ target_link_libraries(imgui PUBLIC glfw)
 
 target_link_libraries(PaladinCore PUBLIC
         assimp
-        stb_interface)
+        stb_interface
+        Tracy::TracyClient)
 
 
 
