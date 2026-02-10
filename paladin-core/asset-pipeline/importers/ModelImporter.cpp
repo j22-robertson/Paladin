@@ -6,17 +6,19 @@
 #include "Vertex.h"
 #include "../../../cmake-build-debug/_deps/glm-src/glm/vec3.hpp"
 #include "asset-pipeline/AssetRegistry.h"
-#include "asset/Material.h"
 
-AssetHandle ModelImporter::LoadAsset(std::string file)
+
+AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
 {
-    std::vector<AssetHandle> loaded_meshes;
+    std::vector<AssetHandle<MeshAsset>> loaded_meshes;
     Assimp::Importer importer;
+    PALADIN_LOG(INFO, "LOADING ASSET:"+file)
 
     const aiScene* scene = importer.ReadFile(file, aiProcess_Triangulate|aiProcess_CalcTangentSpace);
-    std::vector<AssetHandle> materials;
+    if (!scene) return {};
+    std::vector<AssetHandle<MaterialAsset>> materials;
 
-    std::unordered_map<std::uint32_t, AssetHandle> material_map;
+    std::unordered_map<std::uint32_t, AssetHandle<Texture2DAsset>> material_map;
     for (int i = 0; i < scene->mNumMaterials; i++)
     {
         MaterialAsset material_asset;
@@ -48,10 +50,17 @@ void ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene)
     for (int i = 0; i < node->mNumMeshes; i++)
     {
         std::vector<Paladin::Vertex> vertices{};
+
+        std::vector<std::uint32_t> indices{};
+
         std::size_t mesh_index = node->mMeshes[i];
         aiMesh* mesh = scene->mMeshes[mesh_index];
 
         vertices.resize(mesh->mNumVertices);
+
+        indices.resize(mesh->mNumFaces*3);
+        
+
         for (int j = 0; j < mesh->mNumVertices; j++)
         {
             vertices[j].x = static_cast<float>(mesh->mVertices[j].x);

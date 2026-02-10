@@ -5,7 +5,7 @@
 #ifndef PALADIN_MATERIAL_H
 #define PALADIN_MATERIAL_H
 #include <unordered_map>
-
+#include "AssetHandle.h"
 #include "Asset.h"
 
 
@@ -19,19 +19,20 @@ enum MaterialProperty
     Invalid = -1,
 };
 
+class Texture2DAsset;
 
 class MaterialAsset : public Asset
 {
 public:
-    [[nodiscard]] AssetHandle GetTexture(const MaterialProperty property, AssetHandle texture) const
+    [[nodiscard]] AssetHandle<Texture2DAsset> GetTexture(const MaterialProperty property, AssetHandle<Texture2DAsset> texture) const
     {
         return textures.at(property);
     }
-    void SetTexture(const MaterialProperty property, const AssetHandle texture)
+    void SetTexture(const MaterialProperty property, const AssetHandle<Texture2DAsset> texture)
     {
         textures.at(property) = texture;
     }
 private:
-    std::unordered_map<MaterialProperty, AssetHandle> textures;
+    std::unordered_map<MaterialProperty, AssetHandle<Texture2DAsset>> textures;
 };
 #endif //PALADIN_MATERIAL_H

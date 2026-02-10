@@ -6,6 +6,7 @@
 #define PALADIN_IASSETIMPORTER_H
 
 #include "IAssetImporterBase.h"
+#include "asset/AssetTraits.h"
 
 class AssetRegistry;
 
@@ -20,6 +21,7 @@ public:
 
     IAssetImporter(AssetRegistry& asset_registry);
     IAssetImporter(IAssetImporter const&) = default;
+    virtual AssetHandle<T> LoadAsset(std::string file) = 0;
     AssetRegistry* m_asset_registry = nullptr;
 
 };

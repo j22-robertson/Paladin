@@ -9,8 +9,8 @@
 
 class MeshAsset: public Asset
 {
-    std::vector<Vertex> vertices;
+    std::vector<Paladin::Vertex> vertices;
     std::vector<std::uint32_t> indices;
-    AssetHandle material;
+    AssetHandle<MaterialAsset> material;
 };
 #endif //PALADIN_MESH_H

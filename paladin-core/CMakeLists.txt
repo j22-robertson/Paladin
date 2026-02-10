@@ -5,19 +5,27 @@ set(PALADIN_CORE_SOURCES
         paladin-core/Logger.h
         paladin-core/Camera.h
         paladin-core/Transform.h
+        ## UTILITY
         paladin-core/utility/StringHash.h
         paladin-core/utility/GenIndices.h
+        # ASSET PIPELINE
         paladin-core/asset-pipeline/interfaces/IAssetManager.h
+        paladin-core/asset-pipeline/interfaces/IAssetManagerBase.h
         paladin-core/asset-pipeline/interfaces/IAssetImporter.h
         paladin-core/asset-pipeline/interfaces/IAssetImporterBase.h
         paladin-core/asset-pipeline/importers/ModelImporter.cpp
         paladin-core/asset-pipeline/importers/ModelImporter.h
         paladin-core/asset-pipeline/AssetRegistry.h
         paladin-core/asset-pipeline/importers/TextureImporter.h
+        # ASSET
         paladin-core/asset/Asset.h
         paladin-core/asset/Material.h
         paladin-core/asset/Mesh.h
         paladin-core/asset/Model.h
         paladin-core/asset/Texture2D.h
+        paladin-core/asset/AssetTraits.h
+        paladin-core/asset/AssetHandle.h
+
+        #General
         paladin-core/Vertex.h
         PARENT_SCOPE)

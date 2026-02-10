@@ -7,19 +7,18 @@
 #include "asset/Asset.h"
 #include <unordered_map>
 #include <unordered_set>
+#include "IAssetManagerBase.h"
+
 
 template<typename T>
 requires IsPaladinAsset<T>
-class IAssetManager
+class IAssetManager : public IAssetManagerBase
 {
 public:
-    T* GetAsset(AssetHandle handle)
+    T* GetAsset(AssetHandle<T> handle)
     {
-        return assets[handle.index].get();
+        return assets[handle.inner.index].get();
     }
-
-
-
 private:
     bool lazy_load = false;
 

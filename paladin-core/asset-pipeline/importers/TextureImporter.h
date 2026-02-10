@@ -13,7 +13,7 @@ class TextureImporter : public IAssetImporter<Texture2DAsset>
 public:
     TextureImporter() = delete;
     explicit TextureImporter(AssetRegistry& asset_registry);
-    AssetHandle LoadAsset(std::string file) override;
+    AssetHandle<Texture2DAsset> LoadAsset(std::string file) override;
 };
 
 inline TextureImporter::TextureImporter(AssetRegistry& asset_registry) : IAssetImporter<Texture2DAsset>(asset_registry)
@@ -21,9 +21,9 @@ inline TextureImporter::TextureImporter(AssetRegistry& asset_registry) : IAssetI
 
 }
 
-inline AssetHandle TextureImporter::LoadAsset(std::string file)
+inline AssetHandle<Texture2DAsset> TextureImporter::LoadAsset(std::string file)
 {
-    PALADIN_LOG(INFO,"File found:"+file);
+    PALADIN_LOG(INFO,"Loading Asset:"+file);
     return {};
 }
 #endif //PALADIN_TEXTUREIMPORTER_H

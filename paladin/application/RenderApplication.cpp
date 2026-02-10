@@ -42,8 +42,6 @@ void RenderApplication::Setup() {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 
     m_asset_registry = std::make_unique<AssetRegistry>();
-    m_asset_registry->LoadAsset<Texture2DAsset>("Testing.png");
-    m_asset_registry->LoadAsset<ModelAsset>("Testing.model");
 
     glfwInit();
     window = glfwCreateWindow(window_width, window_height, "Paladin-Triangle", nullptr, nullptr);

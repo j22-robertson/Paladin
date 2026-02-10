@@ -5,11 +5,16 @@
 #ifndef PALADIN_MODELIMPORTER_H
 #define PALADIN_MODELIMPORTER_H
 #include "Logger.h"
+#include "asset/AssetHandle.h"
 #include "asset/Model.h"
 #include "asset-pipeline/interfaces/IAssetImporter.h"
+#include "asset/Material.h"
+#include "asset/Mesh.h"
+
 #include "assimp/Importer.hpp"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
+
 class AssetRegistry;
 class ModelImporter : public IAssetImporter<ModelAsset>
 {
@@ -19,7 +24,7 @@ class ModelImporter : public IAssetImporter<ModelAsset>
 
     }
 
-    AssetHandle LoadAsset(std::string file) override;
+    AssetHandle<ModelAsset> LoadAsset(std::string file) override;
 private:
     void ProcessNode(const aiNode* node, const aiScene* scene);
     private:

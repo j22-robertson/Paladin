@@ -12,7 +12,9 @@
 #include "interfaces/IAssetManager.h"
 #include "interfaces/IAssetImporter.h"
 #include "importers/TextureImporter.h"
-using AssetManager = std::unique_ptr<IAssetManager<Asset>>;
+#include "asset/AssetTraits.h"
+
+using AssetManager = std::unique_ptr<IAssetManagerBase>;
 
 
 using AssetImporter = std::unique_ptr<IAssetImporterBase>;
@@ -29,32 +31,54 @@ public:
 
 
     template<typename T> requires IsPaladinAsset<T>
-    T* GetAsset(AssetHandle handle);
+    T* GetAsset(AssetHandle<T> handle);
 
-    template<typename T> requires IsPaladinAsset<T>
-    AssetHandle LoadAsset(std::string file) const;
+    template<typename T> requires IsImportable<T>
+    AssetHandle<T> ImportAsset(std::string file);
 
 private:
+
+    template<typename T> requires IsImportable<T>
+    IAssetImporter<T>* GetImporter();
+    template<typename T> requires IsPaladinAsset<T>
+    IAssetManager<T>* GetManager();
+
     std::unordered_map<std::size_t, AssetManager> asset_managers;
     std::unordered_map<std::size_t, AssetImporter> asset_importers{};
 };
 
 
 template<typename T> requires IsPaladinAsset<T>
-T* AssetRegistry::GetAsset(AssetHandle handle) {
-    //TODO: There must be a nicer way, using constexpr to generate name of type?
-    return asset_managers.at(typeid(T).hash_code())->GetAsset(handle);
-}
-template<typename T> requires IsPaladinAsset<T>
-AssetHandle AssetRegistry::LoadAsset(std::string file) const
-{
-    std::string type_name = typeid(T).name();
-    PALADIN_LOG(INFO, "Finding Importer for Type:"+type_name)
-    if (asset_importers.contains(typeid(T).hash_code()))
-    {
-        PALADIN_LOG(INFO, "Found Importer for Type:"+type_name)
-        return asset_importers.at(typeid(T).hash_code())->LoadAsset(file);
+T* AssetRegistry::GetAsset(AssetHandle<T> handle) {
+    if (auto manager = GetManager<T>(); manager != nullptr) {
+        return manager->GetAsset(handle);
     }
+    return nullptr;
+}
+template<typename T> requires IsImportable<T>
+AssetHandle<T> AssetRegistry::ImportAsset(std::string file)
+{
+    if (auto importer = GetImporter<T>(); importer!= nullptr)[[likely]] {
+        return importer->LoadAsset(file);
+    }
+    std::string type_name = typeid(T).name();
+    PALADIN_LOG(ERR, "Unable to find Importer for Type:"+type_name)
     return{};
+}
+
+template<typename T> requires IsImportable<T>
+IAssetImporter<T>* AssetRegistry::GetImporter() {
+    if (auto it = asset_importers.find(typeid(T).hash_code()); it!=asset_importers.end()) {
+        return static_cast<IAssetImporter<T>*>(it->second.get());
+    }
+    return nullptr;
+}
+
+template<typename T> requires IsPaladinAsset<T>
+IAssetManager<T> * AssetRegistry::GetManager() {
+    if (auto it = asset_managers.find(typeid(T).hash_code()); it!=asset_managers.end()) {
+        return static_cast<IAssetManager<T>*>(it->second.get());
+    }
+    return nullptr;
 }
 #endif //PALADIN_ASSETREGISTRY_H
