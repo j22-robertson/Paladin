@@ -19,7 +19,7 @@ using AssetManager = std::unique_ptr<IAssetManagerBase>;
 
 using AssetImporter = std::unique_ptr<IAssetImporterBase>;
 
-
+//TODO: Maybe RequestImport(x) returning a handle that will be valid in the future, puts task on queue for multithreading?
 class AssetRegistry {
 public:
     AssetRegistry()

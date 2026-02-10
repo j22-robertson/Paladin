@@ -12,5 +12,4 @@ struct AssetHandle{
 };
 
 
-
 #endif //PALADIN_ASSETHANDLE_H
