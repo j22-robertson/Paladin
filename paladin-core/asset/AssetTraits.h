@@ -13,5 +13,12 @@ struct HasImporter {
 template <typename T>
 concept IsImportable = HasImporter<T>::value;
 
+template<typename T> requires IsPaladinAsset<T>
+struct UploadableToGPU {
+    static constexpr bool value = false;
+};
+
+template <typename T>
+concept IsUploadableToGPU = UploadableToGPU<T>::value;
 
 #endif //PALADIN_ASSETTRAITS_H

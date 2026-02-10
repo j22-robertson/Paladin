@@ -13,4 +13,10 @@ class MeshAsset: public Asset
     std::vector<std::uint32_t> indices;
     AssetHandle<MaterialAsset> material;
 };
+
+//Traits
+template<>
+struct UploadableToGPU<MeshAsset> {
+    static constexpr bool value = true;
+};
 #endif //PALADIN_MESH_H

@@ -40,6 +40,13 @@ private:
 
     template<typename T> requires IsImportable<T>
     IAssetImporter<T>* GetImporter();
+
+    template<typename T> requires IsPaladinAsset<T>
+    std::vector<AssetHandle<T>> InsertAssets(std::vector<std::unique_ptr<T>> assets);
+
+    template<typename T> requires IsPaladinAsset<T>
+    AssetHandle<T> InsertAsset(std::unique_ptr<T> asset);
+
     template<typename T> requires IsPaladinAsset<T>
     IAssetManager<T>* GetManager();
 
@@ -72,6 +79,20 @@ IAssetImporter<T>* AssetRegistry::GetImporter() {
         return static_cast<IAssetImporter<T>*>(it->second.get());
     }
     return nullptr;
+}
+template<typename T> requires IsPaladinAsset<T>
+std::vector<AssetHandle<T>> AssetRegistry::InsertAssets(std::vector<std::unique_ptr<T>> assets) {
+    if (auto manager = GetManager<T>(); manager != nullptr) {
+        return manager->InsertAssets(assets);
+    }
+}
+
+template<typename T> requires IsPaladinAsset<T>
+AssetHandle<T> AssetRegistry::InsertAsset(std::unique_ptr<T> asset) {
+    if (auto manager = GetManager<T>(); manager != nullptr) {
+        return manager->InsertAsset(std::move(asset));
+    }
+    return {};
 }
 
 template<typename T> requires IsPaladinAsset<T>

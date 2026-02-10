@@ -21,4 +21,10 @@ template<>
 struct HasImporter<Texture2DAsset> {
     static constexpr bool value = true;
 };
+
+template<>
+struct UploadableToGPU<Texture2DAsset> {
+    static constexpr bool value = true;
+};
+
 #endif //PALADIN_TEXTURE2D_H

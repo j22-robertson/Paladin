@@ -59,7 +59,7 @@ void ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene)
         vertices.resize(mesh->mNumVertices);
 
         indices.resize(mesh->mNumFaces*3);
-        
+
 
         for (int j = 0; j < mesh->mNumVertices; j++)
         {
