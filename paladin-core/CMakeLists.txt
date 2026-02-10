@@ -15,8 +15,9 @@ set(PALADIN_CORE_SOURCES
         paladin-core/asset-pipeline/interfaces/IAssetImporterBase.h
         paladin-core/asset-pipeline/importers/ModelImporter.cpp
         paladin-core/asset-pipeline/importers/ModelImporter.h
-        paladin-core/asset-pipeline/AssetRegistry.h
+        paladin-core/asset-pipeline/importers/TextureImporter.cpp
         paladin-core/asset-pipeline/importers/TextureImporter.h
+        paladin-core/asset-pipeline/AssetRegistry.h
         # ASSET
         paladin-core/asset/Asset.h
         paladin-core/asset/Material.h

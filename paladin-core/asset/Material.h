@@ -30,7 +30,7 @@ public:
     }
     void SetTexture(const MaterialProperty property, const AssetHandle<Texture2DAsset> texture)
     {
-        textures.at(property) = texture;
+        textures.insert({property, texture});
     }
 private:
     std::unordered_map<MaterialProperty, AssetHandle<Texture2DAsset>> textures;

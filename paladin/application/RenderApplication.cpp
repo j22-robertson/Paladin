@@ -43,6 +43,7 @@ void RenderApplication::Setup() {
 
     m_asset_registry = std::make_unique<AssetRegistry>();
 
+    m_asset_registry->ImportAsset<ModelAsset>("Sponza.gltf");
     glfwInit();
     window = glfwCreateWindow(window_width, window_height, "Paladin-Triangle", nullptr, nullptr);
 

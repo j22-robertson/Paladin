@@ -10,15 +10,28 @@
 
 AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
 {
+    std::filesystem::path root(PALADIN_ROOT_DIR);
+    std::filesystem::path asset_directory = root / "assets";
+
+    std::filesystem::path full_path{};
+    //TODO: This is probably so inefficient.
+    for (auto entry : std::filesystem::recursive_directory_iterator(asset_directory) ){
+        if (entry.is_regular_file() && entry.path().filename() == file) {
+            full_path = entry.path();
+        }
+    }
+
+
+    std::unique_ptr<ModelAsset> model = std::make_unique<ModelAsset>();
     std::vector<AssetHandle<MeshAsset>> loaded_meshes;
+
     Assimp::Importer importer;
     PALADIN_LOG(INFO, "LOADING ASSET:"+file)
 
-    const aiScene* scene = importer.ReadFile(file, aiProcess_Triangulate|aiProcess_CalcTangentSpace);
+    const aiScene* scene = importer.ReadFile(full_path.generic_string(), aiProcess_Triangulate|aiProcess_CalcTangentSpace);
     if (!scene) return {};
     std::vector<AssetHandle<MaterialAsset>> materials;
 
-    std::unordered_map<std::uint32_t, AssetHandle<Texture2DAsset>> material_map;
     for (int i = 0; i < scene->mNumMaterials; i++)
     {
         MaterialAsset material_asset;
@@ -26,7 +39,11 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
         aiMaterial* material = scene->mMaterials[i];
         aiString path{};
         material->GetTexture(aiTextureType_BASE_COLOR, 0 , &path);
-        
+        auto albedo = m_asset_registry->ImportAsset<Texture2DAsset>(path.C_Str());
+        MaterialAsset new_material{};
+
+        new_material.SetTexture(Albedo, albedo);
+        m_asset_registry->InsertAsset<MaterialAsset>(std::make_unique<MaterialAsset>(new_material));
     }
 
     auto& node = scene->mRootNode;

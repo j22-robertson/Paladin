@@ -10,7 +10,7 @@
 #include "asset-pipeline/interfaces/IAssetImporter.h"
 #include "asset/Material.h"
 #include "asset/Mesh.h"
-
+#include <filesystem>
 #include "assimp/Importer.hpp"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"

@@ -5,8 +5,13 @@
 #ifndef PALADIN_TEXTUREIMPORTER_H
 #define PALADIN_TEXTUREIMPORTER_H
 #include "Logger.h"
+#include "asset/AssetHandle.h"
 #include "asset/Texture2D.h"
 #include "asset-pipeline/interfaces/IAssetImporter.h"
+
+
+
+class AssetRegistry;
 
 class TextureImporter : public IAssetImporter<Texture2DAsset>
 {
@@ -16,14 +21,5 @@ public:
     AssetHandle<Texture2DAsset> LoadAsset(std::string file) override;
 };
 
-inline TextureImporter::TextureImporter(AssetRegistry& asset_registry) : IAssetImporter<Texture2DAsset>(asset_registry)
-{
 
-}
-
-inline AssetHandle<Texture2DAsset> TextureImporter::LoadAsset(std::string file)
-{
-    PALADIN_LOG(INFO,"Loading Asset:"+file);
-    return {};
-}
 #endif //PALADIN_TEXTUREIMPORTER_H

@@ -48,6 +48,9 @@ add_subdirectory(deps/tracy)
 add_subdirectory(deps/imgui)
 add_subdirectory(deps/assimp)
 add_subdirectory(deps/glm)
+add_subdirectory(deps/stb_image)
+
+target_include_directories(PaladinCore INTERFACE ${stb_image_SOURCE_DIR})
 
 set(GLM_FORCE_LEFT_HANDED ON CACHE BOOL "" FORCE)
 #https://github.com/g-truc/glm/blob/master/manual.md#section2_16
@@ -59,8 +62,9 @@ target_compile_definitions(PaladinRenderer PUBLIC GLM_ENABLE_EXPERIMENTAL)
 
 target_link_libraries(imgui PUBLIC glfw)
 
-target_link_libraries(PaladinCore PRIVATE
-assimp)
+target_link_libraries(PaladinCore PUBLIC
+        assimp
+        stb_interface)
 
 
 
