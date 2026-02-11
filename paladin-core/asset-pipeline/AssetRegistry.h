@@ -48,6 +48,7 @@ public:
     // Insert a single asset
     template<typename T> requires IsPaladinAsset<T>
     AssetHandle<T> InsertAsset(std::unique_ptr<T> asset);
+
     template<typename T> requires IsPaladinAsset<T>
     bool IsValid(AssetHandle<T> handle);
 
@@ -57,13 +58,9 @@ private:
 
     template<typename T> requires IsImportable<T>
     IAssetImporter<T>* GetImporter();
-
-
-
     template<typename T> requires IsPaladinAsset<T>
     IAssetManager<T>* GetManager();
-
-    std::unordered_map<std::size_t, AssetManager> asset_managers;
+    std::unordered_map<std::size_t, AssetManager> asset_managers {};
     std::unordered_map<std::size_t, AssetImporter> asset_importers{};
 };
 

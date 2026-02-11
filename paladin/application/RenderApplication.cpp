@@ -52,6 +52,12 @@ void RenderApplication::Setup() {
 
     for (auto mat_handle : model->materials) {
         auto material =  m_asset_registry->GetAsset<MaterialAsset>(mat_handle);
+
+        auto albedo_handle = material->GetTexture(Albedo);
+
+        auto albedo = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
+        std::string p = std::string("Pixel count:" +std::to_string(albedo->pixels.size()/albedo->channels));
+        PALADIN_LOG(INFO, p);
         PALADIN_LOG(INFO, "Material name:"+material->GetName())
     }
     glfwInit();
