@@ -4,6 +4,8 @@
 
 #ifndef PALADIN_ASSETREGISTRY_H
 #define PALADIN_ASSETREGISTRY_H
+#include <map>
+#include <set>
 #include <typeindex>
 #include <unordered_map>
 #include <utility>
@@ -49,20 +51,62 @@ public:
     template<typename T> requires IsPaladinAsset<T>
     AssetHandle<T> InsertAsset(std::unique_ptr<T> asset);
 
+    // TODO: Maybe rename. Insert a null asset for later writing
+    template<typename T> requires IsPaladinAsset<T>
+    AssetHandle<T> InsertAsset();
+
     template<typename T> requires IsPaladinAsset<T>
     bool IsValid(AssetHandle<T> handle);
 
     template<typename T> requires IsPaladinAsset<T>
     void Remove(AssetHandle<T> handle);
+
+    void AddDependency(OpaqueAssetHandle parent, OpaqueAssetHandle child);
+    void AddDependencies(OpaqueAssetHandle parent, const std::vector<OpaqueAssetHandle> &children);
+
 private:
 
     template<typename T> requires IsImportable<T>
     IAssetImporter<T>* GetImporter();
     template<typename T> requires IsPaladinAsset<T>
     IAssetManager<T>* GetManager();
+
+    void RemoveOpaque(OpaqueAssetHandle opaque_handle);
+
     std::unordered_map<std::size_t, AssetManager> asset_managers {};
     std::unordered_map<std::size_t, AssetImporter> asset_importers{};
+
+    std::map<OpaqueAssetHandle, std::vector<OpaqueAssetHandle>> dependencies;
+    std::map<OpaqueAssetHandle, std::set<OpaqueAssetHandle>> references;
 };
+
+inline void AssetRegistry::AddDependency(OpaqueAssetHandle parent, OpaqueAssetHandle child) {
+    dependencies[parent].push_back(child);
+    references[child].insert(parent);
+    return;
+}
+
+inline void AssetRegistry::AddDependencies(const OpaqueAssetHandle parent, const std::vector<OpaqueAssetHandle> &children) {
+    for (const auto child : children) {
+        AddDependency(parent, child);
+    }
+}
+
+
+inline void AssetRegistry::RemoveOpaque(OpaqueAssetHandle opaque_handle) {
+    if (!dependencies[opaque_handle].empty()) {
+        for (OpaqueAssetHandle& dependency : dependencies[opaque_handle]) {
+            references[dependency].erase(opaque_handle);
+            if (references[dependency].size()<1) {
+                RemoveOpaque(dependency);
+            }
+        }
+    }
+    dependencies[opaque_handle].clear();
+    if (const auto it = asset_managers.find(opaque_handle.type_id); it->second!=nullptr) {
+        it->second->RemoveOpaque(opaque_handle);
+    }
+}
 
 
 template<typename T> requires IsPaladinAsset<T>
@@ -100,6 +144,16 @@ std::vector<AssetHandle<T>> AssetRegistry::InsertAssets(std::vector<std::unique_
     return {};
 }
 
+
+template<typename T> requires IsPaladinAsset<T>
+AssetHandle<T> AssetRegistry::InsertAsset() {
+    PALADIN_SCOPED_CPU_PROFILE("InsertAsset", ProfileColors::Green);
+    if (auto manager = GetManager<T>(); manager != nullptr) {
+        return manager->InsertAsset();
+    }
+    return {};
+}
+
 template<typename T> requires IsPaladinAsset<T>
 AssetHandle<T> AssetRegistry::InsertAsset(std::unique_ptr<T> asset) {
     PALADIN_SCOPED_CPU_PROFILE("InsertAsset", ProfileColors::Green);
@@ -119,8 +173,16 @@ bool AssetRegistry::IsValid(AssetHandle<T> handle) {
 template<typename T> requires IsPaladinAsset<T>
 void AssetRegistry::Remove(AssetHandle<T> handle) {
     if (IsValid(handle)) {
+        if (!dependencies[handle].empty()) {
+            for (OpaqueAssetHandle& dependency : dependencies[handle]) {
+                references[dependency].erase(handle);
+                if (references[dependency].size()<1) {
+                    RemoveOpaque(dependency);
+                }
+            }
+        }
         auto manager = GetManager<T>();
-        manager->Remove(handle);
+        manager->RemoveAsset(handle);
     }
 }
 

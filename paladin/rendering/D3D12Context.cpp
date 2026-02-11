@@ -296,7 +296,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     if (auto hr = m_device->CreateCommittedResource(&heap_properties,
         D3D12_HEAP_FLAG_NONE,
         &resource_buffer_desc,
-        D3D12_RESOURCE_STATE_COPY_DEST,
+        D3D12_RESOURCE_STATE_COMMON,
         nullptr,
         IID_PPV_ARGS(&triangle_vertex_buffer));FAILED(hr)) {
             PALADIN_LOG(ERR,ErrorResult("Failed to aallocate memory for Vertex Buffer", hr))

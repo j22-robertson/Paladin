@@ -8,6 +8,7 @@
 class IAssetManagerBase {
 public:
     virtual ~IAssetManagerBase() = default;
+    virtual void RemoveOpaque(OpaqueAssetHandle handle) = 0;
 };
 
 

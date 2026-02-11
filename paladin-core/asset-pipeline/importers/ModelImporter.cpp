@@ -22,12 +22,12 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
         }
     }
 
+    auto new_model_handle = m_asset_registry->InsertAsset<ModelAsset>();
 
-    std::unique_ptr<ModelAsset> model = std::make_unique<ModelAsset>();
+
 
 
     Assimp::Importer importer;
-  //  PALADIN_LOG(INFO, "LOADING ASSET:"+file)
 
     const aiScene* scene = importer.ReadFile(full_path.generic_string(), aiProcess_Triangulate|aiProcess_CalcTangentSpace);
     if (!scene) return {};
@@ -63,9 +63,14 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
         new_material->SetTexture(Metallic, metallic_roughness);
         new_material->SetTexture(Normal, normal);
         auto material_handle = m_asset_registry->InsertAsset<MaterialAsset>(std::move(new_material));
-        materials.push_back(material_handle);
 
+
+        materials.push_back(material_handle);
+        m_asset_registry->AddDependency(material_handle,normal);
+        m_asset_registry->AddDependency(material_handle,albedo);
+        m_asset_registry->AddDependency(material_handle,metallic_roughness);
     }
+
 
     auto& node = scene->mRootNode;
     std::uint32_t mesh_count = 0;
@@ -77,18 +82,22 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
     mesh_count = scene->mNumMeshes;
     auto meshes = ProcessNode(node, scene,materials,file);
 
-    model->meshes = std::move(meshes);
-    model->materials = std::move( materials);
+    for (auto& mesh : meshes) {
+        m_asset_registry->AddDependency(new_model_handle, mesh);
+    }
 
+    auto new_model = m_asset_registry->GetAsset<ModelAsset>(new_model_handle);
 
-    return m_asset_registry->InsertAsset(std::move(model));
+    new_model->materials = std::move(materials);
+    new_model->meshes = std::move(meshes);
+
+    return new_model_handle;
 }
 
 std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene, const std::vector<AssetHandle<MaterialAsset>>& materials, const std::string& file)
 {
     std::vector<AssetHandle<MeshAsset>> mesh_handles;
-    for (int i = 0; i < node->mNumMeshes; i++)
-    {
+    for (int i = 0; i < node->mNumMeshes; i++) {
         std::vector<Paladin::Vertex> vertices{};
 
         std::vector<std::uint32_t> indices{};
@@ -144,8 +153,9 @@ std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* nod
             }
         }
         std::string name = mesh->mName.Empty() ? file  + ":" +" Mesh:" +std::to_string(i) : mesh->mName.C_Str();
-        //name = file  + ":" +" Mesh:" +std::to_string(i);
-        mesh_handles.push_back(m_asset_registry->InsertAsset(std::make_unique<MeshAsset>(name,vertices,indices,materials[mesh->mMaterialIndex])));
+        auto mesh_handle = m_asset_registry->InsertAsset(std::make_unique<MeshAsset>(name,vertices,indices,materials[mesh->mMaterialIndex]));
+        mesh_handles.push_back(mesh_handle);
+        m_asset_registry->AddDependency(mesh_handle, materials[mesh->mMaterialIndex]);
     }
     return mesh_handles;
 }

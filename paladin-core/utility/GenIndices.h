@@ -14,6 +14,9 @@ constexpr std::uint32_t invalid = std::numeric_limits<std::uint32_t>::max();
 struct GenKey {
     std::uint32_t index = invalid;
     std::uint32_t generation = invalid;
+    bool operator==(const GenKey& rhs) const {
+        return index == rhs.index && generation == rhs.generation;
+    }
 };
 
 class GenerationalIndexAllocator {

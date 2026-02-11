@@ -22,6 +22,14 @@ public:
         }
         return nullptr;
     }
+
+
+    const T* GetAsset(AssetHandle<T> handle) const{
+        if (asset_index_allocator.IsValid(handle.inner)) {
+            return asset_storage[handle.inner.index].get();
+        }
+        return nullptr;
+    }
     std::vector<AssetHandle<T>> InsertAssets(std::vector<std::unique_ptr<T>> assets) {
         std::vector<AssetHandle<T>> new_asset_handles;
         if (assets.empty()) return {};
@@ -47,6 +55,17 @@ public:
         }
         return new_asset_handles;
     }
+    AssetHandle<T> InsertAsset() {
+        PALADIN_SCOPED_CPU_PROFILE(std::string("Insert:"+std::string(typeid(T).name())).c_str(), ProfileColors::Green);
+        auto new_index = asset_index_allocator.Allocate();
+        if (asset_storage.size()<=new_index.index) {
+            asset_storage.resize(new_index.index+1);
+            asset_storage[new_index.index] = std::make_unique<T>();
+        }
+        asset_storage[new_index.index] = std::make_unique<T>();
+        return {new_index};
+    };
+
     AssetHandle<T> InsertAsset(std::unique_ptr<T> asset) {
         PALADIN_SCOPED_CPU_PROFILE(std::string("Insert:"+std::string(typeid(T).name())).c_str(), ProfileColors::Green);
         if (asset == nullptr) {
@@ -62,12 +81,16 @@ public:
     };
     void RemoveAsset(AssetHandle<T> handle) {
         if (asset_index_allocator.IsValid(handle.inner)) {
-            asset_storage[handle.inner]=nullptr;
+            asset_storage[handle.inner.index].reset();
             asset_index_allocator.Deallocate(handle.inner);
         }
     }
+    void RemoveOpaque(OpaqueAssetHandle handle) override {
+        AssetHandle<T> typed_handle = AssetHandle<T>{.inner = handle.inner};
+        RemoveAsset(typed_handle);
+    }
     bool IsValid(AssetHandle<T>& handle) {
-        return asset_index_allocator.IsValid(handle);
+        return asset_index_allocator.IsValid(handle.inner);
     }
 private:
     bool lazy_load = false;

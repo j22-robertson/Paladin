@@ -48,15 +48,18 @@ void RenderApplication::Setup() {
         sponza = m_asset_registry->ImportAsset<ModelAsset>("Sponza.gltf");
     }
 
-    auto model = m_asset_registry->GetAsset<ModelAsset>(sponza);
-
-    for (auto mesh_handle : model->meshes) {
-        auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
-        auto material = m_asset_registry->GetAsset<MaterialAsset>(mesh->material);
-        PALADIN_LOG(INFO, std::string("num verts in mesh: "+std::to_string(mesh->vertices.size() )+ " name:" + mesh->name))
-        PALADIN_LOG(INFO, "Material name:"+material->GetName())
+    {
+        PALADIN_SCOPED_CPU_PROFILE("Removing Sponza",ProfileColors::Blue );
+        m_asset_registry->Remove<ModelAsset>(sponza);
     }
 
+
+    if (m_asset_registry->GetAsset<ModelAsset>(sponza)!=nullptr) {
+        PALADIN_LOG(INFO, "sponza valid")
+    }
+    else {
+        PALADIN_LOG(INFO, "sponza invalid")
+    }
 
     glfwInit();
     window = glfwCreateWindow(window_width, window_height, "Paladin-Triangle", nullptr, nullptr);
