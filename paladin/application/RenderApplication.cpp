@@ -50,16 +50,14 @@ void RenderApplication::Setup() {
 
     auto model = m_asset_registry->GetAsset<ModelAsset>(sponza);
 
-    for (auto mat_handle : model->materials) {
-        auto material =  m_asset_registry->GetAsset<MaterialAsset>(mat_handle);
-
-        auto albedo_handle = material->GetTexture(Albedo);
-
-        auto albedo = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
-        std::string p = std::string("Pixel count:" +std::to_string(albedo->pixels.size()/albedo->channels));
-        PALADIN_LOG(INFO, p);
+    for (auto mesh_handle : model->meshes) {
+        auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
+        auto material = m_asset_registry->GetAsset<MaterialAsset>(mesh->material);
+        PALADIN_LOG(INFO, std::string("num verts in mesh: "+std::to_string(mesh->vertices.size() )+ " name:" + mesh->name))
         PALADIN_LOG(INFO, "Material name:"+material->GetName())
     }
+
+
     glfwInit();
     window = glfwCreateWindow(window_width, window_height, "Paladin-Triangle", nullptr, nullptr);
 

@@ -27,7 +27,7 @@ class ModelImporter : public IAssetImporter<ModelAsset>
 
     AssetHandle<ModelAsset> LoadAsset(std::string file) override;
 private:
-    void ProcessNode(const aiNode* node, const aiScene* scene);
+    std::vector<AssetHandle<MeshAsset>> ProcessNode(const aiNode* node, const aiScene* scene, const std::vector<AssetHandle<MaterialAsset>>& materials, const std::string& file);
     private:
 };
 

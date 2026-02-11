@@ -24,7 +24,7 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
 
 
     std::unique_ptr<ModelAsset> model = std::make_unique<ModelAsset>();
-    std::vector<AssetHandle<MeshAsset>> loaded_meshes;
+
 
     Assimp::Importer importer;
   //  PALADIN_LOG(INFO, "LOADING ASSET:"+file)
@@ -74,15 +74,19 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
         PALADIN_LOG(ERR, "ASSIMP:" +std::string(importer.GetErrorString()))
         return {};
     }
+    mesh_count = scene->mNumMeshes;
+    auto meshes = ProcessNode(node, scene,materials,file);
 
-    model->materials = std::move(materials);
+    model->meshes = std::move(meshes);
+    model->materials = std::move( materials);
 
 
     return m_asset_registry->InsertAsset(std::move(model));
 }
 
-void ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene)
+std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene, const std::vector<AssetHandle<MaterialAsset>>& materials, const std::string& file)
 {
+    std::vector<AssetHandle<MeshAsset>> mesh_handles;
     for (int i = 0; i < node->mNumMeshes; i++)
     {
         std::vector<Paladin::Vertex> vertices{};
@@ -94,7 +98,7 @@ void ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene)
 
         vertices.resize(mesh->mNumVertices);
 
-        indices.resize(mesh->mNumFaces*3);
+
 
 
         for (int j = 0; j < mesh->mNumVertices; j++)
@@ -125,8 +129,23 @@ void ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene)
                 vertices[j].btz = static_cast<float>(mesh->mBitangents[j].z);
             }
         }
+        if (mesh->HasVertexColors(0)) {
+            for (int j = 0; j < mesh->mNumVertices; j++) {
+                vertices[j].r = static_cast<float>(mesh->mColors[0][j].r);
+                vertices[j].g = static_cast<float>(mesh->mColors[0][j].g);
+                vertices[j].b = static_cast<float>(mesh->mColors[0][j].b);
+            }
+        }
 
-
-
+        for (int j =0; j < mesh->mNumFaces; j++) {
+            const aiFace face = mesh->mFaces[j];
+            for (int n = 0; n < face.mNumIndices; n++) {
+                indices.push_back(face.mIndices[n]);
+            }
+        }
+        std::string name = mesh->mName.Empty() ? file  + ":" +" Mesh:" +std::to_string(i) : mesh->mName.C_Str();
+        //name = file  + ":" +" Mesh:" +std::to_string(i);
+        mesh_handles.push_back(m_asset_registry->InsertAsset(std::make_unique<MeshAsset>(name,vertices,indices,materials[mesh->mMaterialIndex])));
     }
+    return mesh_handles;
 }

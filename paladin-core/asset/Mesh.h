@@ -9,6 +9,10 @@
 
 class MeshAsset: public Asset
 {
+public:
+    MeshAsset(std::string n,std::vector<Paladin::Vertex> v, std::vector<std::uint32_t> i, AssetHandle<MaterialAsset> m) :name(n), vertices(std::move(v)),indices(std::move(i)),material(std::move(m)){
+    }
+    std::string name;
     std::vector<Paladin::Vertex> vertices;
     std::vector<std::uint32_t> indices;
     AssetHandle<MaterialAsset> material;

@@ -35,14 +35,14 @@ public:
         return {static_cast<std::uint32_t>(m_generation_entries.size()-1),0};
     }
 
-    // Increments generation and pushes back the key index
+    // Increments generationn and pushes back the key index
     void Deallocate(const GenKey key) {
         if (!IsValid(key)) return;
         ++m_generation_entries[key.index].current;
         m_free_indices.push_back(key.index);
     }
 
-    // if key index is within generation entries and matches generation then true else false
+    // if key index is within generationn entries and matches generation then true else false
     bool IsValid(const GenKey key) const {
         return key.index < m_generation_entries.size() && key.generation == m_generation_entries[key.index].current;
     }
