@@ -21,7 +21,10 @@ using AssetManager = std::unique_ptr<IAssetManagerBase>;
 
 using AssetImporter = std::unique_ptr<IAssetImporterBase>;
 
-//TODO: Maybe RequestImport(x) returning a handle that will be valid in the future, puts task on queue for multithreading?
+///TODO: Maybe RequestImport(x) returning a handle that will be valid in the future, puts task on queue for multithreading?
+/// MORE ON THIS: create handles upfront for assets we know will be loaded. maybe add a CommitAsset() for locking when writing
+/// Create a queue and thread pool or maybe use async with future to send tasks off. When completed remove from the not_loaded set (set of OpaqueAssetHandle)
+/// Since only some assets need to be imported we can easily construct other assets e.g. Model/Scene, Material
 class AssetRegistry {
 public:
     AssetRegistry()
@@ -64,6 +67,9 @@ public:
     void AddDependency(OpaqueAssetHandle parent, OpaqueAssetHandle child);
     void AddDependencies(OpaqueAssetHandle parent, const std::vector<OpaqueAssetHandle> &children);
 
+    template<typename T> requires IsImportable<T>
+    void RequestImport(const std::string& file);
+
 private:
 
     template<typename T> requires IsImportable<T>
@@ -97,7 +103,7 @@ inline void AssetRegistry::RemoveOpaque(OpaqueAssetHandle opaque_handle) {
     if (!dependencies[opaque_handle].empty()) {
         for (OpaqueAssetHandle& dependency : dependencies[opaque_handle]) {
             references[dependency].erase(opaque_handle);
-            if (references[dependency].size()<1) {
+            if (references[dependency].empty()) {
                 RemoveOpaque(dependency);
             }
         }
@@ -127,6 +133,8 @@ AssetHandle<T> AssetRegistry::ImportAsset(std::string file)
     PALADIN_LOG(ERR, "Unable to find Importer for Type:"+type_name)
     return{};
 }
+
+
 
 template<typename T> requires IsImportable<T>
 IAssetImporter<T>* AssetRegistry::GetImporter() {
