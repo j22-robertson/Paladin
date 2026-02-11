@@ -25,6 +25,10 @@ using AssetImporter = std::unique_ptr<IAssetImporterBase>;
 /// MORE ON THIS: create handles upfront for assets we know will be loaded. maybe add a CommitAsset() for locking when writing
 /// Create a queue and thread pool or maybe use async with future to send tasks off. When completed remove from the not_loaded set (set of OpaqueAssetHandle)
 /// Since only some assets need to be imported we can easily construct other assets e.g. Model/Scene, Material
+/// EXTRA TODO: Maybe export data on first load from file as binary, use dependency map + generate UUID and use UUID to AssetHandle map?
+/// e.g. to export material we export texture handles as UUID. to export mesh we write indices and vertices to binary and material as UUID?
+/// Then we could recurse through our parent (Scene->Models-> Meshes->Materials->Textures) on first load, write their UUIDs, export to binary
+/// and on second load we could search for those files and directly map the memory to our assets? should speed up a lot.
 class AssetRegistry {
 public:
     AssetRegistry()
@@ -89,7 +93,6 @@ private:
 inline void AssetRegistry::AddDependency(OpaqueAssetHandle parent, OpaqueAssetHandle child) {
     dependencies[parent].push_back(child);
     references[child].insert(parent);
-    return;
 }
 
 inline void AssetRegistry::AddDependencies(const OpaqueAssetHandle parent, const std::vector<OpaqueAssetHandle> &children) {
