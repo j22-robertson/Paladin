@@ -5,7 +5,8 @@
 #ifndef PALADIN_PROFILING_H
 #define PALADIN_PROFILING_H
 
-
+#include <tracy/Tracy.hpp>
+#include <tracy/TracyD3D12.hpp>
 
 namespace ProfileColors {
     static constexpr unsigned int Red    = 0xFFFF0000;
@@ -14,8 +15,7 @@ namespace ProfileColors {
 }
 /// PIX COLORS FOR SCOPED EVENTS AND MARKERS
 #ifdef TRACY_ENABLE
-#include <tracy/Tracy.hpp>
-#include <tracy/TracyD3D12.hpp>
+
 // Tracy
 #define PALADIN_SCOPED_CPU_PROFILE(name, color)\
     ZoneScoped;\

@@ -47,6 +47,13 @@ void RenderApplication::Setup() {
         PALADIN_SCOPED_CPU_PROFILE("Loading Sponza",ProfileColors::Blue );
         sponza = m_asset_registry->ImportAsset<ModelAsset>("Sponza.gltf");
     }
+    if (m_asset_registry->GetAsset<ModelAsset>(sponza)!=nullptr) {
+        PALADIN_LOG(INFO, "sponza valid")
+    }
+    else {
+        PALADIN_LOG(INFO, "sponza invalid")
+    }
+
 
     {
         PALADIN_SCOPED_CPU_PROFILE("Removing Sponza",ProfileColors::Blue );
@@ -60,6 +67,30 @@ void RenderApplication::Setup() {
     else {
         PALADIN_LOG(INFO, "sponza invalid")
     }
+
+
+    RingBuffer<int> ring_buffer = RingBuffer<int>(3u);
+
+    for (int i = 0; i < ring_buffer.Capacity()+2; i++) {
+        ring_buffer.PushBack(i);
+    }
+    for (int i = 0; i < ring_buffer.Capacity(); i++) {
+        if (auto front = ring_buffer.GetFront(); front.has_value()) {
+            PALADIN_LOG(INFO, "Front:"+std::to_string(front.value()))
+
+        }
+        if (auto back= ring_buffer.GetBack(); back.has_value()) {
+            PALADIN_LOG(INFO, "Back:"+std::to_string(back.value()))
+        }
+    }
+
+    ring_buffer.PopFront();
+    ring_buffer.PopFront();
+    for (auto value : ring_buffer.GetForPrint()) {
+        PALADIN_LOG(INFO, "Value:"+std::to_string(value))
+    }
+    PALADIN_LOG(INFO, "RingBuffer count:" + std::to_string(ring_buffer.Count()))
+
 
     glfwInit();
     window = glfwCreateWindow(window_width, window_height, "Paladin-Triangle", nullptr, nullptr);

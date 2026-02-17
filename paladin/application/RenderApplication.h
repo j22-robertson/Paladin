@@ -25,6 +25,7 @@
 #include "asset-pipeline/AssetRegistry.h"
 #include "asset/Texture2D.h"
 #include "utility/GenIndices.h"
+#include "data-structures/RingBuffer.h"
 
 //TODO: Create a window class
 class RenderApplication final : IApplication {

@@ -29,4 +29,5 @@ set(PALADIN_CORE_SOURCES
 
         #General
         paladin-core/Vertex.h
+        paladin-core/data-structures/RingBuffer.h
         PARENT_SCOPE)
