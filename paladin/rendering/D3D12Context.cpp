@@ -454,19 +454,12 @@ bool D3D12Context::Render()
 {
     PALADIN_SCOPED_CPU_PROFILE("D3D12Context::Render", ProfileColors::Red);
     PALADIN_BEGIN_GPU_PROFILE(m_command_queue.Get(), ProfileColors::Green, "D3D12Context::Render")
-
-
     if (!WaitForPreviousFrame())
     {
         return false;
     }
-    {
-        PALADIN_SCOPED_CPU_PROFILE("ResizeEvent", ProfileColors::Blue);
-        if (m_resized) {
-            Resize(m_window_width,m_window_height);
-        }
-    }
 
+    if (m_resized)  Resize(m_window_width,m_window_height);
 
     TracyD3D12Collect(m_tracy_context)
     TracyD3D12NewFrame(m_tracy_context)
@@ -523,21 +516,13 @@ bool D3D12Context::Render()
         }
     }
 
-    {
-        PALADIN_SCOPED_CPU_PROFILE("D3D12Context::UpdatePipeline",ProfileColors::Red);
-        if (!UpdatePipeline())
-        {
-            return false;
-        }
-    }
-
+    if (!UpdatePipeline()) return false;
 
     {
         PALADIN_SCOPED_CPU_PROFILE("Execute Command Lists", ProfileColors::Red);
         ID3D12CommandList* command_lists[] = {m_command_list.Get()};
         m_command_queue->ExecuteCommandLists(_countof(command_lists),command_lists);
     }
-
 
     {
         PALADIN_SCOPED_CPU_PROFILE("Signal and present" ,ProfileColors::Green);
@@ -554,14 +539,11 @@ bool D3D12Context::Render()
             return false;
         }
     }
-
-
-
-
     return true;
 }
 
 bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
+    PALADIN_SCOPED_CPU_PROFILE("ResizeEvent", ProfileColors::Blue);
     m_resized = false;
 
     FlushDevice();
@@ -636,7 +618,7 @@ bool D3D12Context::WaitForPreviousFrame()
 
 bool D3D12Context::UpdatePipeline()
 {
-
+    PALADIN_SCOPED_CPU_PROFILE("D3D12Context::UpdatePipeline",ProfileColors::Red);
     if (auto hr = m_command_allocator[frame_index]->Reset(); FAILED(hr))
     {
         PALADIN_LOG(ERR, ErrorResult("Failed to reset command allocator.", hr))
