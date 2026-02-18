@@ -16,3 +16,12 @@ https://microsoft.github.io/DirectX-Specs/d3d/MeshShader.html
 DX12
 https://github.com/microsoft/DirectXShaderCompiler/wiki/Using-dxc.exe-and-dxcompiler.dll
 https://alain.xyz/books/raw-directx12/
+https://learn.microsoft.com/en-us/windows/win32/direct3d12/performance-measurement
+https://learn.microsoft.com/en-us/windows/win32/direct3d12/indirect-drawing
+https://learn.microsoft.com/en-us/windows/win32/direct3d12/direct3d-12-reference
+https://learn.microsoft.com/en-us/windows/win32/direct3d12/dynamic-indexing-using-hlsl-5-1
+
+DX12 Memory
+https://learn.microsoft.com/en-us/windows/win32/direct3d12/fence-based-resource-management
+https://learn.microsoft.com/en-us/windows/win32/direct3d12/memory-management
+https://learn.microsoft.com/en-us/windows/win32/direct3d12/residency
