@@ -42,6 +42,7 @@ void RenderApplication::Setup() {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 
     AssetHandle<ModelAsset> sponza = {};
+
     m_asset_registry = std::make_unique<AssetRegistry>();
     {
         PALADIN_SCOPED_CPU_PROFILE("Loading Sponza",ProfileColors::Blue );

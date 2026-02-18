@@ -65,6 +65,11 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Resource> triangle_vertex_buffer = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> temporary_upload_heap= nullptr;
 
+
+    Microsoft::WRL::ComPtr<D3D12MA::Allocator> m_gpu_allocator = nullptr;
+
+    Microsoft::WRL::ComPtr<IDXGIAdapter1> m_adapter = nullptr;
+
     std::uint32_t m_window_width;
     std::uint32_t m_window_height;
 

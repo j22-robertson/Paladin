@@ -23,7 +23,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     m_window_width = window_width;
     m_window_height = window_height;
 
-    Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter = nullptr;
+
 
     Microsoft::WRL::ComPtr<IDXGIFactory2> m_dxgi_factory = nullptr;
     if (auto hr = CreateDXGIFactory2(factory_flags,IID_PPV_ARGS(&m_dxgi_factory)); FAILED(hr)) {
@@ -34,19 +34,19 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     bool able_to_support_feature = true;
     for (UINT adapter_index= 0; able_to_support_feature; adapter_index++ )
     {
-        if (auto hr =  m_dxgi_factory->EnumAdapters1(adapter_index, &adapter); FAILED(hr)) {
+        if (auto hr =  m_dxgi_factory->EnumAdapters1(adapter_index, &m_adapter); FAILED(hr)) {
             PALADIN_LOG(ERR, ErrorResult("Failed to match feature level." , hr))
             able_to_support_feature = false;
         }
 
         DXGI_ADAPTER_DESC1 desc;
-        adapter->GetDesc1(&desc);
+        m_adapter->GetDesc1(&desc);
 
         if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
         {
             continue;
         }
-        if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_2, _uuidof(ID3D12Device), nullptr))) {
+        if (SUCCEEDED(D3D12CreateDevice(m_adapter.Get(), D3D_FEATURE_LEVEL_12_2, _uuidof(ID3D12Device), nullptr))) {
             std::wstring gpu_name = desc.Description;
             PALADIN_LOG(INFO, "Found Graphics Device: " + ConvertWString(gpu_name))
             adapter_found = true;
@@ -56,7 +56,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     if (adapter_found) {
         PALADIN_LOG(INFO, "Found DXGI Device Adapter")
-        if (const auto hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&m_device)); SUCCEEDED(hr))
+        if (const auto hr = D3D12CreateDevice(m_adapter.Get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&m_device)); SUCCEEDED(hr))
         {
             if (m_device.Get()) {
                 PALADIN_LOG(INFO, "Created D3D12 Device")
@@ -67,6 +67,24 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
             return;
         }
     }
+
+
+    D3D12MA::ALLOCATOR_DESC allocator_desc = {};
+    allocator_desc.pDevice = m_device.Get();
+    allocator_desc.pAdapter = m_adapter.Get();
+    allocator_desc.Flags = D3D12MA_RECOMMENDED_ALLOCATOR_FLAGS;
+
+
+    if (auto hr = D3D12MA::CreateAllocator(&allocator_desc, &m_gpu_allocator); FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Failed to create D3D12MA::Allocator", hr))
+    }
+    else
+    {
+        PALADIN_LOG(INFO, "Created D3D12 Allocator")
+    }
+
+
 
     D3D12_COMMAND_QUEUE_DESC command_queue_desc = {};
     command_queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -705,6 +723,8 @@ D3D12Context::~D3D12Context() {
     TracyD3D12Destroy(m_tracy_context)
     ImGui_ImplDX12_Shutdown();
     CloseHandle(fence_event);
+
+
 #ifdef _DEBUG
     D3D12DebugLayer::Get().Shutdown();
 #endif
