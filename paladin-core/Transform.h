@@ -18,6 +18,7 @@ namespace Axis {
 
 //TODO: Local and Global for parenting?
 class Transform {
+public:
     Transform() = default;
 
     [[nodiscard]] bool HasUpdated() const {
@@ -61,7 +62,7 @@ private:
     bool has_updated = false;
 
     glm::vec3 position = glm::vec3(0);
-    glm::vec3 scale = glm::vec3(0);
+    glm::vec3 scale = glm::vec3(1);
     glm::quat rotation = glm::vec3(0);
 
     glm::mat4 matrix = glm::mat4(1.0);

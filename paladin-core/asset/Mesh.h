@@ -23,4 +23,15 @@ template<>
 struct UploadableToGPU<MeshAsset> {
     static constexpr bool value = true;
 };
+
+struct MeshRange {
+    std::size_t start_v;
+    std::size_t end_v;
+
+    std::size_t start_i;
+    std::size_t end_i;
+};
+
+
+
 #endif //PALADIN_MESH_H

@@ -17,7 +17,11 @@
 #include "profiling/Profiling.h"
 #include <filesystem>
 #include <shlobj.h>
+#include <span>
+
 #include "Logger.h"
+#include "Vertex.h"
+#include "asset/Mesh.h"
 
 struct Vertex {
     Vertex(float x, float y, float z, float r, float g, float b, float a) : pos(x, y, z), color(r, g, b, a) {}
@@ -41,6 +45,8 @@ public:
         m_window_height = new_height;
         m_resized = true;
     }
+
+    void UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices, std::span<MeshRange> mesh_ranges);
 
     bool m_resized = false;
     ~D3D12Context();

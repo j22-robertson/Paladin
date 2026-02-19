@@ -27,6 +27,12 @@
 #include "utility/GenIndices.h"
 #include "data-structures/RingBuffer.h"
 
+
+struct EntityTest {
+    Transform transform;
+    AssetHandle<ModelAsset> model_handle;
+};
+
 //TODO: Create a window class
 class RenderApplication final : IApplication {
 public:

@@ -51,46 +51,34 @@ void RenderApplication::Setup() {
     if (m_asset_registry->GetAsset<ModelAsset>(sponza)!=nullptr) {
         PALADIN_LOG(INFO, "sponza valid")
     }
-    else {
-        PALADIN_LOG(INFO, "sponza invalid")
+
+
+    std::vector<Paladin::Vertex> all_vertices;
+    std::vector<std::uint32_t> all_indices;
+
+    std::vector<MeshRange> mesh_ranges;
+
+    EntityTest testing = {.transform = Transform(), .model_handle = sponza};
+
+    for (auto mesh_handle : m_asset_registry->GetAsset<ModelAsset>(testing.model_handle)->meshes) {
+        auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
+
+        auto v_start = all_vertices.size();
+        auto i_start = all_indices.size();
+
+        all_indices.insert(all_indices.end(), mesh->indices.begin(), mesh->indices.end());
+        all_vertices.insert(all_vertices.end(), mesh->vertices.begin(), mesh->vertices.end());
+
+
+        auto i_end = all_indices.size()-1;
+        auto v_end = all_vertices.size()-1;
+
+        mesh_ranges.push_back(MeshRange{
+        .start_v = v_start,
+        .end_v = v_end,
+        .start_i = i_start,
+        .end_i = i_end,});
     }
-
-
-    {
-        PALADIN_SCOPED_CPU_PROFILE("Removing Sponza",ProfileColors::Blue );
-        m_asset_registry->Remove<ModelAsset>(sponza);
-    }
-
-
-    if (m_asset_registry->GetAsset<ModelAsset>(sponza)!=nullptr) {
-        PALADIN_LOG(INFO, "sponza valid")
-    }
-    else {
-        PALADIN_LOG(INFO, "sponza invalid")
-    }
-
-
-    RingBuffer<int> ring_buffer = RingBuffer<int>(3u);
-
-    for (int i = 0; i < ring_buffer.Capacity()+2; i++) {
-        ring_buffer.PushBack(i);
-    }
-    for (int i = 0; i < ring_buffer.Capacity(); i++) {
-        if (auto front = ring_buffer.GetFront(); front.has_value()) {
-            PALADIN_LOG(INFO, "Front:"+std::to_string(front.value()))
-
-        }
-        if (auto back= ring_buffer.GetBack(); back.has_value()) {
-            PALADIN_LOG(INFO, "Back:"+std::to_string(back.value()))
-        }
-    }
-
-    ring_buffer.PopFront();
-    ring_buffer.PopFront();
-    for (auto value : ring_buffer.GetForPrint()) {
-        PALADIN_LOG(INFO, "Value:"+std::to_string(value))
-    }
-    PALADIN_LOG(INFO, "RingBuffer count:" + std::to_string(ring_buffer.Count()))
 
 
     glfwInit();
@@ -119,6 +107,9 @@ void RenderApplication::Setup() {
     auto hwnd = glfwGetWin32Window(window);
     ImGui_ImplGlfw_InitForOther(window,true);
     m_render_context = std::make_shared<D3D12Context>(hwnd, window_width,window_height);
+
+    m_render_context->UploadModel(all_vertices, all_indices, mesh_ranges);
+
 }
 
 bool RenderApplication::Update(float delta_time) {

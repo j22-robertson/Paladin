@@ -560,6 +560,10 @@ bool D3D12Context::Render()
     return true;
 }
 
+void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices,std::span<MeshRange> mesh_ranges) {
+
+}
+
 bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
     PALADIN_SCOPED_CPU_PROFILE("ResizeEvent", ProfileColors::Blue);
     m_resized = false;
