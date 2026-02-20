@@ -5,6 +5,9 @@
 #ifndef PALADIN_MESH_H
 #define PALADIN_MESH_H
 #include "Asset.h"
+#include "AssetTraits.h"
+#include "AssetHandle.h"
+#include "Material.h"
 #include "Vertex.h"
 
 class MeshAsset: public Asset

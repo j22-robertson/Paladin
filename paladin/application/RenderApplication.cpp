@@ -9,7 +9,6 @@
 
 RenderApplication::~RenderApplication() {
 
-
     m_render_context.reset();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -22,7 +21,7 @@ void RenderApplication::run() {
     Setup();
     while (!glfwWindowShouldClose(window)) {
         FrameMark;
-
+        Update(0.0);
         if (!m_render_context->Render())
         {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -40,6 +39,8 @@ void RenderApplication::Setup() {
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+
+   // Input::keys[1024] = {false};
 
     AssetHandle<ModelAsset> sponza = {};
 
@@ -89,6 +90,8 @@ void RenderApplication::Setup() {
     glfwSetWindowUserPointer(window,this);
 
 
+    glfwSetKeyCallback(window, Input::InputCallback);
+
     glfwSetFramebufferSizeCallback(window,[](GLFWwindow* window, int width, int height) {
         auto application = static_cast<RenderApplication*>(glfwGetWindowUserPointer(window));
         auto clamped_width = std::clamp(width, 100,1920);
@@ -100,6 +103,7 @@ void RenderApplication::Setup() {
         application->m_render_context->OnResize(clamped_width,clamped_height);
     });
 
+
     if (window == nullptr) {
         glfwTerminate();
         PALADIN_LOG(ERR, "Failed to create GLFW window")
@@ -110,9 +114,15 @@ void RenderApplication::Setup() {
 
     m_render_context->UploadModel(all_vertices, all_indices, mesh_ranges);
 
+
+
 }
 
 bool RenderApplication::Update(float delta_time) {
+    if (Input::keys[GLFW_KEY_W]) {
+        PALADIN_LOG(INFO, "Key W press");
+    }
+
     return true;
 }
 

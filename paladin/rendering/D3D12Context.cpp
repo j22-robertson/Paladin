@@ -268,6 +268,39 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     fragment_shader_bytecode = fragment_shader.GetBytecode();
 
 
+    D3D12_INPUT_ELEMENT_DESC test_input_layout[] = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 3*sizeof(float), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 2, 6*sizeof(float), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 9*sizeof(float), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 12*sizeof(float), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"UV", 0, DXGI_FORMAT_R32G32B32_FLOAT, 5, 16*sizeof(float), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+    };
+
+
+    D3D12_INPUT_LAYOUT_DESC test_input_layout_desc = {};
+    test_input_layout_desc.NumElements = sizeof(test_input_layout)/sizeof(D3D12_INPUT_ELEMENT_DESC);
+    test_input_layout_desc.pInputElementDescs = test_input_layout;
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC tpso_desc = {};
+
+    tpso_desc.InputLayout = test_input_layout_desc;
+    tpso_desc.pRootSignature = m_root_signature.Get();
+    tpso_desc.VS = vertex_shader_bytecode;
+    tpso_desc.PS = fragment_shader_bytecode;
+    tpso_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    tpso_desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    tpso_desc.SampleDesc = sample_desc;
+    tpso_desc.SampleMask = 0xfffffff;
+    tpso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC2(D3D12_DEFAULT);
+    tpso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    tpso_desc.NumRenderTargets = 1;
+    tpso_desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+    tpso_desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC2(D3D12_DEFAULT);
+    tpso_desc.DepthStencilState.DepthEnable = false;
+
+
+
+
 
     //TODO: Maybe unnecessary if vertex pulling
     D3D12_INPUT_ELEMENT_DESC input_layout[] ={
@@ -561,7 +594,86 @@ bool D3D12Context::Render()
 }
 
 void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices,std::span<MeshRange> mesh_ranges) {
+    PALADIN_LOG(INFO, "Uploading model")
+    PALADIN_SCOPED_CPU_PROFILE("Upload Model", ProfileColors::Red);
+    m_command_list->Reset(m_command_allocator[frame_index].Get(), nullptr);
 
+    PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Loading Model", ProfileColors::Blue)
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> allocation = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> resource = nullptr;
+
+
+
+
+    std::size_t vertex_total_bytes = model_vertices.size()*sizeof(Paladin::Vertex);
+
+    D3D12MA::ALLOCATION_DESC allocation_desc = {};
+    allocation_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
+    auto buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(vertex_total_bytes);
+
+    auto hr = m_gpu_allocator->CreateResource(&allocation_desc,
+        &buffer_desc,
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
+        &allocation,
+        IID_PPV_ARGS(&resource));
+
+    allocation->SetName(L"Sponza Allocation");
+    resource->SetName(L"Sponza");
+
+    if (FAILED(hr)) {
+        PALADIN_LOG(ERR, ErrorResult("Failed to create copy dest buffer", hr));
+    }
+
+    D3D12MA::ALLOCATION_DESC upload_desc = {};
+    upload_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> upload_allocation = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> upload_resource = nullptr;
+
+
+    hr = m_gpu_allocator->CreateResource(&upload_desc,
+        &buffer_desc,D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        &upload_allocation,
+        IID_PPV_ARGS(&upload_resource) );
+
+    upload_resource->SetName(L"Sponza Upload");
+
+    if (FAILED(hr)) {
+        PALADIN_LOG(ERR, ErrorResult("Failed to create upload buffer", hr));
+    }
+
+    void* mapped_data = nullptr;
+
+    hr = upload_resource->Map(0,nullptr ,&mapped_data);
+    if (FAILED(hr)) {
+        PALADIN_LOG(ERR, ErrorResult("Failed to map upload buffer", hr));
+    }
+    std::memcpy(mapped_data, model_vertices.data(), vertex_total_bytes);
+    upload_resource->Unmap(0,nullptr);
+
+     {
+        PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Copying Model Data", ProfileColors::Red)
+        m_command_list->CopyBufferRegion(resource.Get(),0,upload_resource.Get(),0,vertex_total_bytes);
+    }
+
+
+    auto vertex_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+
+    m_command_list->ResourceBarrier(1, &vertex_transition_barrier);
+
+    hr = m_command_list->Close();
+    if (FAILED(hr)) {
+        PALADIN_LOG(ERR, ErrorResult("Failed to close command list", hr));
+    }
+    ID3D12CommandList* ppCommandLists[] = { m_command_list.Get() };
+    m_command_queue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    FlushDevice();
+
+
+    vertex_buffers.push_back(std::make_pair(std::move(resource),std::move(allocation)));
 }
 
 bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
@@ -672,6 +784,8 @@ bool D3D12Context::UpdatePipeline()
         const float clear_colour[] = { 0.0f,0.2f,0.4f,1.0f };
         m_command_list->ClearRenderTargetView(rtv_handle,clear_colour,0,nullptr);
 
+
+
         m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
 
         m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -724,6 +838,12 @@ D3D12Context::~D3D12Context() {
             WaitForSingleObject(fence_event, INFINITE);
         }
     }
+
+    for (auto [resource, allocation] : vertex_buffers) {
+        //allocation->Release();
+    }
+    vertex_buffers.clear();
+
     TracyD3D12Destroy(m_tracy_context)
     ImGui_ImplDX12_Shutdown();
     CloseHandle(fence_event);

@@ -19,7 +19,9 @@
 #include <shlobj.h>
 #include <span>
 
+#include "Camera.h"
 #include "Logger.h"
+#include "Transform.h"
 #include "Vertex.h"
 #include "asset/Mesh.h"
 
@@ -48,6 +50,8 @@ public:
 
     void UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices, std::span<MeshRange> mesh_ranges);
 
+    void MapCamera(Transform transform, CameraUniform uniform);
+
     bool m_resized = false;
     ~D3D12Context();
 
@@ -70,6 +74,8 @@ private:
 
     Microsoft::WRL::ComPtr<ID3D12Resource> triangle_vertex_buffer = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> temporary_upload_heap= nullptr;
+
+    std::vector<std::pair<Microsoft::WRL::ComPtr<ID3D12Resource>,Microsoft::WRL::ComPtr<D3D12MA::Allocation>>> vertex_buffers;
 
 
     Microsoft::WRL::ComPtr<D3D12MA::Allocator> m_gpu_allocator = nullptr;

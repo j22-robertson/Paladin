@@ -33,6 +33,16 @@ struct EntityTest {
     AssetHandle<ModelAsset> model_handle;
 };
 
+class Input {
+public:
+    inline static bool keys[1024]={false};
+    static void InputCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+
+        if (action == GLFW_PRESS) keys[key] = true;
+        else if (action == GLFW_RELEASE) keys[key] = false;
+    }
+};
+
 //TODO: Create a window class
 class RenderApplication final : IApplication {
 public:
@@ -53,6 +63,8 @@ private:
     Camera m_camera{};
 
     std::unique_ptr<AssetRegistry> m_asset_registry = nullptr;
+
+
 
     //D3D12Context* m_render_context = nullptr;
 };

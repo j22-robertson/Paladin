@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <vector>
 
-constexpr std::uint32_t invalid = std::numeric_limits<std::uint32_t>::max();
+constexpr std::uint32_t invalid = (std::numeric_limits<std::uint32_t>::max)();
 
 // Index + Generation
 struct GenKey {

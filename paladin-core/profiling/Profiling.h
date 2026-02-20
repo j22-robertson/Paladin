@@ -37,7 +37,7 @@ namespace ProfileColors {
 // Pix
 #define PALADIN_SCOPED_GPU_PROFILE_C(ctx, command_list, name, color) PIXScopedEvent(command_list, color, name);
 // Pix
-#define PALADIN_BEGIN_GPU_PROFILE(command_queue,color,name) PIXScopedEvent(command_queue, frame_color, name);
+#define PALADIN_BEGIN_GPU_PROFILE(command_queue,color,name) PIXScopedEvent(command_queue, color, name);
 #else
 #define PALADIN_SCOPED_CPU_PROFILE(name,color)
 #define PALADIN_SCOPED_GPU_PROFILE(ctx, command_list, name)
