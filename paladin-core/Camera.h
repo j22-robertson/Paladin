@@ -9,8 +9,8 @@
 #include "glm/gtx/quaternion.hpp"
 
 struct CameraUniform {
-    glm::mat4 view;
-    glm::mat4 projection;
+    glm::mat4 view = glm::mat4(1.0);
+    glm::mat4 projection = glm::mat4(1.0);
 };
 
 
@@ -29,6 +29,15 @@ public:
     }
 
     const CameraUniform& GetUniform() {
+        if (!up_to_date) {
+            uniform.view = ViewMatrix();
+            uniform.projection = GetProjection();
+        }
+        return uniform;
+    }
+
+    CameraUniform GetUniformMut()
+    {
         if (!up_to_date) {
             uniform.view = ViewMatrix();
             uniform.projection = GetProjection();

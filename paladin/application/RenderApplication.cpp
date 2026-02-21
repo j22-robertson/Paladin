@@ -37,7 +37,7 @@ void RenderApplication::Setup() {
     ImGuiIO& io = ImGui::GetIO();
     unsigned char* pixels;
     int width, height;
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+   // io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 
    // Input::keys[1024] = {false};
@@ -71,8 +71,8 @@ void RenderApplication::Setup() {
         all_vertices.insert(all_vertices.end(), mesh->vertices.begin(), mesh->vertices.end());
 
 
-        auto i_end = all_indices.size()-1;
-        auto v_end = all_vertices.size()-1;
+        auto i_end = all_indices.size();
+        auto v_end = all_vertices.size();
 
         mesh_ranges.push_back(MeshRange{
         .start_v = v_start,
@@ -109,13 +109,13 @@ void RenderApplication::Setup() {
         PALADIN_LOG(ERR, "Failed to create GLFW window")
     }
     auto hwnd = glfwGetWin32Window(window);
-    ImGui_ImplGlfw_InitForOther(window,true);
     m_render_context = std::make_shared<D3D12Context>(hwnd, window_width,window_height);
-
-    m_render_context->UploadModel(all_vertices, all_indices, mesh_ranges);
-
+    ImGui_ImplGlfw_InitForOther(window,true);
 
 
+
+    m_render_context->UploadModel(all_vertices, all_indices, mesh_ranges,m_camera);
+    m_render_context->UploadFrameData(m_camera);
 }
 
 bool RenderApplication::Update(float delta_time) {

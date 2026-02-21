@@ -116,6 +116,7 @@ std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* nod
             vertices[j].y = static_cast<float>(mesh->mVertices[j].y);
             vertices[j].z = static_cast<float>(mesh->mVertices[j].z);
         }
+        /*
         if (mesh->HasNormals())
         {
             for (int j = 0; j < mesh->mNumVertices; j++)
@@ -145,6 +146,15 @@ std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* nod
                 vertices[j].b = static_cast<float>(mesh->mColors[0][j].b);
             }
         }
+        else
+        {
+            for (int j = 0; j < mesh->mNumVertices; j++) {
+                vertices[j].r = 0.5;
+                vertices[j].g = 0.5;
+                vertices[j].b = 0.5;
+                vertices[j].a = 0.0;
+            }
+        }*/
 
         for (int j =0; j < mesh->mNumFaces; j++) {
             const aiFace face = mesh->mFaces[j];

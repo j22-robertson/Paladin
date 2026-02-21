@@ -41,6 +41,10 @@ public:
     Microsoft::WRL::ComPtr<ID3D12Resource> UploadVertices();
 
     bool Render();
+    std::optional<std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>, Microsoft::WRL::ComPtr<D3D12MA::Allocation>>>
+    CreateAllocation(
+        const D3D12_RESOURCE_DESC& resource_desc, void* data);
+    void UploadFrameData(Camera camera);
 
     void OnResize(std::uint32_t new_width, std::uint32_t new_height) {
         m_window_width = new_width;
@@ -48,11 +52,12 @@ public:
         m_resized = true;
     }
 
-    void UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices, std::span<MeshRange> mesh_ranges);
+    void UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices, std::vector<MeshRange> mesh_ranges, Camera camera);
 
     void MapCamera(Transform transform, CameraUniform uniform);
 
     bool m_resized = false;
+    int imgui_descriptor_index=0;
     ~D3D12Context();
 
 private:
@@ -65,6 +70,7 @@ private:
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_swap_chain= nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtv_descriptor_heap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imgui_srv_descriptor_heap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource2> m_render_target[FRAME_BUFFER_COUNT];
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_command_allocator[FRAME_BUFFER_COUNT];
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList8> m_command_list = nullptr;
@@ -75,9 +81,13 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Resource> triangle_vertex_buffer = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> temporary_upload_heap= nullptr;
 
-    std::vector<std::pair<Microsoft::WRL::ComPtr<ID3D12Resource>,Microsoft::WRL::ComPtr<D3D12MA::Allocation>>> vertex_buffers;
+    std::vector<std::pair<D3D12_VERTEX_BUFFER_VIEW,Microsoft::WRL::ComPtr<D3D12MA::Allocation>>> vertex_buffers;
 
+    std::vector<std::pair<D3D12_INDEX_BUFFER_VIEW, Microsoft::WRL::ComPtr<D3D12MA::Allocation>>> index_buffers;
 
+    std::vector<std::vector<MeshRange>> model_mesh_ranges;
+
+    std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>,Microsoft::WRL::ComPtr<D3D12MA::Allocation>> m_camera_allocation;
     Microsoft::WRL::ComPtr<D3D12MA::Allocator> m_gpu_allocator = nullptr;
 
     Microsoft::WRL::ComPtr<IDXGIAdapter1> m_adapter = nullptr;
@@ -87,6 +97,7 @@ private:
 
     DXShader vertex_shader;
     DXShader fragment_shader;
+    DXShader test_vs;
 
     D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view ={};
     Vertex triangle_vertices[3] = {
@@ -102,6 +113,9 @@ private:
     D3D12_RECT m_scissor = {};
 
     HANDLE fence_event = nullptr;
+
+    //TODO: make a linear allocator or maybe track with generational indices
+    UINT descriptor_index = 0;
 
     UINT fence_value[FRAME_BUFFER_COUNT] = {};
     UINT frame_index;
