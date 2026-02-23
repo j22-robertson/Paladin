@@ -104,6 +104,9 @@ void RenderApplication::Setup() {
         auto clamped_height = std::clamp(height, 100, 1080);
 
 
+        application->m_camera.width = clamped_width;
+        application->m_camera.height = clamped_height;
+        application->m_camera.aspect_ratio = (float)width/(float)height;
         application->window_width = clamped_width;
         application->window_height = clamped_height;
         application->m_render_context->OnResize(clamped_width,clamped_height);
@@ -137,7 +140,6 @@ bool RenderApplication::Update(float delta_time) {
     m_camera.LookAt(mouse_x,mouse_y);
 
 
-    auto fwd = m_camera.GetForwardVector();
 
     if (Input::keys[GLFW_KEY_W]) {
         m_camera.direction.z =1;

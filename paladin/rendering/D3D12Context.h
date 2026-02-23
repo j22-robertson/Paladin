@@ -73,6 +73,7 @@ private:
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_swap_chain= nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtv_descriptor_heap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsv_descriptor_heap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imgui_srv_descriptor_heap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource2> m_render_target[FRAME_BUFFER_COUNT];
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_command_allocator[FRAME_BUFFER_COUNT];
@@ -83,6 +84,8 @@ private:
 
     Microsoft::WRL::ComPtr<ID3D12Resource> triangle_vertex_buffer = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> temporary_upload_heap= nullptr;
+
+    std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> m_depth_buffer;
 
     std::vector<std::pair<D3D12_VERTEX_BUFFER_VIEW,Microsoft::WRL::ComPtr<D3D12MA::Allocation>>> vertex_buffers;
 
