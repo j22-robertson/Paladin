@@ -28,11 +28,12 @@ struct UploadableToGPU<MeshAsset> {
 };
 
 struct MeshRange {
-    std::size_t start_v;
-    std::size_t end_v;
-
-    std::size_t start_i;
-    std::size_t end_i;
+    // The offset
+    std::uint32_t vertex_start_location = 0;
+    std::uint32_t vertex_count = 0;
+    //Off set
+    std::uint32_t index_start_location = 0;
+    std::uint32_t index_count = 0;
 };
 
 

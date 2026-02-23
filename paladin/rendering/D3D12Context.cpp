@@ -247,7 +247,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     root_signature_desc.Init(1,&camera_root_parameter,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
-
+    //root_signature_desc.Init(0,nullptr,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
     Microsoft::WRL::ComPtr<ID3DBlob> signature = nullptr;
 
     if (auto hr = D3D12SerializeRootSignature(&root_signature_desc,D3D_ROOT_SIGNATURE_VERSION_1_0,&signature,nullptr); SUCCEEDED(hr))
@@ -295,11 +295,11 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     D3D12_INPUT_ELEMENT_DESC test_input_layout[] = {
         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        //{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        //{"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        //{"BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-         //{"TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        //{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+         {"TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 
         //{"TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
         //{"TRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
@@ -332,9 +332,10 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     tpso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC2(D3D12_DEFAULT);
     tpso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
     tpso_desc.NumRenderTargets = 1;
-    tpso_desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+    tpso_desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
     tpso_desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC2(D3D12_DEFAULT);
     tpso_desc.DepthStencilState.DepthEnable = false;
+    tpso_desc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
 
 
 
@@ -377,6 +378,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         PALADIN_LOG(ERR, ErrorResult("Failed to create Test pipeline state.", hr))
     }
 
+    /*
     int vertex_buffer_size = sizeof(triangle_vertices);
 
     auto heap_properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
@@ -427,6 +429,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     auto vertex_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(triangle_vertex_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
     m_command_list->ResourceBarrier(1, &vertex_transition_barrier);
+    */
     m_command_list->Close();
 
     ID3D12CommandList* cmd_lists[] = { m_command_list.Get()};
@@ -437,9 +440,9 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     if (FAILED(hr)) {
         PALADIN_LOG(ERR, ErrorResult("Failed to signal fence.", hr))
     }
-    vertex_buffer_view.BufferLocation = triangle_vertex_buffer->GetGPUVirtualAddress();
-    vertex_buffer_view.SizeInBytes = vertex_buffer_size;
-    vertex_buffer_view.StrideInBytes = sizeof(Vertex);
+   // vertex_buffer_view.BufferLocation = triangle_vertex_buffer->GetGPUVirtualAddress();
+   // vertex_buffer_view.SizeInBytes = vertex_buffer_size;
+   // vertex_buffer_view.StrideInBytes = sizeof(Vertex);
 
 
     m_viewport.TopLeftX = 0;
@@ -748,6 +751,60 @@ std::optional<std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>, Microsoft::
     return std::make_pair(std::move(allocation), std::move(upload_allocation));
 }
 
+void D3D12Context::CreatePersistantAllocation(CameraUniform uniform_data) {
+
+    std::size_t camera_bytes = sizeof(CameraUniform);
+    UINT aligned_size = (camera_bytes + 255) & ~255;
+    camera_bytes = aligned_size;
+
+    auto camera_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(aligned_size*FRAME_BUFFER_COUNT);
+
+    HRESULT hr;
+    D3D12MA::ALLOCATION_DESC upload_allocation_desc = {};
+    upload_allocation_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+
+    hr = m_gpu_allocator->CreateResource(&upload_allocation_desc,
+   &camera_buffer_desc,
+   D3D12_RESOURCE_STATE_GENERIC_READ,
+   nullptr,
+   &m_frame_data,
+   IID_NULL, nullptr);
+
+    if (FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Failed to create upload allocation", hr))
+        //return nullptr;
+    }
+
+    CD3DX12_RANGE read_range(0, 0);
+    hr = m_frame_data->GetResource()->Map(0,&read_range,&frame_data_destination);
+    if (FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Failed to map upload allocation", hr))
+    }
+    for (int i = 0; i < FRAME_BUFFER_COUNT; i++) {
+        void* dest = static_cast<BYTE*>(frame_data_destination) + (i * aligned_size);
+        std::memcpy(dest , &uniform_data, sizeof(CameraUniform));
+    }
+
+    D3D12_CONSTANT_BUFFER_VIEW_DESC camera_buffer_view_desc = {};
+
+    camera_buffer_view_desc.SizeInBytes = aligned_size;
+    camera_buffer_view_desc.BufferLocation = m_frame_data->GetResource()->GetGPUVirtualAddress();
+    frame_descriptor_start = descriptor_index;
+}
+
+void D3D12Context::UpdatePersistantAllocation(CameraUniform uniform_data) {
+    std::size_t camera_bytes = sizeof(CameraUniform);
+    UINT aligned_size = (camera_bytes + 255) & ~255;
+    camera_bytes = aligned_size;
+
+    UINT8* destination = static_cast<UINT8*>(frame_data_destination) + (frame_index * aligned_size);
+    std::memcpy(destination, &uniform_data, sizeof(CameraUniform));
+
+
+}
+
 void D3D12Context::UploadFrameData(Camera camera)
 {
 
@@ -759,8 +816,8 @@ void D3D12Context::UploadFrameData(Camera camera)
     PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Loading Frame Data", ProfileColors::Blue)
 
     std::size_t camera_bytes = sizeof(CameraUniform);
-    UINT alignedSize = (camera_bytes + 255) & ~255;
-    camera_bytes = alignedSize;
+    UINT aligned_size = (camera_bytes + 255) & ~255;
+    camera_bytes = aligned_size;
     auto camera_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(camera_bytes);
 
     std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> upload_buffers;
@@ -787,7 +844,7 @@ void D3D12Context::UploadFrameData(Camera camera)
             m_device->CreateConstantBufferView(&camera_buffer_view_desc,srv_handle);
 
             auto camera_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(camera_allocation->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-            m_camera_allocation = std::move(std::make_pair(std::move(camera_allocation), std::move(camera_upload_allocation)));
+            //m_camera_allocation = std::move(std::make_pair(std::move(camera_allocation), std::move(camera_upload_allocation)));
 
 
             m_command_list->ResourceBarrier(1, &camera_transition_barrier);
@@ -841,7 +898,7 @@ void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::s
             auto vertex_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(vertex_allocation->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
             upload_buffers.push_back(std::move(vertex_upload_allocation));
-            vertex_buffers.push_back(std::make_pair(std::move(vertex_view),std::move(vertex_allocation)));
+            vertex_buffers.emplace_back(vertex_view,std::move(vertex_allocation));
 
             m_command_list->ResourceBarrier(1, &vertex_transition_barrier);
         }
@@ -862,7 +919,7 @@ void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::s
             auto index_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(index_allocation->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
 
             upload_buffers.push_back(std::move(index_upload_allocation));
-            index_buffers.push_back(std::make_pair(std::move(index_buffer_view),std::move(index_allocation)));
+            index_buffers.emplace_back(index_buffer_view,std::move(index_allocation));
 
             m_command_list->ResourceBarrier(1, &index_transition_barrier);
         }
@@ -883,6 +940,9 @@ void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::s
     }
 
     model_mesh_ranges.push_back(mesh_ranges);
+}
+
+void D3D12Context::MapCamera(Transform transform, CameraUniform uniform) {
 }
 
 bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
@@ -998,10 +1058,12 @@ bool D3D12Context::UpdatePipeline()
         ID3D12DescriptorHeap* heaps[] = { m_srv_descriptor_heap.Get()};
         m_command_list->SetDescriptorHeaps(1,heaps);
 
+        auto handle_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-        m_command_list->SetGraphicsRootConstantBufferView(0,m_camera_allocation.first->GetResource()->GetGPUVirtualAddress());
+        D3D12_GPU_VIRTUAL_ADDRESS frame_address = m_frame_data->GetResource()->GetGPUVirtualAddress() + (frame_index * 256);
+        m_command_list->SetGraphicsRootConstantBufferView(0,frame_address);
 
-        //m_command_list->SetGraphicsRootDescriptorTable(0,m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
+        //m_command_list->SetGraphicsRootDescriptorTable(0,gpu_handle);
 
 
 
@@ -1011,9 +1073,7 @@ bool D3D12Context::UpdatePipeline()
 
         for (auto mesh : model_mesh_ranges[0])
         {
-           // PALADIN_LOG(INFO, "Index Count:" + std::to_string(mesh.end_i-mesh.start_i) + "start loc:" + std::to_string(mesh.start_i));
-            m_command_list->DrawIndexedInstanced(mesh.end_i-mesh.start_i, 1, mesh.start_i, mesh.start_v, 0);
-
+            m_command_list->DrawIndexedInstanced(mesh.index_count, 1, mesh.index_start_location, mesh.vertex_start_location, 0);
         }
        // m_command_list->IASetVertexBuffers(0,1,&vertex_buffer_view);
         //m_command_list->DrawInstanced(3,1,0,0);
@@ -1066,9 +1126,8 @@ D3D12Context::~D3D12Context() {
 
     vertex_buffers.clear();
     index_buffers.clear();
+    m_frame_data.Reset();
 
-    m_camera_allocation.first.Reset();
-    m_camera_allocation.second.Reset();
 
     TracyD3D12Destroy(m_tracy_context)
     ImGui_ImplDX12_Shutdown();

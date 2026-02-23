@@ -44,6 +44,9 @@ public:
     std::optional<std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>, Microsoft::WRL::ComPtr<D3D12MA::Allocation>>>
     CreateAllocation(
         const D3D12_RESOURCE_DESC& resource_desc, void* data);
+
+    void CreatePersistantAllocation(CameraUniform uniform_data);
+    void UpdatePersistantAllocation(CameraUniform uniform_data);
     void UploadFrameData(Camera camera);
 
     void OnResize(std::uint32_t new_width, std::uint32_t new_height) {
@@ -87,7 +90,12 @@ private:
 
     std::vector<std::vector<MeshRange>> model_mesh_ranges;
 
-    std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>,Microsoft::WRL::ComPtr<D3D12MA::Allocation>> m_camera_allocation;
+   // std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>,Microsoft::WRL::ComPtr<D3D12MA::Allocation>> m_camera_allocation;
+
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_frame_data=nullptr;
+    void* frame_data_destination = nullptr;
+    UINT frame_descriptor_start = 0;
+
     Microsoft::WRL::ComPtr<D3D12MA::Allocator> m_gpu_allocator = nullptr;
 
     Microsoft::WRL::ComPtr<IDXGIAdapter1> m_adapter = nullptr;
@@ -105,6 +113,8 @@ private:
         { 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
         { -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
     };
+
+
 
 
     DXShaderCompiler m_shader_compiler = DXShaderCompiler();

@@ -37,11 +37,13 @@ class Input {
 public:
     inline static bool keys[1024]={false};
     static void InputCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-
         if (action == GLFW_PRESS) keys[key] = true;
         else if (action == GLFW_RELEASE) keys[key] = false;
     }
 };
+
+
+
 
 //TODO: Create a window class
 class RenderApplication final : IApplication {
@@ -64,6 +66,8 @@ private:
 
     std::unique_ptr<AssetRegistry> m_asset_registry = nullptr;
 
+    float m_elapsed_time = 0.0f;
+    float m_last_frame_time= 0.0f;
 
 
     //D3D12Context* m_render_context = nullptr;

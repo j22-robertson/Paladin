@@ -19,9 +19,14 @@ RenderApplication::~RenderApplication() {
 
 void RenderApplication::run() {
     Setup();
+
     while (!glfwWindowShouldClose(window)) {
         FrameMark;
-        Update(0.0);
+        float current_time = static_cast<float>(glfwGetTime());
+        float delta_time = current_time - m_last_frame_time;
+        m_elapsed_time += delta_time;
+        m_last_frame_time = current_time;
+        Update(delta_time);
         if (!m_render_context->Render())
         {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -54,31 +59,31 @@ void RenderApplication::Setup() {
     }
 
 
-    std::vector<Paladin::Vertex> all_vertices;
-    std::vector<std::uint32_t> all_indices;
+    std::vector<Paladin::Vertex> all_vertices = std::vector<Paladin::Vertex>();
+    std::vector<std::uint32_t> all_indices = std::vector<std::uint32_t>();
 
-    std::vector<MeshRange> mesh_ranges;
+    std::vector<MeshRange> mesh_ranges = std::vector<MeshRange>();
 
     EntityTest testing = {.transform = Transform(), .model_handle = sponza};
 
     for (auto mesh_handle : m_asset_registry->GetAsset<ModelAsset>(testing.model_handle)->meshes) {
         auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
 
-        auto v_start = all_vertices.size();
-        auto i_start = all_indices.size();
+        auto v_start = (std::uint32_t)all_vertices.size();
+        auto i_start = (std::uint32_t)all_indices.size();
 
+        if (v_start < 200) {
+            PALADIN_LOG(INFO, "This should only happen once.")
+        }
         all_indices.insert(all_indices.end(), mesh->indices.begin(), mesh->indices.end());
         all_vertices.insert(all_vertices.end(), mesh->vertices.begin(), mesh->vertices.end());
 
 
-        auto i_end = all_indices.size();
-        auto v_end = all_vertices.size();
-
         mesh_ranges.push_back(MeshRange{
-        .start_v = v_start,
-        .end_v = v_end,
-        .start_i = i_start,
-        .end_i = i_end,});
+            .vertex_start_location = v_start,
+            .vertex_count = static_cast<std::uint32_t>(mesh->vertices.size()),
+            .index_start_location = i_start,
+            .index_count = static_cast<std::uint32_t>(mesh->indices.size())});
     }
 
 
@@ -91,6 +96,7 @@ void RenderApplication::Setup() {
 
 
     glfwSetKeyCallback(window, Input::InputCallback);
+
 
     glfwSetFramebufferSizeCallback(window,[](GLFWwindow* window, int width, int height) {
         auto application = static_cast<RenderApplication*>(glfwGetWindowUserPointer(window));
@@ -115,13 +121,47 @@ void RenderApplication::Setup() {
 
 
     m_render_context->UploadModel(all_vertices, all_indices, mesh_ranges,m_camera);
-    m_render_context->UploadFrameData(m_camera);
+    m_render_context->CreatePersistantAllocation(m_camera.GetUniformMut());
+    //m_render_context->UploadFrameData(m_camera);
 }
 
 bool RenderApplication::Update(float delta_time) {
+    m_camera.direction = glm::vec3(0.0);
+
+
+
+    double mouse_x;
+    double mouse_y;
+    glfwGetCursorPos(window, &mouse_x, &mouse_y);
+
+    m_camera.LookAt(mouse_x,mouse_y);
+
+
+    auto fwd = m_camera.GetForwardVector();
+
     if (Input::keys[GLFW_KEY_W]) {
-        PALADIN_LOG(INFO, "Key W press");
+        m_camera.direction.z =1;
     }
+    if (Input::keys[GLFW_KEY_S]) {
+        m_camera.direction.z =-1;
+    }
+    if (Input::keys[GLFW_KEY_D]) {
+        m_camera.direction.x =1;
+    }
+    if (Input::keys[GLFW_KEY_A]) {
+        m_camera.direction.x=-1;
+    }
+    if (Input::keys[GLFW_KEY_R]) {
+        m_camera.direction.y=1;
+    }
+    if (Input::keys[GLFW_KEY_T]) {
+        m_camera.direction.y=-1;
+    }
+    m_camera.Update(delta_time);
+
+    m_render_context->UpdatePersistantAllocation(m_camera.GetUniformMut());
+
+    //PALADIN_LOG(INFO, "Mouse X:" + std::to_string(mouse_x) + " Mouse Y:" + std::to_string(mouse_y));
 
     return true;
 }

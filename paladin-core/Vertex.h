@@ -10,11 +10,11 @@ namespace Paladin
     struct alignas(16)Vertex
     {
         float x,y,z; //Positions
-        //float nx,ny,nz; // Normals
-       // float tx,ty,tz; // Tangents
-       // float btx,bty,btz; // Bitangents
-       // float u,v; // TexUV
-       // float r,g,b,a; // Colors
+        float nx,ny,nz; // Normals
+       float tx,ty,tz; // Tangents
+       float btx,bty,btz; // Bitangents
+        float u,v; // TexUV
+        float r,g,b,a; // Colors
     };
 }
 

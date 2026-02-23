@@ -3,6 +3,8 @@
 //
 #include "ModelImporter.h"
 
+#include <random>
+
 #include "Vertex.h"
 #include "../../../cmake-build-debug/_deps/glm-src/glm/vec3.hpp"
 #include "asset-pipeline/AssetRegistry.h"
@@ -116,7 +118,7 @@ std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* nod
             vertices[j].y = static_cast<float>(mesh->mVertices[j].y);
             vertices[j].z = static_cast<float>(mesh->mVertices[j].z);
         }
-        /*
+
         if (mesh->HasNormals())
         {
             for (int j = 0; j < mesh->mNumVertices; j++)
@@ -148,13 +150,19 @@ std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* nod
         }
         else
         {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_real_distribution<float> dist(0,1);
+            auto r_rand = dist(gen);
+            auto b_rand = dist(gen);
+            auto g_rand = dist(gen);
             for (int j = 0; j < mesh->mNumVertices; j++) {
-                vertices[j].r = 0.5;
-                vertices[j].g = 0.5;
-                vertices[j].b = 0.5;
-                vertices[j].a = 0.0;
+                vertices[j].r =r_rand;
+                vertices[j].g = b_rand;
+                vertices[j].b = g_rand;
+                vertices[j].a = 1.0;
             }
-        }*/
+        }
 
         for (int j =0; j < mesh->mNumFaces; j++) {
             const aiFace face = mesh->mFaces[j];
