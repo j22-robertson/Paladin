@@ -1,3 +1,6 @@
+//Texture2D texture_array : register(t0);
+//SamplerState sampler_default : register(s0)
+
 struct VS_OUTPUT
 {
     float4 pos : SV_POSITION;

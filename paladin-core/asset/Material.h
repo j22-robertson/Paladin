@@ -30,7 +30,7 @@ public:
     const std::string& GetName() {
         return name;
     }
-    [[nodiscard]] AssetHandle<Texture2DAsset> GetTexture(const MaterialProperty property) const
+    [[nodiscard]] AssetHandle<Texture2DAsset> GetTexture(MaterialProperty property)
     {
         return textures.at(property);
     }

@@ -66,8 +66,37 @@ void RenderApplication::Setup() {
 
     EntityTest testing = {.transform = Transform(), .model_handle = sponza};
 
+
+    std::vector<unsigned char> all_albedo_textures = std::vector<unsigned char>();
+    std::vector<TextureRange> texture_ranges = std::vector<TextureRange>();
+
+    std::map<AssetHandle<MaterialAsset>,std::vector<AssetHandle<Texture2DAsset>>> material_handle_to_texture_handle;
+    std::map<AssetHandle<Texture2DAsset>, std::uint32_t> texture_handle_to_range;
+
+    for (auto material_handle : m_asset_registry->GetAsset<ModelAsset>(testing.model_handle)->materials) {
+        auto material = m_asset_registry->GetAsset<MaterialAsset>(material_handle);
+
+        auto albedo_handle = material->GetTexture(Albedo);
+        auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
+        TextureRange texture_range = {};
+        texture_range.channel = albedo_texture->channels;
+        texture_range.height = albedo_texture->height;
+        texture_range.width = albedo_texture->width;
+        texture_range.start = all_albedo_textures.size();
+        texture_range.size = albedo_texture->pixels.size();
+        //texture_handle_to_range.insert(std::make_pair(albedo_handle,texture_ranges.size()));
+        texture_ranges.push_back(texture_range);
+
+        all_albedo_textures.insert(all_albedo_textures.end(),albedo_texture->pixels.begin(),albedo_texture->pixels.end());
+    }
+
+    std::vector<std::pair<std::uint32_t,TextureRange>> mesh_to_albedo;
+
     for (auto mesh_handle : m_asset_registry->GetAsset<ModelAsset>(testing.model_handle)->meshes) {
         auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
+        auto material = m_asset_registry->GetAsset<MaterialAsset>(mesh->material);
+
+        auto albedo_handle = material->GetTexture(Albedo);
 
         auto v_start = (std::uint32_t)all_vertices.size();
         auto i_start = (std::uint32_t)all_indices.size();
@@ -77,7 +106,6 @@ void RenderApplication::Setup() {
         }
         all_indices.insert(all_indices.end(), mesh->indices.begin(), mesh->indices.end());
         all_vertices.insert(all_vertices.end(), mesh->vertices.begin(), mesh->vertices.end());
-
 
         mesh_ranges.push_back(MeshRange{
             .vertex_start_location = v_start,
@@ -121,9 +149,7 @@ void RenderApplication::Setup() {
     m_render_context = std::make_shared<D3D12Context>(hwnd, window_width,window_height);
     ImGui_ImplGlfw_InitForOther(window,true);
 
-
-
-    m_render_context->UploadModel(all_vertices, all_indices, mesh_ranges,m_camera);
+    m_render_context->UploadModel(all_vertices, all_indices,all_albedo_textures,mesh_ranges,texture_ranges);
     m_render_context->CreatePersistantAllocation(m_camera.GetUniformMut());
     //m_render_context->UploadFrameData(m_camera);
 }

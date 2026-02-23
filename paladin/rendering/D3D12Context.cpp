@@ -9,8 +9,7 @@
 
 #include "imgui_impl_glfw.h"
 
-D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height)
-{
+D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height) {
 #ifdef PIX_ENABLE
     LoadWinPixEventRuntime();
 #endif
@@ -224,13 +223,13 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     for (int i = 0; i < FRAME_BUFFER_COUNT; i++) {
         Microsoft::WRL::ComPtr<D3D12MA::Allocation> depth_allocation = nullptr;
-       auto hr = m_gpu_allocator->CreateResource(&allocation_desc,
-            &depth_stencil_desc,
-            D3D12_RESOURCE_STATE_DEPTH_WRITE,
-            &depth_optimized_clear_value,
-            &depth_allocation,
-            IID_NULL,
-            nullptr);
+        auto hr = m_gpu_allocator->CreateResource(&allocation_desc,
+             &depth_stencil_desc,
+             D3D12_RESOURCE_STATE_DEPTH_WRITE,
+             &depth_optimized_clear_value,
+             &depth_allocation,
+             IID_NULL,
+             nullptr);
         if (FAILED(hr)) {
             PALADIN_LOG(ERR, ErrorResult("Failed to create depth stencil allocation", hr))
         }
@@ -279,7 +278,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         PALADIN_LOG(ERR, ErrorResult("Failed to create command list", hr))
     }
 
-   // m_command_list->Close();
+    // m_command_list->Close();
 
     for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++)
     {
@@ -305,6 +304,71 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     }
 
 
+
+    CD3DX12_ROOT_SIGNATURE_DESC bindless_root_signature_desc = {};
+
+    D3D12_DESCRIPTOR_RANGE1 srv_ranges[1] ={};
+
+    srv_ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    srv_ranges[0].NumDescriptors = UINT_MAX;
+    srv_ranges[0].BaseShaderRegister = 0;
+    srv_ranges[0].NumDescriptors = 1;
+    srv_ranges[0].RegisterSpace = 0;
+    srv_ranges[0].OffsetInDescriptorsFromTableStart = 0;
+    srv_ranges[0].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+
+    D3D12_ROOT_PARAMETER1 bindless_params[2];
+
+    D3D12_ROOT_PARAMETER1 bindless_root_parameter{};
+    bindless_root_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    bindless_root_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    bindless_root_parameter.DescriptorTable.pDescriptorRanges = &srv_ranges[0];
+    bindless_root_parameter.DescriptorTable.NumDescriptorRanges = 1;
+
+    D3D12_ROOT_PARAMETER1 b_camera_root_parameter{};
+    b_camera_root_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+    b_camera_root_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    b_camera_root_parameter.Descriptor.RegisterSpace = 0;
+    b_camera_root_parameter.Descriptor.ShaderRegister = 0;
+    bindless_params[1] = bindless_root_parameter;
+    bindless_params[0] = b_camera_root_parameter;
+
+
+    CD3DX12_STATIC_SAMPLER_DESC samplers[1] ={};
+    samplers[0].Init(0,D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT);
+
+
+    D3D12_ROOT_SIGNATURE_DESC bindless_desc;
+    bindless_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED| D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+    bindless_desc.NumParameters = 2;
+    bindless_desc.pParameters = reinterpret_cast<D3D12_ROOT_PARAMETER *>(bindless_params);
+    bindless_desc.NumStaticSamplers = 1;
+    bindless_desc.pStaticSamplers = samplers;
+
+
+    Microsoft::WRL::ComPtr<ID3DBlob> bindless_signature = nullptr;
+
+    if (auto hr = D3D12SerializeRootSignature(&bindless_root_signature_desc,D3D_ROOT_SIGNATURE_VERSION_1_0,&bindless_signature,nullptr); SUCCEEDED(hr))
+    {
+        PALADIN_LOG(INFO, "Successfully serialized bindless root signature")
+    }
+    else if (FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Failed to serialize binless root signature",hr))
+        return;
+    }
+
+    if (auto hr = m_device->CreateRootSignature(0,bindless_signature->GetBufferPointer(),bindless_signature->GetBufferSize(),IID_PPV_ARGS(&m_bindless_root_signature)); SUCCEEDED(hr))
+    {
+        PALADIN_LOG(INFO, "Successfully created bindless root signature");
+    }
+    else if (FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Failed to create bindless root signature", hr))
+    }
+
+
+
     CD3DX12_ROOT_SIGNATURE_DESC root_signature_desc = {};
 
     D3D12_ROOT_PARAMETER camera_root_parameter{};
@@ -312,6 +376,8 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     camera_root_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     camera_root_parameter.Descriptor.RegisterSpace = 0;
     camera_root_parameter.Descriptor.ShaderRegister = 0;
+
+
 
     root_signature_desc.Init(1,&camera_root_parameter,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
@@ -932,7 +998,7 @@ void D3D12Context::UploadFrameData(Camera camera)
     }
 }
 
-void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices,std::vector<MeshRange> mesh_ranges, Camera camera) {
+void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices, std::span<unsigned char> model_textures, std::vector<MeshRange> mesh_ranges, std::vector<TextureRange> texture_ranges) {
     PALADIN_LOG(INFO, "Uploading model")
     PALADIN_SCOPED_CPU_PROFILE("Upload Model", ProfileColors::Red);
 

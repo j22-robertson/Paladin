@@ -24,6 +24,7 @@
 #include "Transform.h"
 #include "Vertex.h"
 #include "asset/Mesh.h"
+#include "asset/Texture2D.h"
 
 struct Vertex {
     Vertex(float x, float y, float z, float r, float g, float b, float a) : pos(x, y, z), color(r, g, b, a) {}
@@ -55,7 +56,11 @@ public:
         m_resized = true;
     }
 
-    void UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices, std::vector<MeshRange> mesh_ranges, Camera camera);
+    void UploadModel(std::span<Paladin::Vertex> model_vertices,
+        std::span<std::uint32_t> model_indices,
+        std::span<unsigned char> model_textures,
+        std::vector<MeshRange> mesh_ranges,
+        std::vector<TextureRange> texture_ranges);
 
     void MapCamera(Transform transform, CameraUniform uniform);
 
@@ -81,6 +86,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence[FRAME_BUFFER_COUNT];
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipeline_state = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_bindless_root_signature = nullptr;
 
     Microsoft::WRL::ComPtr<ID3D12Resource> triangle_vertex_buffer = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> temporary_upload_heap= nullptr;

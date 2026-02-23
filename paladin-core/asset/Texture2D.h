@@ -17,6 +17,14 @@ public:
     std::vector<unsigned char> pixels;
 };
 
+struct TextureRange {
+    std::uint32_t start = 0;
+    std::uint32_t size = 0;
+    std::uint32_t channel = 4;
+    std::uint32_t width = 0;
+    std::uint32_t height = 0;
+};
+
 template<>
 struct HasImporter<Texture2DAsset> {
     static constexpr bool value = true;
