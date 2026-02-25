@@ -1,5 +1,14 @@
-//Texture2D texture_array : register(t0);
-//SamplerState sampler_default : register(s0)
+Texture2D texture_array[] : register(t0,space0);
+SamplerState sampler_default : register(s0);
+
+
+
+struct Material{
+    uint albedo_idx;
+    uint normal_idx;
+    uint roughness_idx;
+    uint metallic_idx;
+};
 
 struct VS_OUTPUT
 {
@@ -7,6 +16,11 @@ struct VS_OUTPUT
     float4 color : COLOR;
     float3 normal: NORMAL;
 };
+
+struct MeshData{uint material_id;};
+
+StructuredBuffer<Material> material_buffer : register(t1,space0);
+StructuredBuffer<MeshData> mesh_data : register(t2,space0);
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {

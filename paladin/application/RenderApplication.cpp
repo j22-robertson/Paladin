@@ -32,6 +32,10 @@ void RenderApplication::run() {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
             break;
         }
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+        }
         glfwPollEvents();
     }
 }
@@ -40,6 +44,8 @@ void RenderApplication::Setup() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags  |= ImGuiConfigFlags_ViewportsEnable;
     unsigned char* pixels;
     int width, height;
    // io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);

@@ -38,9 +38,6 @@ class D3D12Context {
 public:
 
     D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height);
-
-    Microsoft::WRL::ComPtr<ID3D12Resource> UploadVertices();
-
     bool Render();
     std::optional<std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>, Microsoft::WRL::ComPtr<D3D12MA::Allocation>>>
     CreateAllocation(
@@ -62,7 +59,6 @@ public:
         std::vector<MeshRange> mesh_ranges,
         std::vector<TextureRange> texture_ranges);
 
-    void MapCamera(Transform transform, CameraUniform uniform);
 
     bool m_resized = false;
     int imgui_descriptor_index=0;
@@ -99,6 +95,13 @@ private:
 
     std::vector<std::vector<MeshRange>> model_mesh_ranges;
 
+    UINT srv_index = 0;
+
+    UINT custom_render_target_index = 0;
+    UINT custom_rtv_target_index = 0;
+
+    std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> custom_targets;
+
    // std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>,Microsoft::WRL::ComPtr<D3D12MA::Allocation>> m_camera_allocation;
 
     Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_frame_data=nullptr;
@@ -111,6 +114,8 @@ private:
 
     std::uint32_t m_window_width;
     std::uint32_t m_window_height;
+
+
 
     DXShader vertex_shader;
     DXShader fragment_shader;
