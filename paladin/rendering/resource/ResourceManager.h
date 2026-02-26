@@ -14,7 +14,10 @@
 class ResourceManager
 {
 public:
+    virtual ~ResourceManager() = default;
     ResourceManager() = default;
+
+    virtual bool IsValid(const GenKey key) = 0;
 };
 
 template<typename T>
@@ -56,9 +59,10 @@ public:
             m_generation_entries.resize(index+1);
         }
         m_generation_entries[index].current = generation;
-        m_generation_entries[index].value.reset(std::move(resource));
+        m_generation_entries[index].value=std::move(resource);
         return {origin_handle.inner};
     }
+
 
     // Increments generation and pushes back the key index
     void Deallocate(const GenKey key) {
@@ -72,8 +76,13 @@ public:
         m_free_indices.push_back(key.index);
     }
 
+    void Clear()
+    {
+        m_generation_entries.clear();
+    }
+
     // if key index is within generationn entries and matches generation then true else false
-    [[nodiscard]] bool IsValid(const GenKey key) const {
+    [[nodiscard]] bool IsValid(const GenKey key) override {
         return key.index < m_generation_entries.size() && key.generation == m_generation_entries[key.index].current;
     }
 };

@@ -73,51 +73,9 @@ void RenderApplication::Setup() {
     EntityTest testing = {.transform = Transform(), .model_handle = sponza};
 
 
-    std::vector<unsigned char> all_albedo_textures = std::vector<unsigned char>();
-    std::vector<TextureRange> texture_ranges = std::vector<TextureRange>();
-
-    std::map<AssetHandle<MaterialAsset>,std::vector<AssetHandle<Texture2DAsset>>> material_handle_to_texture_handle;
-    std::map<AssetHandle<Texture2DAsset>, std::uint32_t> texture_handle_to_range;
-
-    for (auto material_handle : m_asset_registry->GetAsset<ModelAsset>(testing.model_handle)->materials) {
-        auto material = m_asset_registry->GetAsset<MaterialAsset>(material_handle);
-
-        auto albedo_handle = material->GetTexture(Albedo);
-        auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
-        TextureRange texture_range = {};
-        texture_range.channel = albedo_texture->channels;
-        texture_range.height = albedo_texture->height;
-        texture_range.width = albedo_texture->width;
-        texture_range.start = all_albedo_textures.size();
-        texture_range.size = albedo_texture->pixels.size();
-        //texture_handle_to_range.insert(std::make_pair(albedo_handle,texture_ranges.size()));
-        texture_ranges.push_back(texture_range);
-
-        all_albedo_textures.insert(all_albedo_textures.end(),albedo_texture->pixels.begin(),albedo_texture->pixels.end());
-    }
-
     std::vector<std::pair<std::uint32_t,TextureRange>> mesh_to_albedo;
 
-    auto model = m_asset_registry->GetAsset<ModelAsset>(testing.model_handle);
-    for (int i = 0; i < model->meshes.size(); i++)
-    {
-        auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
 
-        auto material_handle = model->materials[model->mesh_to_material[i]];
-        auto material = m_asset_registry->GetAsset<MaterialAsset>(material_handle);
-
-        auto albedo_handle = material->GetTexture(Albedo);
-        auto roughness_handle = material->GetTexture(Roughness);
-        auto metallic_handle = material->GetTexture(Metallic);
-        auto normal_handle = material->GetTexture(Normal);
-
-        auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
-        auto roughness_texture = m_asset_registry->GetAsset<Texture2DAsset>(roughness_handle);
-        auto metallic_texture =  m_asset_registry->GetAsset<Texture2DAsset>(metallic_handle);
-        auto normal_texture = m_asset_registry->GetAsset<Texture2DAsset>(normal_handle);
-
-
-    }
 
     for (auto mesh_handle : m_asset_registry->GetAsset<ModelAsset>(testing.model_handle)->meshes) {
         auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
@@ -175,7 +133,30 @@ void RenderApplication::Setup() {
     m_render_context = std::make_shared<D3D12Context>(hwnd, window_width,window_height);
     ImGui_ImplGlfw_InitForOther(window,true);
 
-    m_render_context->UploadModel(all_vertices, all_indices,all_albedo_textures,mesh_ranges,texture_ranges);
+    auto model = m_asset_registry->GetAsset<ModelAsset>(testing.model_handle);
+    for (int i = 0; i < model->meshes.size(); i++)
+    {
+        auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
+        m_render_context->UploadMesh(*mesh, model->meshes[i]);
+
+        auto material_handle = model->materials[model->mesh_to_material[i]];
+        auto material = m_asset_registry->GetAsset<MaterialAsset>(material_handle);
+
+        auto albedo_handle = material->GetTexture(Albedo);
+        auto roughness_handle = material->GetTexture(Roughness);
+        auto metallic_handle = material->GetTexture(Metallic);
+        auto normal_handle = material->GetTexture(Normal);
+
+        auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
+        m_render_context->UploadTexture2D(*albedo_texture, albedo_handle);
+        auto roughness_texture = m_asset_registry->GetAsset<Texture2DAsset>(roughness_handle);
+        auto metallic_texture =  m_asset_registry->GetAsset<Texture2DAsset>(metallic_handle);
+        auto normal_texture = m_asset_registry->GetAsset<Texture2DAsset>(normal_handle);
+
+
+    }
+
+    m_render_context->UploadModel(all_vertices, all_indices,mesh_ranges);
     m_render_context->CreatePersistantAllocation(m_camera.GetUniformMut());
     //m_render_context->UploadFrameData(m_camera);
 }

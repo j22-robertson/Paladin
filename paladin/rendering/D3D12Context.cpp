@@ -153,7 +153,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc = {};
 
     //TODO: Change num descriptors
-    srv_heap_desc.NumDescriptors =512;
+    srv_heap_desc.NumDescriptors =100000;
     srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
@@ -758,12 +758,24 @@ bool D3D12Context::Render()
 
 std::optional<std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>, Microsoft::WRL::ComPtr<D3D12MA::Allocation>>> D3D12Context::CreateAllocation(const D3D12_RESOURCE_DESC& resource_desc, void* data)
 {
+
     auto info = m_device->GetResourceAllocationInfo(0,1,&resource_desc);
+
+
     std::size_t num_bytes = 0;
+    UINT row = 0;
+    UINT pitch = 0;
+    UINT64 row_size = 0;
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
     switch (resource_desc.Dimension)
     {
     case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
-        num_bytes = sizeof(float)*resource_desc.Width * resource_desc.Height * 4; break;
+        {
+
+            m_device->GetCopyableFootprints(&resource_desc, 0, 1, 0, &footprint, &row, &row_size, &num_bytes);
+            break;
+        }
+
     case D3D12_RESOURCE_DIMENSION_BUFFER: num_bytes = resource_desc.Width; break;
     case D3D12_RESOURCE_DIMENSION_UNKNOWN:
         PALADIN_LOG(WARN, "UNKNOWN RESOURCE DIMENSION CALC")
@@ -797,12 +809,17 @@ IID_NULL,
 nullptr);
         return std::make_pair(std::move(allocation),nullptr);
     }
+
+
     hr = m_gpu_allocator->CreateResource(&allocation_desc,
-                                         &resource_desc,
-                                         D3D12_RESOURCE_STATE_COPY_DEST,
-                                         nullptr,
-                                         &allocation,
-                                         IID_NULL, nullptr);
+        &resource_desc,
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
+        &allocation,
+        IID_NULL,
+        nullptr);
+
+
 
 
     if (FAILED(hr))
@@ -827,18 +844,67 @@ nullptr);
     D3D12MA::ALLOCATION_DESC upload_allocation_desc = {};
     upload_allocation_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
     Microsoft::WRL::ComPtr<D3D12MA::Allocation> upload_allocation = nullptr;
-    hr = m_gpu_allocator->CreateResource(&upload_allocation_desc,
-   &resource_desc,
-   D3D12_RESOURCE_STATE_GENERIC_READ,
-   nullptr,
-   &upload_allocation,
-   IID_NULL, nullptr);
+
+    if (resource_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+    {
+        D3D12_RESOURCE_DESC upload_desc = {};
+        upload_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        upload_desc.Width = num_bytes;
+        upload_desc.Height = 1;
+        upload_desc.DepthOrArraySize = 1;
+        upload_desc.MipLevels = 1;
+        upload_desc.Format = DXGI_FORMAT_UNKNOWN;
+        upload_desc.SampleDesc.Count = 1;
+        upload_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+        hr = m_gpu_allocator->CreateResource(&upload_allocation_desc,
+                                             &upload_desc,
+                                             D3D12_RESOURCE_STATE_GENERIC_READ,
+                                             nullptr,
+                                             &upload_allocation,
+                                             IID_NULL, nullptr);
+    }
+    else
+    {
+        hr = m_gpu_allocator->CreateResource(&upload_allocation_desc,
+            &resource_desc,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            nullptr,
+            &upload_allocation,
+            IID_NULL,
+            nullptr);
+    }
+
 
     if (FAILED(hr))
     {
         PALADIN_LOG(ERR, ErrorResult("Failed to create upload allocation", hr))
         return std::nullopt;
     }
+    else
+    {
+        PALADIN_LOG(INFO, "Upload Alloc creation success");
+    }
+
+    if (resource_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+    {
+        void* destination = nullptr;
+        hr = upload_allocation->GetResource()->Map(0,nullptr,&destination);
+        if (FAILED(hr))
+        {
+            PALADIN_LOG(ERR, ErrorResult("Failed to map upload allocation", hr))
+        }
+        for (UINT current_row=0; current_row < row; ++current_row)
+        {
+            std::memcpy(static_cast<BYTE*>(destination)+current_row*footprint.Footprint.RowPitch, static_cast<BYTE*>(data)+current_row, row);
+
+        }
+
+
+        upload_allocation->GetResource()->Unmap(0,nullptr);
+        return std::make_pair(std::move(allocation), std::move(upload_allocation));
+    }
+
     void* destination = nullptr;
     hr = upload_allocation->GetResource()->Map(0,nullptr,&destination);
     if (FAILED(hr))
@@ -962,13 +1028,194 @@ void D3D12Context::UploadFrameData(Camera camera)
     }
 }
 
-void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices, std::span<unsigned char> model_textures, std::vector<MeshRange> mesh_ranges, std::vector<TextureRange> texture_ranges) {
+GPUResourceHandle<GPUTexture2D> D3D12Context::UploadTexture2D(Texture2DAsset& texture, OpaqueAssetHandle handle)
+{
+    if (m_gpu_resources.IsValid(handle)) return GPUResourceHandle<GPUTexture2D>{handle.inner};
+    PALADIN_LOG(INFO, "Uploading Texture")
+    PALADIN_SCOPED_CPU_PROFILE("Upload Texture", ProfileColors::Red);
+
+    WaitForPreviousFrame();
+    HRESULT hr;
+    m_command_list->Reset(m_command_allocator[frame_index].Get(), nullptr);
+    PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Loading Texture", ProfileColors::Blue)
+
+    std::size_t total_bytes = sizeof(float) * texture.width*texture.height*texture.channels;
+
+    std::size_t num_bytes = 0;
+    UINT row = 0;
+    UINT64 row_size = 0;
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
+
+
+    auto gpu_texture = std::make_unique<GPUTexture2D>();
+
+    auto texture_desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32B32A32_FLOAT,
+    texture.width,
+    texture.height,
+    1,
+    1,
+    1,
+    0,
+    D3D12_RESOURCE_FLAG_NONE,
+    D3D12_TEXTURE_LAYOUT_UNKNOWN,
+    0);
+
+    m_device->GetCopyableFootprints(&texture_desc, 0, 1, 0, &footprint, &row, &row_size, &num_bytes);
+
+    std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> upload_buffers;
+
+    if (auto allocation_pair = CreateAllocation(texture_desc,texture.pixels.data()); allocation_pair.has_value())
+    {
+        {
+            auto [texture_allocation, texture_upload_allocation] = allocation_pair.value();
+            PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Copying Texture Data", ProfileColors::Red)
+
+            D3D12_TEXTURE_COPY_LOCATION dst_loc = {};
+            dst_loc.pResource = texture_allocation->GetResource();
+            dst_loc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+            dst_loc.SubresourceIndex = 0;
+
+            D3D12_TEXTURE_COPY_LOCATION src_loc = {};
+            src_loc.pResource = texture_upload_allocation->GetResource();
+            src_loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+            src_loc.PlacedFootprint = footprint;
+            m_command_list->CopyTextureRegion(&dst_loc,0,0,0,&src_loc,nullptr);
+
+            D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+            srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            srv_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+            srv_desc.Texture2D.MipLevels = 1;
+            srv_desc.Texture2D.MostDetailedMip = 0;
+            srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+            auto handle_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            auto cpu_handle = m_srv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+            cpu_handle.ptr += handle_size * descriptor_index;
+            m_device->CreateShaderResourceView(texture_allocation->GetResource(),&srv_desc,cpu_handle);
+
+            auto transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(texture_allocation->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+            upload_buffers.push_back(std::move(texture_upload_allocation));
+
+            m_command_list->ResourceBarrier(1, &transition_barrier);
+
+
+        }
+    }
+
+    hr = m_command_list->Close();
+    if (FAILED(hr)) {
+        PALADIN_LOG(ERR, ErrorResult("Failed to close command list", hr));
+    }
+    ID3D12CommandList* ppCommandLists[] = { m_command_list.Get() };
+    m_command_queue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    fence_value[frame_index]++;
+    hr =  m_command_queue->Signal(m_fence[frame_index].Get(), fence_value[frame_index]);
+
+    if (m_fence[frame_index]->GetCompletedValue() < fence_value[frame_index]) {
+        m_fence[frame_index]->SetEventOnCompletion(fence_value[frame_index], fence_event);
+        WaitForSingleObject(fence_event, INFINITE);
+    }
+
+    gpu_texture->srv_descriptor_index = descriptor_index++;
+    return m_gpu_resources.Insert(std::move(gpu_texture), handle);
+}
+
+GPUResourceHandle<GPUMesh> D3D12Context::UploadMesh(MeshAsset& mesh, OpaqueAssetHandle handle)
+{
+    PALADIN_LOG(INFO, "Uploading Mesh")
+    PALADIN_SCOPED_CPU_PROFILE("Upload Mesh", ProfileColors::Red);
+
+    WaitForPreviousFrame();
+    HRESULT hr;
+    m_command_list->Reset(m_command_allocator[frame_index].Get(), nullptr);
+    PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Loading Mesh", ProfileColors::Blue)
+    std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> upload_buffers;
+
+    std::size_t vertex_total_bytes = mesh.vertices.size()*sizeof(Paladin::Vertex);
+    std::size_t index_total_bytes = mesh.vertices.size()*sizeof(std::uint32_t);
+
+    auto vertex_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(vertex_total_bytes);
+    auto index_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(index_total_bytes);
+
+    auto gpu_mesh = std::make_unique<GPUMesh>();
+    gpu_mesh->indices = mesh.indices.size();
+
+    if (auto allocation_pair = CreateAllocation(vertex_buffer_desc,(void*)mesh.vertices.data()); allocation_pair.has_value())
+    {
+        {
+            auto [vertex_allocation, vertex_upload_allocation] = allocation_pair.value();
+            PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Copying Mesh vertex Data", ProfileColors::Red)
+            m_command_list->CopyBufferRegion(vertex_allocation->GetResource(),0,vertex_upload_allocation->GetResource(),0,vertex_total_bytes);
+
+            D3D12_VERTEX_BUFFER_VIEW vertex_view = {};
+            vertex_view.BufferLocation = vertex_allocation->GetResource()->GetGPUVirtualAddress();
+            vertex_view.SizeInBytes = vertex_total_bytes;
+            vertex_view.StrideInBytes = sizeof(Paladin::Vertex);
+
+
+            auto vertex_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(vertex_allocation->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+
+            upload_buffers.push_back(std::move(vertex_upload_allocation));
+            gpu_mesh->vertex_allocation = std::move(vertex_allocation);
+            gpu_mesh->vertex_buffer_view = vertex_view;
+            //vertex_buffers.emplace_back(vertex_view,std::move(vertex_allocation));
+
+            m_command_list->ResourceBarrier(1, &vertex_transition_barrier);
+        }
+
+
+
+    }
+
+    if (auto allocation_pair = CreateAllocation(index_buffer_desc,(void*)mesh.indices.data()); allocation_pair.has_value())
+    {
+        {
+            auto [index_allocation, index_upload_allocation] = allocation_pair.value();
+            PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Copying Mesh index Data", ProfileColors::Red)
+            m_command_list->CopyBufferRegion(index_allocation->GetResource(),0,index_upload_allocation->GetResource(),0,index_total_bytes);
+
+            D3D12_INDEX_BUFFER_VIEW index_buffer_view = {};
+            index_buffer_view.BufferLocation = index_allocation->GetResource()->GetGPUVirtualAddress();
+            index_buffer_view.SizeInBytes = index_total_bytes;
+            index_buffer_view.Format = DXGI_FORMAT_R32_UINT;
+
+            auto index_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(index_allocation->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
+
+            upload_buffers.push_back(std::move(index_upload_allocation));
+            gpu_mesh->index_allocation = std::move(index_allocation);
+            gpu_mesh->index_buffer_view = index_buffer_view;
+            //index_buffers.emplace_back(index_buffer_view,std::move(index_allocation));
+            m_command_list->ResourceBarrier(1, &index_transition_barrier);
+        }
+    }
+
+
+    hr = m_command_list->Close();
+    if (FAILED(hr)) {
+        PALADIN_LOG(ERR, ErrorResult("Failed to close command list", hr));
+    }
+    ID3D12CommandList* ppCommandLists[] = { m_command_list.Get() };
+    m_command_queue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    fence_value[frame_index]++;
+    hr =  m_command_queue->Signal(m_fence[frame_index].Get(), fence_value[frame_index]);
+
+    if (m_fence[frame_index]->GetCompletedValue() < fence_value[frame_index]) {
+        m_fence[frame_index]->SetEventOnCompletion(fence_value[frame_index], fence_event);
+        WaitForSingleObject(fence_event, INFINITE);
+    }
+
+    return m_gpu_resources.Insert<GPUMesh>(std::move(gpu_mesh), handle);
+   // m_gpu_resources.Insert<GPUMesh>()
+
+}
+
+void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices,  std::vector<MeshRange> mesh_ranges) {
     PALADIN_LOG(INFO, "Uploading model")
     PALADIN_SCOPED_CPU_PROFILE("Upload Model", ProfileColors::Red);
 
     WaitForPreviousFrame();
     HRESULT hr;
-   // m_command_allocator[frame_index]->Reset();
     m_command_list->Reset(m_command_allocator[frame_index].Get(), nullptr);
     PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Loading Model", ProfileColors::Blue)
     std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> upload_buffers;
@@ -1022,7 +1269,7 @@ void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::s
         }
     }
 
-   hr = m_command_list->Close();
+    hr = m_command_list->Close();
     if (FAILED(hr)) {
         PALADIN_LOG(ERR, ErrorResult("Failed to close command list", hr));
     }
@@ -1035,6 +1282,7 @@ void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::s
         m_fence[frame_index]->SetEventOnCompletion(fence_value[frame_index], fence_event);
         WaitForSingleObject(fence_event, INFINITE);
     }
+
 
     model_mesh_ranges.push_back(mesh_ranges);
 }
@@ -1312,7 +1560,7 @@ D3D12Context::~D3D12Context() {
     vertex_buffers.clear();
     index_buffers.clear();
     m_frame_data.Reset();
-
+    m_gpu_resources.Clear();
 
     TracyD3D12Destroy(m_tracy_context)
     ImGui_ImplDX12_Shutdown();

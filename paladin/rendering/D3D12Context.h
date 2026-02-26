@@ -25,6 +25,8 @@
 #include "Vertex.h"
 #include "asset/Mesh.h"
 #include "asset/Texture2D.h"
+#include "resource/GPUResourceRegistry.h"
+#include "resource/ResourceManager.h"
 
 struct Vertex {
     Vertex(float x, float y, float z, float r, float g, float b, float a) : pos(x, y, z), color(r, g, b, a) {}
@@ -54,14 +56,12 @@ public:
     }
 
 
-    void UploadTexture2D(const Texture2DAsset& texture, bool render_target = false);
-    void UploadMesh(const MeshAsset& mesh);
+    GPUResourceHandle<GPUTexture2D>  UploadTexture2D( Texture2DAsset& texture, OpaqueAssetHandle handle);
+    GPUResourceHandle<GPUMesh> UploadMesh(MeshAsset& mesh,OpaqueAssetHandle handle);
 
     void UploadModel(std::span<Paladin::Vertex> model_vertices,
         std::span<std::uint32_t> model_indices,
-        std::span<unsigned char> model_textures,
-        std::vector<MeshRange> mesh_ranges,
-        std::vector<TextureRange> texture_ranges);
+        std::vector<MeshRange> mesh_ranges);
 
 
     bool m_resized = false;
@@ -115,6 +115,8 @@ private:
     Microsoft::WRL::ComPtr<D3D12MA::Allocator> m_gpu_allocator = nullptr;
 
     Microsoft::WRL::ComPtr<IDXGIAdapter1> m_adapter = nullptr;
+
+    GPUResourceRegistry m_gpu_resources = GPUResourceRegistry();
 
 
     std::uint32_t m_window_width;

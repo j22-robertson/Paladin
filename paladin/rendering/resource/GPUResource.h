@@ -6,7 +6,11 @@
 #define PALADIN_RESOURCE_H
 #include <type_traits>
 
-class GPUResource{};
+class GPUResource
+{
+public:
+    virtual ~GPUResource() = default;
+};
 
 
 template<typename T>

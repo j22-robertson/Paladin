@@ -28,7 +28,8 @@ struct GPUTexture2D : GPUResource
 struct GPUMesh: GPUResource
 {
 public:
-    Microsoft::WRL::ComPtr<D3D12MA::Allocation> allocation;
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> vertex_allocation;
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> index_allocation;
     D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
     D3D12_INDEX_BUFFER_VIEW index_buffer_view;
     std::uint32_t indices;
@@ -52,7 +53,7 @@ struct GPUModel : GPUResource
 class GPUResourceRegistry {
     std::unordered_map<std::size_t, std::unique_ptr<ResourceManager>> managers;
 
-
+public:
     GPUResourceRegistry()
     {
         managers.insert({typeid(Texture2DAsset).hash_code(),std::make_unique<IResourceManager<GPUTexture2D>>()});
@@ -70,17 +71,30 @@ class GPUResourceRegistry {
         }
         return nullptr;
     }
+
+    bool IsValid(OpaqueAssetHandle handle)
+    {
+        if (auto it = managers.find(handle.type_id); it!=managers.end()) {
+            return it->second->IsValid(handle.inner);
+        }
+        return false;
+    }
+
     template<typename T>
     requires IsPaladinResource<T>
     GPUResourceHandle<T> Insert(std::unique_ptr<T> resource, OpaqueAssetHandle handle)
     {
-        if (IResourceManager<T>* manager = GetManager<T>(); manager!=nullptr)
+        if (IResourceManager<T>* manager = GetManager<T>(handle.type_id); manager!=nullptr)
         {
             return manager->Insert(std::move(resource),handle);
         }
         return {};
     }
 
+    void Clear()
+    {
+        managers.clear();
+    }
 
     template<typename T> requires IsPaladinResource<T>
     IResourceManager<T>* GetManager(std::size_t hash)
