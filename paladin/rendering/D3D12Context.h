@@ -53,6 +53,10 @@ public:
         m_resized = true;
     }
 
+
+    void UploadTexture2D(const Texture2DAsset& texture, bool render_target = false);
+    void UploadMesh(const MeshAsset& mesh);
+
     void UploadModel(std::span<Paladin::Vertex> model_vertices,
         std::span<std::uint32_t> model_indices,
         std::span<unsigned char> model_textures,
@@ -111,6 +115,7 @@ private:
     Microsoft::WRL::ComPtr<D3D12MA::Allocator> m_gpu_allocator = nullptr;
 
     Microsoft::WRL::ComPtr<IDXGIAdapter1> m_adapter = nullptr;
+
 
     std::uint32_t m_window_width;
     std::uint32_t m_window_height;

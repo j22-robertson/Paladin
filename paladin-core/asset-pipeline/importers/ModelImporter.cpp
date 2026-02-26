@@ -4,6 +4,7 @@
 #include "ModelImporter.h"
 
 #include <random>
+#include <span>
 
 #include "Vertex.h"
 #include "../../../cmake-build-debug/_deps/glm-src/glm/vec3.hpp"
@@ -82,7 +83,9 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
         return {};
     }
     mesh_count = scene->mNumMeshes;
-    auto meshes = ProcessNode(node, scene,materials,file);
+    std::vector<std::uint32_t> mesh_to_mat;
+    mesh_to_mat.resize(mesh_count);
+    auto meshes = ProcessNode(node, scene,mesh_to_mat,materials,file);
 
     for (auto& mesh : meshes) {
         m_asset_registry->AddDependency(new_model_handle, mesh);
@@ -92,11 +95,12 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
 
     new_model->materials = std::move(materials);
     new_model->meshes = std::move(meshes);
+    new_model->mesh_to_material = std::move(mesh_to_mat);
 
     return new_model_handle;
 }
 
-std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene, const std::vector<AssetHandle<MaterialAsset>>& materials, const std::string& file)
+std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene,std::vector<std::uint32_t>& mesh_to_mat, const std::span<AssetHandle<MaterialAsset>> materials, const std::string& file)
 {
     std::vector<AssetHandle<MeshAsset>> mesh_handles;
     for (int i = 0; i < node->mNumMeshes; i++) {

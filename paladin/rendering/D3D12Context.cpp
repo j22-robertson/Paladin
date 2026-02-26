@@ -201,7 +201,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
             PALADIN_LOG(ERR, ErrorResult("Failed to create render target", hr))
         }
         m_device->CreateRenderTargetView(m_render_target[i].Get(), nullptr, rtv_cpu_handle);
-       // m_device->CreateShaderResourceView(m_render_target[i].Get(), nullptr, srv_cpu_handle);
+       ///m_device->CreateShaderResourceView(m_render_target[i].Get(), nullptr, srv_cpu_handle);
 
         rtv_cpu_handle.ptr += rtv_descriptor_size;
         e+=1;
@@ -1191,9 +1191,11 @@ bool D3D12Context::UpdatePipeline()
         m_command_list->RSSetViewports(1, &m_viewport);
         m_command_list->RSSetScissorRects(1,&m_scissor);
         const float clear_colour[] = { 0.0f,0.2f,0.4f,1.0f };
+
         auto srv_handle = m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart();
         auto custom_rtv_handle_gpu = srv_handle.ptr + (frame_index+custom_render_target_index)*handle_size;
         auto custom_rtv_handle = m_rtv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+
         custom_rtv_handle.ptr += (custom_rtv_target_index+frame_index)*m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
         m_command_list->ClearRenderTargetView(custom_rtv_handle ,clear_colour,0,nullptr);

@@ -98,11 +98,31 @@ void RenderApplication::Setup() {
 
     std::vector<std::pair<std::uint32_t,TextureRange>> mesh_to_albedo;
 
-    for (auto mesh_handle : m_asset_registry->GetAsset<ModelAsset>(testing.model_handle)->meshes) {
-        auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
-        auto material = m_asset_registry->GetAsset<MaterialAsset>(mesh->material);
+    auto model = m_asset_registry->GetAsset<ModelAsset>(testing.model_handle);
+    for (int i = 0; i < model->meshes.size(); i++)
+    {
+        auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
+
+        auto material_handle = model->materials[model->mesh_to_material[i]];
+        auto material = m_asset_registry->GetAsset<MaterialAsset>(material_handle);
 
         auto albedo_handle = material->GetTexture(Albedo);
+        auto roughness_handle = material->GetTexture(Roughness);
+        auto metallic_handle = material->GetTexture(Metallic);
+        auto normal_handle = material->GetTexture(Normal);
+
+        auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
+        auto roughness_texture = m_asset_registry->GetAsset<Texture2DAsset>(roughness_handle);
+        auto metallic_texture =  m_asset_registry->GetAsset<Texture2DAsset>(metallic_handle);
+        auto normal_texture = m_asset_registry->GetAsset<Texture2DAsset>(normal_handle);
+
+
+    }
+
+    for (auto mesh_handle : m_asset_registry->GetAsset<ModelAsset>(testing.model_handle)->meshes) {
+        auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
+
+
 
         auto v_start = (std::uint32_t)all_vertices.size();
         auto i_start = (std::uint32_t)all_indices.size();

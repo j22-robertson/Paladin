@@ -5,6 +5,10 @@ set(PALADIN_SOURCES
         paladin/rendering/DXShaderCompiler.h
         paladin/rendering/debuglayer/D3D12DebugLayer.cpp
         paladin/rendering/debuglayer/D3D12DebugLayer.h
+        paladin/rendering/resource/GpuResourceRegistry.cpp
+        paladin/rendering/resource/GpuResourceRegistry.h
+        paladin/rendering/resource/GpuResource.h
+        paladin/rendering/resource/ResourceManager.h
         paladin/rendering/D3D12Context.cpp
         paladin/rendering/D3D12Context.h
         paladin/application/RenderApplication.h

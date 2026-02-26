@@ -30,6 +30,7 @@ public:
         }
         return nullptr;
     }
+
     std::vector<AssetHandle<T>> InsertAssets(std::vector<std::unique_ptr<T>> assets) {
         std::vector<AssetHandle<T>> new_asset_handles;
         if (assets.empty()) return {};
@@ -55,6 +56,7 @@ public:
         }
         return new_asset_handles;
     }
+
     AssetHandle<T> InsertAsset() {
         PALADIN_SCOPED_CPU_PROFILE(std::string("Insert:"+std::string(typeid(T).name())).c_str(), ProfileColors::Green);
         auto new_index = asset_index_allocator.Allocate();

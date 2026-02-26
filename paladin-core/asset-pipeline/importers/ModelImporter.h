@@ -11,6 +11,8 @@
 #include "asset/Material.h"
 #include "asset/Mesh.h"
 #include <filesystem>
+#include <span>
+
 #include "assimp/Importer.hpp"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
@@ -27,7 +29,7 @@ class ModelImporter : public IAssetImporter<ModelAsset>
 
     AssetHandle<ModelAsset> LoadAsset(std::string file) override;
 private:
-    std::vector<AssetHandle<MeshAsset>> ProcessNode(const aiNode* node, const aiScene* scene, const std::vector<AssetHandle<MaterialAsset>>& materials, const std::string& file);
+    std::vector<AssetHandle<MeshAsset>> ProcessNode(const aiNode* node, const aiScene* scene, std::vector<std::uint32_t>& mesh_to_mat, std::span<AssetHandle<MaterialAsset>> materials, const std::string& file);
     private:
 };
 
