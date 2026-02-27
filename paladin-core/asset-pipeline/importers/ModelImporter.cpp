@@ -103,6 +103,7 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
 std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene,std::vector<std::uint32_t>& mesh_to_mat, const std::span<AssetHandle<MaterialAsset>> materials, const std::string& file)
 {
     std::vector<AssetHandle<MeshAsset>> mesh_handles;
+
     for (int i = 0; i < node->mNumMeshes; i++) {
         std::vector<Paladin::Vertex> vertices{};
 
@@ -168,6 +169,15 @@ std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* nod
             }
         }
 
+        if (mesh->HasTextureCoords(0))
+        {
+            for (int j = 0; j < mesh->mNumVertices; j++)
+            {
+                vertices[j].u = static_cast<float>(mesh->mTextureCoords[0][j].x);
+                vertices[j].v = static_cast<float>(mesh->mTextureCoords[0][j].y);
+            }
+        }
+
         for (int j =0; j < mesh->mNumFaces; j++) {
             const aiFace face = mesh->mFaces[j];
             for (int n = 0; n < face.mNumIndices; n++) {
@@ -177,6 +187,7 @@ std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* nod
         std::string name = mesh->mName.Empty() ? file  + ":" +" Mesh:" +std::to_string(i) : mesh->mName.C_Str();
         auto mesh_handle = m_asset_registry->InsertAsset(std::make_unique<MeshAsset>(name,vertices,indices,materials[mesh->mMaterialIndex]));
         mesh_handles.push_back(mesh_handle);
+        mesh_to_mat[mesh_index] = mesh->mMaterialIndex;
         m_asset_registry->AddDependency(mesh_handle, materials[mesh->mMaterialIndex]);
     }
     return mesh_handles;

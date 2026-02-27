@@ -33,6 +33,7 @@ public:
     D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
     D3D12_INDEX_BUFFER_VIEW index_buffer_view;
     std::uint32_t indices;
+    OpaqueAssetHandle material;
 };
 
 struct GPUMaterial: GPUResource
@@ -52,18 +53,24 @@ struct GPUModel : GPUResource
 
 class GPUResourceRegistry {
     std::unordered_map<std::size_t, std::unique_ptr<ResourceManager>> managers;
+    std::map<std::size_t, std::size_t> asset_to_resource_type;
 
 public:
     GPUResourceRegistry()
     {
-        managers.insert({typeid(Texture2DAsset).hash_code(),std::make_unique<IResourceManager<GPUTexture2D>>()});
-        managers.insert({typeid(MeshAsset).hash_code(),std::make_unique<IResourceManager<GPUMesh>>()});
-        managers.insert({typeid(ModelAsset).hash_code(),std::make_unique<IResourceManager<GPUModel>>()});
-        managers.insert({typeid(MaterialAsset).hash_code(),std::make_unique<IResourceManager<GPUMaterial>>()});
+        managers.insert({typeid(GPUTexture2D).hash_code(),std::make_unique<IResourceManager<GPUTexture2D>>()});
+        managers.insert({typeid(GPUMesh).hash_code(),std::make_unique<IResourceManager<GPUMesh>>()});
+        managers.insert({typeid(GPUModel).hash_code(),std::make_unique<IResourceManager<GPUModel>>()});
+        managers.insert({typeid(GPUMaterial).hash_code(),std::make_unique<IResourceManager<GPUMaterial>>()});
+
+        asset_to_resource_type.insert({typeid(MaterialAsset).hash_code(),typeid(GPUMaterial).hash_code()});
+        asset_to_resource_type.insert({typeid(Texture2DAsset).hash_code(),typeid(GPUTexture2D).hash_code()});
+        asset_to_resource_type.insert({typeid(ModelAsset).hash_code(),typeid(GPUModel).hash_code()});
+        asset_to_resource_type.insert({typeid(MeshAsset).hash_code(),typeid(GPUMesh).hash_code()});
     }
     template<typename T>
         requires IsPaladinResource<T>
-    T* Get(OpaqueAssetHandle handle)
+    T* Get(GPUResourceHandle<T> handle)
     {
         if (IResourceManager<T>* manager = GetManager<T>(); manager!=nullptr)
         {
@@ -72,9 +79,21 @@ public:
         return nullptr;
     }
 
+    template<typename T>
+        requires IsPaladinResource<T>
+    T* GetOpaque(OpaqueAssetHandle handle)
+    {
+        if (IResourceManager<T>* manager = GetManager<T>(handle.type_id); manager!=nullptr)
+        {
+            return manager->GetOpaque(handle);
+        }
+        return nullptr;
+    }
+    template<typename T>
+        requires IsPaladinResource<T>
     bool IsValid(OpaqueAssetHandle handle)
     {
-        if (auto it = managers.find(handle.type_id); it!=managers.end()) {
+        if (auto it = managers.find(asset_to_resource_type[handle.type_id]); it!=managers.end()) {
             return it->second->IsValid(handle.inner);
         }
         return false;
@@ -84,7 +103,7 @@ public:
     requires IsPaladinResource<T>
     GPUResourceHandle<T> Insert(std::unique_ptr<T> resource, OpaqueAssetHandle handle)
     {
-        if (IResourceManager<T>* manager = GetManager<T>(handle.type_id); manager!=nullptr)
+        if (IResourceManager<T>* manager = GetManager<T>(); manager!=nullptr)
         {
             return manager->Insert(std::move(resource),handle);
         }
@@ -99,7 +118,16 @@ public:
     template<typename T> requires IsPaladinResource<T>
     IResourceManager<T>* GetManager(std::size_t hash)
     {
-        if (auto it = managers.find(hash); it!=managers.end()) {
+        if (auto it = managers.find(asset_to_resource_type[hash]); it!=managers.end()) {
+            return static_cast<IResourceManager<T>*>(it->second.get());
+        }
+        return nullptr;
+    }
+
+    template<typename T> requires IsPaladinResource<T>
+    IResourceManager<T>* GetManager()
+    {
+        if (auto it = managers.find(typeid(T).hash_code()); it!=managers.end()) {
             return static_cast<IResourceManager<T>*>(it->second.get());
         }
         return nullptr;

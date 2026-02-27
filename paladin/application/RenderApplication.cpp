@@ -75,7 +75,14 @@ void RenderApplication::Setup() {
 
     std::vector<std::pair<std::uint32_t,TextureRange>> mesh_to_albedo;
 
+#include <cstddef>
 
+    PALADIN_LOG(INFO, "Offset Pos: " + std::to_string(offsetof(Paladin::Vertex, x)));
+    PALADIN_LOG(INFO, "Offset Normal: " + std::to_string(offsetof(Paladin::Vertex, nx)));
+    PALADIN_LOG(INFO, "Offset Tangent: " + std::to_string(offsetof(Paladin::Vertex, tx))); // Check this!
+    PALADIN_LOG(INFO, "Offset Bitangent: " + std::to_string(offsetof(Paladin::Vertex, btx))); // Check this!
+    PALADIN_LOG(INFO, "Offset Color: " + std::to_string(offsetof(Paladin::Vertex, r)));
+    PALADIN_LOG(INFO, "Offset UV: " + std::to_string(offsetof(Paladin::Vertex, u)));
 
     for (auto mesh_handle : m_asset_registry->GetAsset<ModelAsset>(testing.model_handle)->meshes) {
         auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
@@ -133,30 +140,62 @@ void RenderApplication::Setup() {
     m_render_context = std::make_shared<D3D12Context>(hwnd, window_width,window_height);
     ImGui_ImplGlfw_InitForOther(window,true);
 
+    std::unique_ptr<GPUModel> gpu_model = std::make_unique<GPUModel>();
+    std::set<OpaqueAssetHandle> material_set;
+
     auto model = m_asset_registry->GetAsset<ModelAsset>(testing.model_handle);
+    gpu_model->mesh_to_material = model->mesh_to_material;
     for (int i = 0; i < model->meshes.size(); i++)
     {
         auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
-        m_render_context->UploadMesh(*mesh, model->meshes[i]);
+        gpu_model->mesh_handles.push_back(m_render_context->UploadMesh(*mesh, model->meshes[i]));
 
         auto material_handle = model->materials[model->mesh_to_material[i]];
         auto material = m_asset_registry->GetAsset<MaterialAsset>(material_handle);
-
         auto albedo_handle = material->GetTexture(Albedo);
         auto roughness_handle = material->GetTexture(Roughness);
         auto metallic_handle = material->GetTexture(Metallic);
         auto normal_handle = material->GetTexture(Normal);
 
+        std::unique_ptr<GPUMaterial> gpu_material = std::make_unique<GPUMaterial>();
+
         auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
-        m_render_context->UploadTexture2D(*albedo_texture, albedo_handle);
+        if (albedo_texture != nullptr) {
+            gpu_material->albedo = m_render_context->UploadTexture2D(*albedo_texture, albedo_handle);
+        }
+
+
+
         auto roughness_texture = m_asset_registry->GetAsset<Texture2DAsset>(roughness_handle);
+        if (roughness_texture != nullptr) {
+            gpu_material->roughness= m_render_context->UploadTexture2D(*roughness_texture, roughness_handle);
+
+        }
+
+
+
+
         auto metallic_texture =  m_asset_registry->GetAsset<Texture2DAsset>(metallic_handle);
+        if (metallic_texture != nullptr) {
+            gpu_material->metallic =m_render_context->UploadTexture2D(*metallic_texture, metallic_handle);
+        }
+
+
+
         auto normal_texture = m_asset_registry->GetAsset<Texture2DAsset>(normal_handle);
+        if (normal_texture != nullptr) {
+            gpu_material->normal= m_render_context->UploadTexture2D(*normal_texture, normal_handle);
+            PALADIN_LOG(INFO, "normal null")
+        }
 
 
+
+        gpu_model->material_handles.push_back( m_render_context->AddMaterial( std::move(gpu_material), material_handle));
     }
+    m_render_context->AddModel(std::move(gpu_model), sponza);
 
-    m_render_context->UploadModel(all_vertices, all_indices,mesh_ranges);
+
+    //m_render_context->UploadModel(all_vertices, all_indices,mesh_ranges);
     m_render_context->CreatePersistantAllocation(m_camera.GetUniformMut());
     //m_render_context->UploadFrameData(m_camera);
 }

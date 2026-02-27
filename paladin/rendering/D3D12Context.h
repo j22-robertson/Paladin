@@ -34,6 +34,10 @@ struct Vertex {
     DirectX::XMFLOAT4 color;
 };
 
+struct MeshData {
+    std::uint32_t material_id;
+};
+
 
 constexpr UINT FRAME_BUFFER_COUNT = 3;
 class D3D12Context {
@@ -58,6 +62,11 @@ public:
 
     GPUResourceHandle<GPUTexture2D>  UploadTexture2D( Texture2DAsset& texture, OpaqueAssetHandle handle);
     GPUResourceHandle<GPUMesh> UploadMesh(MeshAsset& mesh,OpaqueAssetHandle handle);
+
+    GPUResourceHandle<GPUMaterial> AddMaterial(std::unique_ptr<GPUMaterial> material, OpaqueAssetHandle handle);
+    GPUResourceHandle<GPUModel> AddModel(std::unique_ptr<GPUModel> model, OpaqueAssetHandle handle);
+
+    OpaqueAssetHandle model_handle;
 
     void UploadModel(std::span<Paladin::Vertex> model_vertices,
         std::span<std::uint32_t> model_indices,
@@ -85,7 +94,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList8> m_command_list = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence[FRAME_BUFFER_COUNT];
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipeline_state = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature = nullptr;
+    //Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_bindless_root_signature = nullptr;
 
     Microsoft::WRL::ComPtr<ID3D12Resource> triangle_vertex_buffer = nullptr;

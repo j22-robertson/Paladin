@@ -5,7 +5,7 @@ struct VS_INPUT
     float3 tangent: TANGENT;
     float3 bitangent: BITANGENT;
     float4 color: COLOR;
-    float2 uv : TEXCOORD;
+    float2 uv : TEXCOORD0;
 
 
     //row_major float4x4 transform: TRANSFORM;
@@ -20,8 +20,11 @@ cbuffer Camera : register(b0)
 struct VS_OUTPUT
 {
     float4 pos : SV_POSITION;
-    float4 color : COLOR;
     float3 normal: NORMAL;
+    float3 tangent: TANGENT;
+    float3 bitangent: BITANGENT;
+    float4 color: COLOR;
+    float2 uv : TEXCOORD0;
 };
 
 VS_OUTPUT main(VS_INPUT input)
@@ -35,6 +38,9 @@ VS_OUTPUT main(VS_INPUT input)
     output.pos = mul(projection,view_pos);
     output.color = input.color;
     output.normal = input.normal;
+    output.tangent = input.tangent;
+    output.bitangent = input.bitangent;
+    output.uv = input.uv;
     return output;
 
 }

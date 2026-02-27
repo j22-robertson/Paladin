@@ -320,19 +320,25 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
 
 
-    CD3DX12_ROOT_SIGNATURE_DESC bindless_root_signature_desc = {};
+    D3D12_VERSIONED_ROOT_SIGNATURE_DESC bindless_root_signature_desc = {};
 
     D3D12_DESCRIPTOR_RANGE1 srv_ranges[1] ={};
 
     srv_ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-    srv_ranges[0].NumDescriptors = UINT_MAX;
+    srv_ranges[0].NumDescriptors = 3000;
     srv_ranges[0].BaseShaderRegister = 0;
-    srv_ranges[0].NumDescriptors = 1;
     srv_ranges[0].RegisterSpace = 0;
     srv_ranges[0].OffsetInDescriptorsFromTableStart = 0;
     srv_ranges[0].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
-    D3D12_ROOT_PARAMETER1 bindless_params[2];
+    D3D12_ROOT_PARAMETER1 bindless_params[3];
+
+    D3D12_ROOT_PARAMETER1 mesh_constant_parameter{};
+    mesh_constant_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    mesh_constant_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    mesh_constant_parameter.Constants.ShaderRegister = 1;
+    mesh_constant_parameter.Constants.RegisterSpace = 0;
+    mesh_constant_parameter.Constants.Num32BitValues = 1;
 
     D3D12_ROOT_PARAMETER1 bindless_root_parameter{};
     bindless_root_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -347,23 +353,26 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     b_camera_root_parameter.Descriptor.ShaderRegister = 0;
     bindless_params[1] = bindless_root_parameter;
     bindless_params[0] = b_camera_root_parameter;
+    bindless_params[2] = mesh_constant_parameter;
+
 
 
     CD3DX12_STATIC_SAMPLER_DESC samplers[1] ={};
-    samplers[0].Init(0,D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT);
+    samplers[0].Init(0,D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP);
 
 
-    D3D12_ROOT_SIGNATURE_DESC bindless_desc;
-    bindless_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED| D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
-    bindless_desc.NumParameters = 2;
-    bindless_desc.pParameters = reinterpret_cast<D3D12_ROOT_PARAMETER *>(bindless_params);
-    bindless_desc.NumStaticSamplers = 1;
-    bindless_desc.pStaticSamplers = samplers;
+    bindless_root_signature_desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+    bindless_root_signature_desc.Desc_1_1.NumParameters = 3;
+    bindless_root_signature_desc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED| D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+    bindless_root_signature_desc.Desc_1_1.pParameters = bindless_params;
+    bindless_root_signature_desc.Desc_1_1.NumStaticSamplers = 1;
+    bindless_root_signature_desc.Desc_1_1.pStaticSamplers = samplers;
+
 
 
     Microsoft::WRL::ComPtr<ID3DBlob> bindless_signature = nullptr;
 
-    if (auto hr = D3D12SerializeRootSignature(&bindless_root_signature_desc,D3D_ROOT_SIGNATURE_VERSION_1_0,&bindless_signature,nullptr); SUCCEEDED(hr))
+    if (auto hr = D3D12SerializeVersionedRootSignature(&bindless_root_signature_desc,&bindless_signature,nullptr); SUCCEEDED(hr))
     {
         PALADIN_LOG(INFO, "Successfully serialized bindless root signature")
     }
@@ -383,7 +392,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     }
 
 
-
+/*
     CD3DX12_ROOT_SIGNATURE_DESC root_signature_desc = {};
 
     D3D12_ROOT_PARAMETER camera_root_parameter{};
@@ -416,7 +425,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     else if (FAILED(hr))
     {
         PALADIN_LOG(ERR, ErrorResult("Failed to create root signature", hr))
-    }
+    }*/
 
     vertex_shader = DXShader(VertexShader, L"vs.vert",L"main");
     D3D12_SHADER_BYTECODE vertex_shader_bytecode = {};
@@ -439,21 +448,18 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         PALADIN_LOG(ERR, "Unable to load: " + ConvertWString(fragment_shader.shader_input_file))
         return;
     }
+
     fragment_shader_bytecode = fragment_shader.GetBytecode();
 
 
     D3D12_INPUT_ELEMENT_DESC test_input_layout[] = {
         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-         {"TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 48, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 64, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 
-        //{"TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
-        //{"TRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
-        //{"TRANSFORM", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,32, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
-        //{"TRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
     };
 
     test_vs = DXShader(VertexShader, L"test_vs.hlsl", L"main");
@@ -471,7 +477,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC tpso_desc = {};
 
     tpso_desc.InputLayout = test_input_layout_desc;
-    tpso_desc.pRootSignature = m_root_signature.Get();
+    tpso_desc.pRootSignature = m_bindless_root_signature.Get();
     tpso_desc.VS = vertex_shader_bytecode;
     tpso_desc.PS = fragment_shader_bytecode;
     tpso_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
@@ -484,6 +490,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     tpso_desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
     tpso_desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC2(D3D12_DEFAULT);
     tpso_desc.DepthStencilState.DepthEnable = true;
+    tpso_desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
     tpso_desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 
 
@@ -665,7 +672,7 @@ bool D3D12Context::Render()
 
     TracyD3D12Collect(m_tracy_context)
     TracyD3D12NewFrame(m_tracy_context)
-
+/*
     {
         PALADIN_SCOPED_CPU_PROFILE("VS Hot Reload", ProfileColors::Blue);
         if (test_vs.NeedsRecompilation())[[unlikely]] {
@@ -728,7 +735,7 @@ bool D3D12Context::Render()
                 PALADIN_LOG(ERR, "Unable to compile vertex shader")
             }
         }
-    }
+    }*/
 
     if (!UpdatePipeline()) return false;
 
@@ -764,7 +771,6 @@ std::optional<std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>, Microsoft::
 
     std::size_t num_bytes = 0;
     UINT row = 0;
-    UINT pitch = 0;
     UINT64 row_size = 0;
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
     switch (resource_desc.Dimension)
@@ -786,8 +792,8 @@ std::optional<std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>, Microsoft::
         break;
     }
 
-    PALADIN_LOG(INFO, "GPU Size Bytes: "+ std::to_string(info.SizeInBytes))
-    PALADIN_LOG(INFO, "CPU Size Bytes: "+ std::to_string(num_bytes))
+    //PALADIN_LOG(INFO, "GPU Size Bytes: "+ std::to_string(info.SizeInBytes))
+    //PALADIN_LOG(INFO, "CPU Size Bytes: "+ std::to_string(num_bytes))
 
     D3D12MA::ALLOCATION_DESC allocation_desc = {};
     allocation_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
@@ -838,7 +844,7 @@ nullptr);
     }
     else
     {
-        PALADIN_LOG(INFO, "Alloc success");
+       // PALADIN_LOG(INFO, "Alloc success");
     }
 
     D3D12MA::ALLOCATION_DESC upload_allocation_desc = {};
@@ -849,7 +855,7 @@ nullptr);
     {
         D3D12_RESOURCE_DESC upload_desc = {};
         upload_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        upload_desc.Width = num_bytes;
+        upload_desc.Width =  footprint.Footprint.RowPitch*resource_desc.Height;
         upload_desc.Height = 1;
         upload_desc.DepthOrArraySize = 1;
         upload_desc.MipLevels = 1;
@@ -883,22 +889,35 @@ nullptr);
     }
     else
     {
-        PALADIN_LOG(INFO, "Upload Alloc creation success");
+        //PALADIN_LOG(INFO, "Upload Alloc creation success");
     }
 
     if (resource_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
     {
         void* destination = nullptr;
+
         hr = upload_allocation->GetResource()->Map(0,nullptr,&destination);
         if (FAILED(hr))
         {
             PALADIN_LOG(ERR, ErrorResult("Failed to map upload allocation", hr))
         }
-        for (UINT current_row=0; current_row < row; ++current_row)
+
+        UINT64 bytes_per_row = resource_desc.Width*4;
+        for (UINT current_row=0; current_row < resource_desc.Height; current_row++)
         {
-            std::memcpy(static_cast<BYTE*>(destination)+current_row*footprint.Footprint.RowPitch, static_cast<BYTE*>(data)+current_row, row);
+            BYTE* src_row_ptr = static_cast<BYTE*>(data);
+            BYTE* dest_row_ptr = static_cast<BYTE*>(destination) + (current_row * footprint.Footprint.RowPitch);
+            std::memcpy(dest_row_ptr, src_row_ptr+(current_row*bytes_per_row), bytes_per_row);
 
         }
+/*
+        uint32_t pink = 0xFF00FFFF; // RGBA
+        for (UINT y = 0; y < resource_desc.Height; y++) {
+            uint32_t* dest = (uint32_t*)(static_cast<BYTE*>(destination) + (y * footprint.Footprint.RowPitch));
+            for(UINT x = 0; x < resource_desc.Width; x++) {
+                dest[x] = pink;
+            }
+        }*/
 
 
         upload_allocation->GetResource()->Unmap(0,nullptr);
@@ -1005,7 +1024,7 @@ void D3D12Context::UploadFrameData(Camera camera)
 
             auto srv_handle = m_srv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
             srv_handle.ptr += descriptor_index * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-            descriptor_index++;
+            descriptor_index=100;
 
             m_device->CreateConstantBufferView(&camera_buffer_view_desc,srv_handle);
 
@@ -1030,7 +1049,12 @@ void D3D12Context::UploadFrameData(Camera camera)
 
 GPUResourceHandle<GPUTexture2D> D3D12Context::UploadTexture2D(Texture2DAsset& texture, OpaqueAssetHandle handle)
 {
-    if (m_gpu_resources.IsValid(handle)) return GPUResourceHandle<GPUTexture2D>{handle.inner};
+
+    if (m_gpu_resources.IsValid<GPUTexture2D>(handle)) {
+        if (m_gpu_resources.GetOpaque<GPUTexture2D>(handle) != nullptr) {
+            return GPUResourceHandle<GPUTexture2D>{handle.inner};
+        }
+    }
     PALADIN_LOG(INFO, "Uploading Texture")
     PALADIN_SCOPED_CPU_PROFILE("Upload Texture", ProfileColors::Red);
 
@@ -1039,7 +1063,7 @@ GPUResourceHandle<GPUTexture2D> D3D12Context::UploadTexture2D(Texture2DAsset& te
     m_command_list->Reset(m_command_allocator[frame_index].Get(), nullptr);
     PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Loading Texture", ProfileColors::Blue)
 
-    std::size_t total_bytes = sizeof(float) * texture.width*texture.height*texture.channels;
+    //std::size_t total_bytes = sizeof(float) * texture.width*texture.height*texture.channels;
 
     std::size_t num_bytes = 0;
     UINT row = 0;
@@ -1049,7 +1073,7 @@ GPUResourceHandle<GPUTexture2D> D3D12Context::UploadTexture2D(Texture2DAsset& te
 
     auto gpu_texture = std::make_unique<GPUTexture2D>();
 
-    auto texture_desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32B32A32_FLOAT,
+    auto texture_desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM,
     texture.width,
     texture.height,
     1,
@@ -1059,8 +1083,8 @@ GPUResourceHandle<GPUTexture2D> D3D12Context::UploadTexture2D(Texture2DAsset& te
     D3D12_RESOURCE_FLAG_NONE,
     D3D12_TEXTURE_LAYOUT_UNKNOWN,
     0);
-
     m_device->GetCopyableFootprints(&texture_desc, 0, 1, 0, &footprint, &row, &row_size, &num_bytes);
+
 
     std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> upload_buffers;
 
@@ -1079,28 +1103,21 @@ GPUResourceHandle<GPUTexture2D> D3D12Context::UploadTexture2D(Texture2DAsset& te
             src_loc.pResource = texture_upload_allocation->GetResource();
             src_loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
             src_loc.PlacedFootprint = footprint;
+            src_loc.PlacedFootprint.Offset=0;
             m_command_list->CopyTextureRegion(&dst_loc,0,0,0,&src_loc,nullptr);
 
-            D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
-            srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-            srv_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-            srv_desc.Texture2D.MipLevels = 1;
-            srv_desc.Texture2D.MostDetailedMip = 0;
-            srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-            auto handle_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-            auto cpu_handle = m_srv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
-            cpu_handle.ptr += handle_size * descriptor_index;
-            m_device->CreateShaderResourceView(texture_allocation->GetResource(),&srv_desc,cpu_handle);
+
 
             auto transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(texture_allocation->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
             upload_buffers.push_back(std::move(texture_upload_allocation));
-
+            gpu_texture->allocation = std::move(texture_allocation);
             m_command_list->ResourceBarrier(1, &transition_barrier);
-
-
         }
+    }
+    else {
+        return {};
     }
 
     hr = m_command_list->Close();
@@ -1116,8 +1133,24 @@ GPUResourceHandle<GPUTexture2D> D3D12Context::UploadTexture2D(Texture2DAsset& te
         m_fence[frame_index]->SetEventOnCompletion(fence_value[frame_index], fence_event);
         WaitForSingleObject(fence_event, INFINITE);
     }
+    PALADIN_LOG(INFO, "Texture Index:" + std::to_string(descriptor_index))
+
+    auto handle_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    auto cpu_handle = m_srv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+    cpu_handle.ptr += handle_size * descriptor_index;
+
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+    srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    srv_desc.Texture2D.MipLevels = 1;
+
+    srv_desc.Texture2D.MostDetailedMip = 0;
+    srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    m_device->CreateShaderResourceView(gpu_texture->allocation->GetResource(),&srv_desc,cpu_handle);
 
     gpu_texture->srv_descriptor_index = descriptor_index++;
+
     return m_gpu_resources.Insert(std::move(gpu_texture), handle);
 }
 
@@ -1133,13 +1166,14 @@ GPUResourceHandle<GPUMesh> D3D12Context::UploadMesh(MeshAsset& mesh, OpaqueAsset
     std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> upload_buffers;
 
     std::size_t vertex_total_bytes = mesh.vertices.size()*sizeof(Paladin::Vertex);
-    std::size_t index_total_bytes = mesh.vertices.size()*sizeof(std::uint32_t);
+    std::size_t index_total_bytes = mesh.indices.size()*sizeof(std::uint32_t);
 
     auto vertex_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(vertex_total_bytes);
     auto index_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(index_total_bytes);
 
     auto gpu_mesh = std::make_unique<GPUMesh>();
     gpu_mesh->indices = mesh.indices.size();
+    gpu_mesh->material = mesh.material;
 
     if (auto allocation_pair = CreateAllocation(vertex_buffer_desc,(void*)mesh.vertices.data()); allocation_pair.has_value())
     {
@@ -1208,6 +1242,15 @@ GPUResourceHandle<GPUMesh> D3D12Context::UploadMesh(MeshAsset& mesh, OpaqueAsset
     return m_gpu_resources.Insert<GPUMesh>(std::move(gpu_mesh), handle);
    // m_gpu_resources.Insert<GPUMesh>()
 
+}
+
+GPUResourceHandle<GPUMaterial> D3D12Context::AddMaterial(std::unique_ptr<GPUMaterial> material, OpaqueAssetHandle handle) {
+    return m_gpu_resources.Insert<GPUMaterial>(std::move(material), handle);
+}
+
+GPUResourceHandle<GPUModel> D3D12Context::AddModel(std::unique_ptr<GPUModel> model, OpaqueAssetHandle handle) {
+    model_handle = handle;
+    return m_gpu_resources.Insert<GPUModel>(std::move(model), handle);
 }
 
 void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices,  std::vector<MeshRange> mesh_ranges) {
@@ -1462,27 +1505,37 @@ bool D3D12Context::UpdatePipeline()
         m_command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0,0,0,nullptr);
 
         m_command_list->SetPipelineState(m_pipeline_state.Get());
-        m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
         ID3D12DescriptorHeap* heaps[] = { m_srv_descriptor_heap.Get()};
         m_command_list->SetDescriptorHeaps(1,heaps);
+
+        m_command_list->SetGraphicsRootSignature(m_bindless_root_signature.Get());
 
 
 
         D3D12_GPU_VIRTUAL_ADDRESS frame_address = m_frame_data->GetResource()->GetGPUVirtualAddress() + (frame_index * 256);
         m_command_list->SetGraphicsRootConstantBufferView(0,frame_address);
 
-        //m_command_list->SetGraphicsRootDescriptorTable(0,gpu_handle);
+        m_command_list->SetGraphicsRootDescriptorTable(1,m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
 
 
 
         m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        m_command_list->IASetVertexBuffers(0,1,&vertex_buffers[0].first);
-        m_command_list->IASetIndexBuffer(&index_buffers[0].first);
 
-        for (auto mesh : model_mesh_ranges[0])
-        {
-            m_command_list->DrawIndexedInstanced(mesh.index_count, 1, mesh.index_start_location, mesh.vertex_start_location, 0);
+        auto model = m_gpu_resources.GetOpaque<GPUModel>(model_handle);
+
+        for (int i = 0; i < model->mesh_handles.size(); i++) {
+            auto mesh_handle = model->mesh_handles[i];
+            auto mesh = m_gpu_resources.Get<GPUMesh>(mesh_handle);
+            auto material = m_gpu_resources.GetOpaque<GPUMaterial>(mesh->material);
+            auto albedo = m_gpu_resources.Get<GPUTexture2D>(material->albedo);
+            std::uint32_t albedo_index = albedo->srv_descriptor_index;
+
+            m_command_list->SetGraphicsRoot32BitConstants(2,1,&albedo_index,0);
+            m_command_list->IASetVertexBuffers(0,1,&mesh->vertex_buffer_view);
+            m_command_list->IASetIndexBuffer(&mesh->index_buffer_view);
+            m_command_list->DrawIndexedInstanced(mesh->indices, 1, 0, 0, 0);
         }
+
        // m_command_list->IASetVertexBuffers(0,1,&vertex_buffer_view);
         //m_command_list->DrawInstanced(3,1,0,0);
 

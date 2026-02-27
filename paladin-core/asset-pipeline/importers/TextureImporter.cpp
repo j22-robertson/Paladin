@@ -42,15 +42,15 @@ AssetHandle<Texture2DAsset> TextureImporter::LoadAsset(std::string file)
 
     if (data != nullptr) {
         //TODO: This is probably not the best way of doing things.
-        std::vector<unsigned char> pixels(width * height * channels);
-        std::memcpy(pixels.data(),data, width*height*channels);
+        std::vector<unsigned char> pixels(width * height * 4);
+        std::memcpy(pixels.data(),data, width*height*4);
 
         stbi_image_free(data);
 
         return m_asset_registry->InsertAsset<Texture2DAsset>(std::make_unique<Texture2DAsset>(
             width,
             height,
-            channels,pixels));
+            4,pixels));
 
 
     }

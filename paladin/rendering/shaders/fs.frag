@@ -1,4 +1,4 @@
-Texture2D texture_array[] : register(t0,space0);
+
 SamplerState sampler_default : register(s0);
 
 
@@ -13,14 +13,15 @@ struct Material{
 struct VS_OUTPUT
 {
     float4 pos : SV_POSITION;
-    float4 color : COLOR;
     float3 normal: NORMAL;
+    float3 tangent: TANGENT;
+    float3 bitangent: BITANGENT;
+    float4 color: COLOR;
+    float2 uv : TEXCOORD0;
 };
 
 struct MeshData{uint material_id;};
-
-StructuredBuffer<Material> material_buffer : register(t1,space0);
-StructuredBuffer<MeshData> mesh_data : register(t2,space0);
+ConstantBuffer<MeshData> mesh_data : register(b1);
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
@@ -29,6 +30,10 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 
     float diff = saturate(dot(norm, light_direction));
     float3 ambient = 0.2;
-    float3 final_color = input.color.rgb * (diff + ambient);
+
+    Texture2D<float4> albedo = ResourceDescriptorHeap[NonUniformResourceIndex(mesh_data.material_id)];
+
+    float3 sample_col = albedo.Sample(sampler_default,input.uv).rgb;
+    float3 final_color = sample_col * (diff+ambient);
     return float4(final_color,1.0);
 }

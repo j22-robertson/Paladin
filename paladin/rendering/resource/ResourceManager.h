@@ -42,7 +42,17 @@ class IResourceManager : public ResourceManager {
 public:
     IResourceManager() = default;
 
-    T* Get(OpaqueAssetHandle handle)
+    T* GetOpaque(OpaqueAssetHandle handle)
+    {
+        if (IsValid(handle.inner))
+        {
+            return m_generation_entries[handle.inner.index].value.get();
+        }
+        return nullptr;
+    }
+    template<typename T>
+        requires IsPaladinResource<T>
+    T* Get(GPUResourceHandle<T> handle)
     {
         if (IsValid(handle.inner))
         {
