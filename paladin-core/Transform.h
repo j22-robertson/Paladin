@@ -16,6 +16,12 @@ namespace Axis {
     constexpr glm::vec3 EVERY_AXIS{1.0,1.0,1.0};
 }
 
+
+struct TransformData {
+    glm::mat4 model;
+    glm::mat4 inv_model;
+};
+
 //TODO: Local and Global for parenting?
 class Transform {
 public:
@@ -58,13 +64,26 @@ public:
         return matrix;
     }
 
+    const TransformData& GetData() {
+        if (!has_updated) return transform;
+        glm::mat4 T = glm::translate(glm::mat4(1.0f),position);
+        glm::mat4 R= glm::toMat4(rotation);
+        glm::mat4 S = glm::scale(glm::mat4(1.0), scale);
+
+        has_updated = false;
+
+        transform.model = T*R*S;
+        transform.inv_model = glm::inverse(transform.model);
+        return transform;
+    }
+
 private:
     bool has_updated = false;
 
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1);
     glm::quat rotation = glm::vec3(0);
-
+    TransformData transform;
     glm::mat4 matrix = glm::mat4(1.0);
 
 };

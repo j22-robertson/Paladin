@@ -23,12 +23,19 @@ struct VS_OUTPUT
 struct MeshData{uint material_id;};
 ConstantBuffer<MeshData> mesh_data : register(b1);
 
+
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
-    float3 norm = normalize(input.normal);
+    float3x3 TBN = float3x3(input.tangent,input.bitangent,input.normal);
+
+    Texture2D<float4> normal_map = ResourceDescriptorHeap[NonUniformResourceIndex(mesh_data.material_id +2)];
+    float3 t_normal = normal_map.Sample(sampler_default,input.uv).rgb*2.0-1.0;
+
+    float3 world_normal = normalize(mul(t_normal,TBN));
+
     float3 light_direction = normalize(float3(0.5, 1.0, -0.5));
 
-    float diff = saturate(dot(norm, light_direction));
+    float diff = saturate(dot(world_normal, light_direction));
     float3 ambient = 0.2;
 
     Texture2D<float4> albedo = ResourceDescriptorHeap[NonUniformResourceIndex(mesh_data.material_id)];

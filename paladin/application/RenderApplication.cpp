@@ -46,8 +46,6 @@ void RenderApplication::Setup() {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags  |= ImGuiConfigFlags_ViewportsEnable;
-    unsigned char* pixels;
-    int width, height;
    // io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 
@@ -163,47 +161,47 @@ void RenderApplication::Setup() {
         if (albedo_texture != nullptr) {
             gpu_material->albedo = m_render_context->UploadTexture2D(*albedo_texture, albedo_handle);
         }
-
-
-
         auto roughness_texture = m_asset_registry->GetAsset<Texture2DAsset>(roughness_handle);
         if (roughness_texture != nullptr) {
             gpu_material->roughness= m_render_context->UploadTexture2D(*roughness_texture, roughness_handle);
 
         }
-
-
-
-
         auto metallic_texture =  m_asset_registry->GetAsset<Texture2DAsset>(metallic_handle);
         if (metallic_texture != nullptr) {
             gpu_material->metallic =m_render_context->UploadTexture2D(*metallic_texture, metallic_handle);
         }
-
-
-
         auto normal_texture = m_asset_registry->GetAsset<Texture2DAsset>(normal_handle);
         if (normal_texture != nullptr) {
             gpu_material->normal= m_render_context->UploadTexture2D(*normal_texture, normal_handle);
-            PALADIN_LOG(INFO, "normal null")
+            //PALADIN_LOG(INFO, "normal null")
         }
-
-
-
         gpu_model->material_handles.push_back( m_render_context->AddMaterial( std::move(gpu_material), material_handle));
     }
     m_render_context->AddModel(std::move(gpu_model), sponza);
 
-
     //m_render_context->UploadModel(all_vertices, all_indices,mesh_ranges);
     m_render_context->CreatePersistantAllocation(m_camera.GetUniformMut());
+    m_render_context->CreateInstanceBuffer();
+
+    for (int x = 0; x < 10; x++) {
+        for (int z = 0; z < 10; z++) {
+            auto transform = Transform{};
+            transform.SetPosition({x*5000,0,z*5000});
+            transform.SetScale({1,1,1});
+            instancing_test_data.push_back(transform.GetData());
+            transforms.push_back(transform);
+        }
+    }
+
     //m_render_context->UploadFrameData(m_camera);
 }
 
 bool RenderApplication::Update(float delta_time) {
     m_camera.direction = glm::vec3(0.0);
-
-
+    auto tf = &transforms[5];
+    tf->Rotate(Axis::X_AXIS,rot_test+=0.00001f * delta_time);
+    instancing_test_data[5] = tf->GetData();
+    m_render_context->UpdateInstanceBufferT(instancing_test_data);
 
     double mouse_x;
     double mouse_y;

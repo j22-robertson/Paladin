@@ -58,13 +58,17 @@ private:
     bool close_requested = false;
 
     std::shared_ptr<D3D12Context> m_render_context = nullptr;
-    std::uint32_t window_width = 800;
-    std::uint32_t window_height = 600;
+    std::uint32_t window_width = 1920;
+    std::uint32_t window_height = 1080;
     GLFWwindow* window = nullptr;
 
     Camera m_camera{};
 
     std::unique_ptr<AssetRegistry> m_asset_registry = nullptr;
+    std::vector<Transform> transforms;
+    std::vector<TransformData> instancing_test_data;
+
+    float rot_test = 0.0;
 
     float m_elapsed_time = 0.0f;
     float m_last_frame_time= 0.0f;

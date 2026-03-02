@@ -32,7 +32,7 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
 
     Assimp::Importer importer;
 
-    const aiScene* scene = importer.ReadFile(full_path.generic_string(), aiProcess_Triangulate|aiProcess_CalcTangentSpace);
+    const aiScene* scene = importer.ReadFile(full_path.generic_string(), aiProcess_Triangulate|aiProcess_CalcTangentSpace|aiProcess_FlipUVs);
     if (!scene) return {};
     std::vector<AssetHandle<MaterialAsset>> materials = std::vector<AssetHandle<MaterialAsset>>();
 

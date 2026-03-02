@@ -25,6 +25,7 @@
 #include "Vertex.h"
 #include "asset/Mesh.h"
 #include "asset/Texture2D.h"
+#include "render-utils/PipelineState.h"
 #include "resource/GPUResourceRegistry.h"
 #include "resource/ResourceManager.h"
 
@@ -38,8 +39,14 @@ struct MeshData {
     std::uint32_t material_id;
 };
 
+struct InstanceData {
+    std::uint32_t heap_offset;
+    std::uint32_t frame_offset;
+};
+
 
 constexpr UINT FRAME_BUFFER_COUNT = 3;
+constexpr UINT MAX_INSTANCES = 10000;
 class D3D12Context {
 public:
 
@@ -52,7 +59,9 @@ public:
     void CreatePersistantAllocation(CameraUniform uniform_data);
     void UpdatePersistantAllocation(CameraUniform uniform_data);
     void UploadFrameData(Camera camera);
-
+    void CreateInstanceBuffer();
+    void UpdateInstanceBuffer(std::span<glm::mat4> instance_data);
+    void UpdateInstanceBufferT(std::span<TransformData> instance_data);
     void OnResize(std::uint32_t new_width, std::uint32_t new_height) {
         m_window_width = new_width;
         m_window_height = new_height;
@@ -115,10 +124,13 @@ private:
 
     std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> custom_targets;
 
+    std::unique_ptr<PipelineState> test_state = nullptr;
    // std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>,Microsoft::WRL::ComPtr<D3D12MA::Allocation>> m_camera_allocation;
 
     Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_frame_data=nullptr;
     void* frame_data_destination = nullptr;
+
+
     UINT frame_descriptor_start = 0;
 
     Microsoft::WRL::ComPtr<D3D12MA::Allocator> m_gpu_allocator = nullptr;
@@ -127,6 +139,12 @@ private:
 
     GPUResourceRegistry m_gpu_resources = GPUResourceRegistry();
 
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_instance_data=nullptr;
+    void* instance_data_destination = nullptr;
+    std::uint32_t instance_buffer_index;
+    std::uint32_t instance_count;
+    std::uint32_t bytes_per_buffer;
+    std::uint32_t aligned_bytes_per_buffer;
 
     std::uint32_t m_window_width;
     std::uint32_t m_window_height;
