@@ -22,12 +22,8 @@ void ForwardPass::Execute(ID3D12GraphicsCommandList8 *command_list, GPUResourceR
             auto mesh = registry.Get<GPUMesh>(mesh_handle);
             auto material = registry.GetOpaque<GPUMaterial>(mesh->material);
             auto albedo = registry.Get<GPUTexture2D>(material->albedo);
-
             std::uint32_t albedo_index = albedo->srv_descriptor_index;
-
-
             command_list->SetGraphicsRoot32BitConstants(2,1,&albedo_index,0);
-
             command_list->IASetVertexBuffers(0,1,&mesh->vertex_buffer_view);
             command_list->IASetIndexBuffer(&mesh->index_buffer_view);
             command_list->DrawIndexedInstanced(mesh->indices, batch.transforms.size(), 0, 0, current_offset);
