@@ -22,6 +22,7 @@
 #include <unordered_set>
 #include "imgui_impl_glfw.h"
 #include "Logger.h"
+#include "Scene.h"
 #include "asset-pipeline/AssetRegistry.h"
 #include "asset/Texture2D.h"
 #include "utility/GenIndices.h"
@@ -69,7 +70,7 @@ private:
     std::vector<TransformData> instancing_test_data;
 
     float rot_test = 0.0;
-
+    RenderFrameData frame_data{};
     float m_elapsed_time = 0.0f;
     float m_last_frame_time= 0.0f;
 

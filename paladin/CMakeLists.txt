@@ -1,17 +1,30 @@
 set(PALADIN_SOURCES
         paladin/application/IApplication.h
+        #UTILS
         paladin/rendering/render-utils/DXShader.h
+        paladin/rendering/render-utils/PipelineState.h
+
+        #SHADER
         paladin/rendering/DXShaderCompiler.cpp
         paladin/rendering/DXShaderCompiler.h
+        #DEBUG
         paladin/rendering/debuglayer/D3D12DebugLayer.cpp
         paladin/rendering/debuglayer/D3D12DebugLayer.h
-        paladin/rendering/resource/GpuResourceRegistry.cpp
-        paladin/rendering/resource/GpuResourceRegistry.h
-        paladin/rendering/resource/GpuResource.h
+        #RESOURCE
+        paladin/rendering/resource/GPUResourceRegistry.cpp
+        paladin/rendering/resource/GPUResourceRegistry.h
+        paladin/rendering/resource/GPUResource.h
         paladin/rendering/resource/ResourceManager.h
+        #MAIN CONTEXT
         paladin/rendering/D3D12Context.cpp
         paladin/rendering/D3D12Context.h
+        #APPLICATION
         paladin/application/RenderApplication.h
         paladin/application/RenderApplication.cpp
+        #PASSES
+        paladin/rendering/IRenderPass.h
+        paladin/rendering/ForwardPass.cpp
+        paladin/rendering/ForwardPass.h
+        #EXECUTABLE
         paladin/main.cpp
 PARENT_SCOPE)

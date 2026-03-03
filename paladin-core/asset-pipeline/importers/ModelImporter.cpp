@@ -60,6 +60,7 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
         material->GetTexture(aiTextureType_NORMALS, 0, &normal_path);
         auto normal = m_asset_registry->ImportAsset<Texture2DAsset>(normal_path.C_Str());
 
+
         new_material->SetName(file+" Material:"+std::to_string(i));
         new_material->SetTexture(Albedo, albedo);
         new_material->SetTexture(Roughness, metallic_roughness);

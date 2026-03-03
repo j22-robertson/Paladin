@@ -9,7 +9,6 @@
 #include <string>
 #include <wrl/client.h>
 #include <filesystem>
-
 enum ShaderType
 {
     VertexShader,

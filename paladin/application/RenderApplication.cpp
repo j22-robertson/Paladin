@@ -4,6 +4,7 @@
 
 #include "RenderApplication.h"
 
+#include "Scene.h"
 #include "asset/Mesh.h"
 
 
@@ -52,11 +53,12 @@ void RenderApplication::Setup() {
    // Input::keys[1024] = {false};
 
     AssetHandle<ModelAsset> sponza = {};
-
+    AssetHandle<ModelAsset> sponza_two = {};
     m_asset_registry = std::make_unique<AssetRegistry>();
     {
         PALADIN_SCOPED_CPU_PROFILE("Loading Sponza",ProfileColors::Blue );
         sponza = m_asset_registry->ImportAsset<ModelAsset>("Sponza.gltf");
+        sponza_two =  m_asset_registry->ImportAsset<ModelAsset>("Sponza.gltf");
     }
     if (m_asset_registry->GetAsset<ModelAsset>(sponza)!=nullptr) {
         PALADIN_LOG(INFO, "sponza valid")
@@ -178,17 +180,67 @@ void RenderApplication::Setup() {
         gpu_model->material_handles.push_back( m_render_context->AddMaterial( std::move(gpu_material), material_handle));
     }
     m_render_context->AddModel(std::move(gpu_model), sponza);
+    std::unique_ptr<GPUModel> gpu_model_two = std::make_unique<GPUModel>();
+    auto m_two = m_asset_registry->GetAsset<ModelAsset>(sponza_two);
+    gpu_model_two->mesh_to_material = m_two->mesh_to_material;
+    for (int i = 0; i < m_two->meshes.size(); i++)
+    {
+        auto mesh = m_asset_registry->GetAsset<MeshAsset>(m_two->meshes[i]);
+        gpu_model_two->mesh_handles.push_back(m_render_context->UploadMesh(*mesh, m_two->meshes[i]));
 
+        auto material_handle = m_two->materials[m_two->mesh_to_material[i]];
+        auto material = m_asset_registry->GetAsset<MaterialAsset>(material_handle);
+        auto albedo_handle = material->GetTexture(Albedo);
+        auto roughness_handle = material->GetTexture(Roughness);
+        auto metallic_handle = material->GetTexture(Metallic);
+        auto normal_handle = material->GetTexture(Normal);
+
+        std::unique_ptr<GPUMaterial> gpu_material = std::make_unique<GPUMaterial>();
+
+        auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
+        if (albedo_texture != nullptr) {
+            gpu_material->albedo = m_render_context->UploadTexture2D(*albedo_texture, albedo_handle);
+        }
+        auto roughness_texture = m_asset_registry->GetAsset<Texture2DAsset>(roughness_handle);
+        if (roughness_texture != nullptr) {
+            gpu_material->roughness= m_render_context->UploadTexture2D(*roughness_texture, roughness_handle);
+
+        }
+        auto metallic_texture =  m_asset_registry->GetAsset<Texture2DAsset>(metallic_handle);
+        if (metallic_texture != nullptr) {
+            gpu_material->metallic =m_render_context->UploadTexture2D(*metallic_texture, metallic_handle);
+        }
+        auto normal_texture = m_asset_registry->GetAsset<Texture2DAsset>(normal_handle);
+        if (normal_texture != nullptr) {
+            gpu_material->normal= m_render_context->UploadTexture2D(*normal_texture, normal_handle);
+            //PALADIN_LOG(INFO, "normal null")
+        }
+        gpu_model_two->material_handles.push_back( m_render_context->AddMaterial( std::move(gpu_material), material_handle));
+    }
+    m_render_context->AddModel(std::move(gpu_model_two), sponza_two);
     //m_render_context->UploadModel(all_vertices, all_indices,mesh_ranges);
     m_render_context->CreatePersistantAllocation(m_camera.GetUniformMut());
     m_render_context->CreateInstanceBuffer();
 
-    for (int x = 0; x < 10; x++) {
-        for (int z = 0; z < 10; z++) {
+
+    for (int x = 1; x < 11; x++) {
+        for (int z = 1; z < 11; z++) {
             auto transform = Transform{};
             transform.SetPosition({x*5000,0,z*5000});
             transform.SetScale({1,1,1});
-            instancing_test_data.push_back(transform.GetData());
+            //instancing_test_data.push_back(transform.GetData());
+            frame_data.insert(sponza, transform);
+            transforms.push_back(transform);
+        }
+    }
+
+    for (int x = 1; x < 11; x++) {
+        for (int z = 1; z < 11; z++) {
+            auto transform = Transform{};
+            transform.SetPosition({-x*5000,0,-z*5000});
+            transform.SetScale({1,1,1});
+            //instancing_test_data.push_back(transform.GetData());
+            frame_data.insert(sponza_two, transform);
             transforms.push_back(transform);
         }
     }
@@ -198,10 +250,10 @@ void RenderApplication::Setup() {
 
 bool RenderApplication::Update(float delta_time) {
     m_camera.direction = glm::vec3(0.0);
-    auto tf = &transforms[5];
-    tf->Rotate(Axis::X_AXIS,rot_test+=0.00001f * delta_time);
-    instancing_test_data[5] = tf->GetData();
-    m_render_context->UpdateInstanceBufferT(instancing_test_data);
+   // auto tf = &transforms[5];
+  //  tf->Rotate(Axis::X_AXIS,rot_test+=0.00001f * delta_time);
+  //  instancing_test_data[5] = tf->GetData();
+    m_render_context->UpdateRenderFrameData(frame_data);
 
     double mouse_x;
     double mouse_y;

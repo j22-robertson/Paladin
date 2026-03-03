@@ -28,6 +28,7 @@
 #include "render-utils/PipelineState.h"
 #include "resource/GPUResourceRegistry.h"
 #include "resource/ResourceManager.h"
+#include "ForwardPass.h"
 
 struct Vertex {
     Vertex(float x, float y, float z, float r, float g, float b, float a) : pos(x, y, z), color(r, g, b, a) {}
@@ -39,10 +40,6 @@ struct MeshData {
     std::uint32_t material_id;
 };
 
-struct InstanceData {
-    std::uint32_t heap_offset;
-    std::uint32_t frame_offset;
-};
 
 
 constexpr UINT FRAME_BUFFER_COUNT = 3;
@@ -62,6 +59,8 @@ public:
     void CreateInstanceBuffer();
     void UpdateInstanceBuffer(std::span<glm::mat4> instance_data);
     void UpdateInstanceBufferT(std::span<TransformData> instance_data);
+
+    void UpdateRenderFrameData(RenderFrameData& render_frame_data);
     void OnResize(std::uint32_t new_width, std::uint32_t new_height) {
         m_window_width = new_width;
         m_window_height = new_height;
@@ -76,6 +75,8 @@ public:
     GPUResourceHandle<GPUModel> AddModel(std::unique_ptr<GPUModel> model, OpaqueAssetHandle handle);
 
     OpaqueAssetHandle model_handle;
+
+    RenderFrameData _frame_data;
 
     void UploadModel(std::span<Paladin::Vertex> model_vertices,
         std::span<std::uint32_t> model_indices,

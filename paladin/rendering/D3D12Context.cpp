@@ -988,6 +988,21 @@ void D3D12Context::UpdateInstanceBufferT(std::span<TransformData> instance_data)
     std::memcpy(destination, instance_data.data(), total_bytes);
 }
 
+void D3D12Context::UpdateRenderFrameData(RenderFrameData &render_frame_data) {
+    std::uint32_t current_instance_count = 0;
+    render_frame_data.aligned_bytes_per_buffer = aligned_bytes_per_buffer;
+    render_frame_data.frame_index = frame_index;
+    render_frame_data.instance_buffer_id = instance_buffer_index;
+
+    _frame_data = render_frame_data;
+    UINT8* destination = static_cast<UINT8*>(instance_data_destination) + (frame_index * aligned_bytes_per_buffer);
+    for (auto& batch : render_frame_data.batches) {
+        std::size_t total_bytes = sizeof(TransformData)*batch.transforms.size();
+        UINT8* batch_destination = destination + current_instance_count* aligned_bytes_per_buffer;
+        std::memcpy(batch_destination, batch.transforms.data(), total_bytes);
+    }
+}
+
 
 void D3D12Context::CreatePersistantAllocation(CameraUniform uniform_data) {
 
@@ -1648,9 +1663,8 @@ bool D3D12Context::UpdatePipeline()
 
 
         m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
+/*
         auto model = m_gpu_resources.GetOpaque<GPUModel>(model_handle);
-
         for (int i = 0; i < model->mesh_handles.size(); i++) {
             auto mesh_handle = model->mesh_handles[i];
             auto mesh = m_gpu_resources.Get<GPUMesh>(mesh_handle);
@@ -1667,7 +1681,13 @@ bool D3D12Context::UpdatePipeline()
             m_command_list->IASetVertexBuffers(0,1,&mesh->vertex_buffer_view);
             m_command_list->IASetIndexBuffer(&mesh->index_buffer_view);
             m_command_list->DrawIndexedInstanced(mesh->indices, instance_count, 0, 0, 0);
+        }*/
+        ForwardPass forward_pass{};
+        {
+            PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Forward Pass", ProfileColors::Green)
+            forward_pass.Execute(m_command_list.Get(), m_gpu_resources, _frame_data);
         }
+
 
        // m_command_list->IASetVertexBuffers(0,1,&vertex_buffer_view);
         //m_command_list->DrawInstanced(3,1,0,0);
