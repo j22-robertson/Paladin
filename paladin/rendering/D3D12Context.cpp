@@ -120,6 +120,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     swap_chain_desc.OutputWindow = hwnd;
     swap_chain_desc.SampleDesc = sample_desc;
     swap_chain_desc.Windowed = true;
+    swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
 
 
@@ -1822,6 +1823,7 @@ bool D3D12Context::UpdatePipeline()
             m_command_list->DrawIndexedInstanced(mesh->indices, instance_count, 0, 0, 0);
         }*/
         std::vector<IndirectCommand> indirect_commands;
+        _frame_data.frame_index = frame_index;
         std::uint32_t constants[2]={};
         constants[0] = instance_buffer_index;
         constants[1] = frame_index * aligned_bytes_per_buffer;
@@ -1830,18 +1832,22 @@ bool D3D12Context::UpdatePipeline()
         {
             PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Forward Pass", ProfileColors::Green)
             forward_pass.ExecuteIndirect(m_command_list.Get(), m_gpu_resources, _frame_data,indirect_commands);
-        }
+
         std::uint32_t count = indirect_commands.size();
 
         std::size_t total_bytes = sizeof(IndirectCommand)*indirect_commands.size();;
         UINT8* destination = static_cast<UINT8*>(indirect_draw_destination) + (frame_index * indirect_draw_bytes_per_buffer);
         std::memcpy(destination, indirect_commands.data(), total_bytes);
-        m_command_list->CopyBufferRegion(m_draw_command_buffer->GetResource(), 0,
-                                       m_draw_command_upload_buffer->GetResource(), 0,
+        m_command_list->CopyBufferRegion(m_draw_command_buffer->GetResource(), indirect_draw_bytes_per_buffer*frame_index,
+                                       m_draw_command_upload_buffer->GetResource(), indirect_draw_bytes_per_buffer*frame_index,
                                        total_bytes);
-        m_command_list->ExecuteIndirect(m_command_signature.Get(),indirect_commands.size(),m_draw_command_buffer->GetResource(),0,nullptr,0);
+            D3D12_RESOURCE_BARRIER barrier = {};
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+            barrier.UAV.pResource = m_draw_command_buffer->GetResource();
+            m_command_list->ResourceBarrier(1, &barrier);
+        m_command_list->ExecuteIndirect(m_command_signature.Get(),indirect_commands.size(),m_draw_command_buffer->GetResource(),indirect_draw_bytes_per_buffer*frame_index,nullptr,0);
 
-
+        }
        // m_command_list->IASetVertexBuffers(0,1,&vertex_buffer_view);
         //m_command_list->DrawInstanced(3,1,0,0);
 
