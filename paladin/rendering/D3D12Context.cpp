@@ -10,7 +10,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_internal.h"
 
-D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height) {
+D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height)
+{
 #ifdef PIX_ENABLE
     LoadWinPixEventRuntime();
 #endif
@@ -202,7 +203,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
             PALADIN_LOG(ERR, ErrorResult("Failed to create render target", hr))
         }
         m_device->CreateRenderTargetView(m_render_target[i].Get(), nullptr, rtv_cpu_handle);
-       ///m_device->CreateShaderResourceView(m_render_target[i].Get(), nullptr, srv_cpu_handle);
+        ///m_device->CreateShaderResourceView(m_render_target[i].Get(), nullptr, srv_cpu_handle);
 
         rtv_cpu_handle.ptr += rtv_descriptor_size;
         e+=1;
@@ -332,21 +333,15 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     srv_ranges[0].OffsetInDescriptorsFromTableStart = 0;
     srv_ranges[0].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
-    D3D12_ROOT_PARAMETER1 bindless_params[4];
+    D3D12_ROOT_PARAMETER1 bindless_params[3];
 
     D3D12_ROOT_PARAMETER1 instance_constant_parameter{};
     instance_constant_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
     instance_constant_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-    instance_constant_parameter.Constants.ShaderRegister = 2;
+    instance_constant_parameter.Constants.ShaderRegister =0;
     instance_constant_parameter.Constants.RegisterSpace = 0;
     instance_constant_parameter.Constants.Num32BitValues = 2;
 
-    D3D12_ROOT_PARAMETER1 mesh_constant_parameter{};
-    mesh_constant_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-    mesh_constant_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-    mesh_constant_parameter.Constants.ShaderRegister = 1;
-    mesh_constant_parameter.Constants.RegisterSpace = 0;
-    mesh_constant_parameter.Constants.Num32BitValues = 1;
 
     D3D12_ROOT_PARAMETER1 bindless_root_parameter{};
     bindless_root_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -358,11 +353,14 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     b_camera_root_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
     b_camera_root_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     b_camera_root_parameter.Descriptor.RegisterSpace = 0;
-    b_camera_root_parameter.Descriptor.ShaderRegister = 0;
-    bindless_params[1] = bindless_root_parameter;
-    bindless_params[0] = b_camera_root_parameter;
-    bindless_params[2] = mesh_constant_parameter;
-    bindless_params[3] = instance_constant_parameter;
+    b_camera_root_parameter.Descriptor.ShaderRegister =1;
+
+    bindless_params[0] = instance_constant_parameter;
+    bindless_params[1] = b_camera_root_parameter;
+
+    bindless_params[2] = bindless_root_parameter;
+
+
 
 
 
@@ -371,7 +369,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
 
     bindless_root_signature_desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-    bindless_root_signature_desc.Desc_1_1.NumParameters = 4;
+    bindless_root_signature_desc.Desc_1_1.NumParameters = 3;
     bindless_root_signature_desc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED| D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
     bindless_root_signature_desc.Desc_1_1.pParameters = bindless_params;
     bindless_root_signature_desc.Desc_1_1.NumStaticSamplers = 1;
@@ -401,40 +399,40 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     }
 
 
-/*
-    CD3DX12_ROOT_SIGNATURE_DESC root_signature_desc = {};
+    /*
+        CD3DX12_ROOT_SIGNATURE_DESC root_signature_desc = {};
 
-    D3D12_ROOT_PARAMETER camera_root_parameter{};
-    camera_root_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-    camera_root_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-    camera_root_parameter.Descriptor.RegisterSpace = 0;
-    camera_root_parameter.Descriptor.ShaderRegister = 0;
+        D3D12_ROOT_PARAMETER camera_root_parameter{};
+        camera_root_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+        camera_root_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+        camera_root_parameter.Descriptor.RegisterSpace = 0;
+        camera_root_parameter.Descriptor.ShaderRegister = 0;
 
 
 
-    root_signature_desc.Init(1,&camera_root_parameter,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+        root_signature_desc.Init(1,&camera_root_parameter,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
-    //root_signature_desc.Init(0,nullptr,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-    Microsoft::WRL::ComPtr<ID3DBlob> signature = nullptr;
+        //root_signature_desc.Init(0,nullptr,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+        Microsoft::WRL::ComPtr<ID3DBlob> signature = nullptr;
 
-    if (auto hr = D3D12SerializeRootSignature(&root_signature_desc,D3D_ROOT_SIGNATURE_VERSION_1_0,&signature,nullptr); SUCCEEDED(hr))
-    {
-        PALADIN_LOG(INFO, "Successfully serialized root signature")
-    }
-    else if (FAILED(hr))
-    {
-        PALADIN_LOG(ERR, ErrorResult("Failed to serialize root signature",hr))
-        return;
-    }
+        if (auto hr = D3D12SerializeRootSignature(&root_signature_desc,D3D_ROOT_SIGNATURE_VERSION_1_0,&signature,nullptr); SUCCEEDED(hr))
+        {
+            PALADIN_LOG(INFO, "Successfully serialized root signature")
+        }
+        else if (FAILED(hr))
+        {
+            PALADIN_LOG(ERR, ErrorResult("Failed to serialize root signature",hr))
+            return;
+        }
 
-    if (auto hr = m_device->CreateRootSignature(0,signature->GetBufferPointer(),signature->GetBufferSize(),IID_PPV_ARGS(&m_root_signature)); SUCCEEDED(hr))
-    {
-        PALADIN_LOG(INFO, "Successfully created root signature");
-    }
-    else if (FAILED(hr))
-    {
-        PALADIN_LOG(ERR, ErrorResult("Failed to create root signature", hr))
-    }*/
+        if (auto hr = m_device->CreateRootSignature(0,signature->GetBufferPointer(),signature->GetBufferSize(),IID_PPV_ARGS(&m_root_signature)); SUCCEEDED(hr))
+        {
+            PALADIN_LOG(INFO, "Successfully created root signature");
+        }
+        else if (FAILED(hr))
+        {
+            PALADIN_LOG(ERR, ErrorResult("Failed to create root signature", hr))
+        }*/
 
     vertex_shader = DXShader(VertexShader, L"vs.vert",L"main");
     D3D12_SHADER_BYTECODE vertex_shader_bytecode = {};
@@ -460,16 +458,16 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     fragment_shader_bytecode = fragment_shader.GetBytecode();
 
-/*
-    D3D12_INPUT_ELEMENT_DESC test_input_layout[] = {
-        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 48, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 64, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+    /*
+        D3D12_INPUT_ELEMENT_DESC test_input_layout[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 48, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 64, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 
-    };*/
+        };*/
 
     test_vs = DXShader(VertexShader, L"test_vs.hlsl", L"main");
     if (m_shader_compiler.LoadShader(test_vs))
@@ -477,7 +475,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         PALADIN_LOG(INFO, "Successfully loaded test shader")
     }
 
-   vertex_shader_bytecode = test_vs.GetBytecode();
+    vertex_shader_bytecode = test_vs.GetBytecode();
     /*
     D3D12_INPUT_LAYOUT_DESC test_input_layout_desc = {};
     test_input_layout_desc.NumElements = sizeof(test_input_layout)/sizeof(D3D12_INPUT_ELEMENT_DESC);
@@ -522,6 +520,32 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> upload_allocations;
 
     custom_render_target_index= descriptor_index;
+
+    D3D12_INDIRECT_ARGUMENT_DESC argument_desc[3] = {};
+    argument_desc[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW;
+    argument_desc[0].VertexBuffer.Slot =0;
+
+    argument_desc[1].Type = D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW;
+
+    argument_desc[2].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+
+    D3D12_COMMAND_SIGNATURE_DESC command_signature_desc = {};
+
+    command_signature_desc.NodeMask = 0;
+    command_signature_desc.pArgumentDescs = argument_desc;
+    command_signature_desc.NumArgumentDescs = 3;
+    command_signature_desc.ByteStride = sizeof(IndirectCommand);
+
+    if (auto hr = m_device->CreateCommandSignature(
+        &command_signature_desc,
+        nullptr,
+        IID_PPV_ARGS(&m_command_signature));
+        FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Unable to create command signature",hr))
+    }
+
+    CreateIndirectCommandBuffer();
 
     custom_rtv_target_index = e;
     for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++) {
@@ -966,6 +990,58 @@ void D3D12Context::CreateInstanceBuffer() {
     instance_buffer_index = descriptor_index++;
 }
 
+
+void D3D12Context::CreateInstancePropertyBuffer() {
+    //std::size_t bytes_per_buffer = sizeof(glm::mat4)* MAX_INSTANCES;
+    std::size_t id_bytes_per_buffer = sizeof(InstanceProperties)* MAX_INSTANCES;
+    instance_props_aligned = (id_bytes_per_buffer + 255) & ~255;
+    UINT aligned_size =instance_props_aligned * FRAME_BUFFER_COUNT;
+
+    //total_bytes = aligned_size;
+
+    auto instance_props_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(aligned_size);
+
+    HRESULT hr;
+    D3D12MA::ALLOCATION_DESC upload_allocation_desc = {};
+    upload_allocation_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+
+    hr = m_gpu_allocator->CreateResource(&upload_allocation_desc,
+   &instance_props_buffer_desc,
+   D3D12_RESOURCE_STATE_GENERIC_READ,
+   nullptr,
+   &m_instance_props,
+   IID_NULL, nullptr);
+
+    if (FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Failed to create upload allocation", hr))
+        //return nullptr;
+    }
+
+    CD3DX12_RANGE read_range(0, 0);
+    hr = m_instance_props->GetResource()->Map(0,&read_range,&instance_props_destination);
+    if (FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Failed to map upload allocation", hr))
+    }
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+    srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+    srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+    srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srv_desc.Buffer.NumElements = aligned_size/4;
+    srv_desc.Buffer.StructureByteStride = 0;
+    srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+
+    auto srv_handle = m_srv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+    auto descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    srv_handle.ptr += descriptor_size * descriptor_index;
+    m_device->CreateShaderResourceView(m_instance_props->GetResource(), &srv_desc, srv_handle);
+
+
+    instance_props_index = descriptor_index++;
+}
+
 void D3D12Context::UpdateInstanceBuffer(std::span<glm::mat4> instance_data) {
     instance_count = instance_data.size();
     //std::size_t total_bytes = sizeof(glm::mat4)*instance_data.size();
@@ -979,13 +1055,76 @@ void D3D12Context::UpdateInstanceBuffer(std::span<glm::mat4> instance_data) {
 
 void D3D12Context::UpdateInstanceBufferT(std::span<TransformData> instance_data) {
     instance_count = instance_data.size();
-    //std::size_t total_bytes = sizeof(glm::mat4)*instance_data.size();
+
     std::size_t total_bytes = sizeof(TransformData)*instance_data.size();
-    ////UINT aligned_size = (total_bytes + 255) & ~255;
-    // total_bytes = aligned_size;
 
     UINT8* destination = static_cast<UINT8*>(instance_data_destination) + (frame_index * aligned_bytes_per_buffer);
     std::memcpy(destination, instance_data.data(), total_bytes);
+}
+
+void D3D12Context::CreateIndirectCommandBuffer()
+{
+    std::size_t bytes_per_command_buffer = sizeof(IndirectCommand)* 50000;
+    indirect_draw_bytes_per_buffer = (bytes_per_command_buffer + 255) & ~255;
+    UINT aligned_size =indirect_draw_bytes_per_buffer * FRAME_BUFFER_COUNT;
+
+    //total_bytes = aligned_size;
+
+    auto command_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(aligned_size);
+    command_buffer_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    D3D12MA::ALLOCATION_DESC allocation_desc = {};
+    allocation_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
+    m_gpu_allocator->CreateResource(&allocation_desc,
+        &command_buffer_desc,
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
+        &m_draw_command_buffer,
+        IID_NULL,
+        nullptr);
+
+    HRESULT hr;
+
+    auto upload_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(aligned_size);
+    D3D12MA::ALLOCATION_DESC upload_allocation_desc = {};
+    upload_allocation_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+
+    hr = m_gpu_allocator->CreateResource(&upload_allocation_desc,
+   &upload_buffer_desc,
+   D3D12_RESOURCE_STATE_GENERIC_READ,
+   nullptr,
+   &m_draw_command_upload_buffer,
+   IID_NULL, nullptr);
+
+    if (FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Failed to create upload allocation", hr))
+        //return nullptr;
+    }
+
+    CD3DX12_RANGE read_range(0, 0);
+    hr = m_draw_command_upload_buffer->GetResource()->Map(0,&read_range,&indirect_draw_destination);
+    if (FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Failed to map upload allocation", hr))
+    }
+
+    /*
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+    srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+    srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+    srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srv_desc.Buffer.NumElements = aligned_size/4;
+    srv_desc.Buffer.StructureByteStride = 0;
+    srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+
+    auto srv_handle = m_srv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+    auto descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    srv_handle.ptr += descriptor_size * descriptor_index;
+    m_device->CreateShaderResourceView(m_draw_command_buffer->GetResource(), &srv_desc, srv_handle);
+
+
+    instance_buffer_index = descriptor_index++;*/
 }
 
 void D3D12Context::UpdateRenderFrameData(RenderFrameData &render_frame_data) {
@@ -1657,9 +1796,9 @@ bool D3D12Context::UpdatePipeline()
 
 
         D3D12_GPU_VIRTUAL_ADDRESS frame_address = m_frame_data->GetResource()->GetGPUVirtualAddress() + (frame_index * 256);
-        m_command_list->SetGraphicsRootConstantBufferView(0,frame_address);
+        m_command_list->SetGraphicsRootConstantBufferView(1,frame_address);
 
-        m_command_list->SetGraphicsRootDescriptorTable(1,m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
+        m_command_list->SetGraphicsRootDescriptorTable(2,m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
 
 
         m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -1682,11 +1821,25 @@ bool D3D12Context::UpdatePipeline()
             m_command_list->IASetIndexBuffer(&mesh->index_buffer_view);
             m_command_list->DrawIndexedInstanced(mesh->indices, instance_count, 0, 0, 0);
         }*/
+        std::vector<IndirectCommand> indirect_commands;
+        std::uint32_t constants[2]={};
+        constants[0] = instance_buffer_index;
+        constants[1] = frame_index * aligned_bytes_per_buffer;
+        m_command_list->SetGraphicsRoot32BitConstants(0,2,constants,0);
         ForwardPass forward_pass{};
         {
             PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Forward Pass", ProfileColors::Green)
-            forward_pass.Execute(m_command_list.Get(), m_gpu_resources, _frame_data);
+            forward_pass.ExecuteIndirect(m_command_list.Get(), m_gpu_resources, _frame_data,indirect_commands);
         }
+        std::uint32_t count = indirect_commands.size();
+
+        std::size_t total_bytes = sizeof(IndirectCommand)*indirect_commands.size();;
+        UINT8* destination = static_cast<UINT8*>(indirect_draw_destination) + (frame_index * indirect_draw_bytes_per_buffer);
+        std::memcpy(destination, indirect_commands.data(), total_bytes);
+        m_command_list->CopyBufferRegion(m_draw_command_buffer->GetResource(), 0,
+                                       m_draw_command_upload_buffer->GetResource(), 0,
+                                       total_bytes);
+        m_command_list->ExecuteIndirect(m_command_signature.Get(),indirect_commands.size(),m_draw_command_buffer->GetResource(),0,nullptr,0);
 
 
        // m_command_list->IASetVertexBuffers(0,1,&vertex_buffer_view);

@@ -40,6 +40,11 @@ struct MeshData {
     std::uint32_t material_id;
 };
 
+struct InstanceProperties
+{
+    std::uint32_t heap_offset;
+    std::uint32_t frame_offset;
+};
 
 
 constexpr UINT FRAME_BUFFER_COUNT = 3;
@@ -57,8 +62,11 @@ public:
     void UpdatePersistantAllocation(CameraUniform uniform_data);
     void UploadFrameData(Camera camera);
     void CreateInstanceBuffer();
+    void CreateInstancePropertyBuffer();
     void UpdateInstanceBuffer(std::span<glm::mat4> instance_data);
     void UpdateInstanceBufferT(std::span<TransformData> instance_data);
+
+    void CreateIndirectCommandBuffer();
 
     void UpdateRenderFrameData(RenderFrameData& render_frame_data);
     void OnResize(std::uint32_t new_width, std::uint32_t new_height) {
@@ -107,6 +115,9 @@ private:
     //Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_bindless_root_signature = nullptr;
 
+    Microsoft::WRL::ComPtr<ID3D12CommandSignature> m_command_signature = nullptr;
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_draw_command_upload_buffer = nullptr;
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_draw_command_buffer = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> triangle_vertex_buffer = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> temporary_upload_heap= nullptr;
 
@@ -142,11 +153,17 @@ private:
 
     Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_instance_data=nullptr;
     void* instance_data_destination = nullptr;
+    void* instance_props_destination = nullptr;
+    void* indirect_draw_destination = nullptr;
+
     std::uint32_t instance_buffer_index;
     std::uint32_t instance_count;
-    std::uint32_t bytes_per_buffer;
+    //std::uint32_t bytes_per_buffer;
     std::uint32_t aligned_bytes_per_buffer;
-
+    std::uint32_t indirect_draw_bytes_per_buffer;
+    std::uint32_t instance_props_aligned;
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_instance_props=nullptr;
+    std::uint32_t instance_props_index;
     std::uint32_t m_window_width;
     std::uint32_t m_window_height;
 

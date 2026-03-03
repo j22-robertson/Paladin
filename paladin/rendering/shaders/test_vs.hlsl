@@ -11,7 +11,7 @@ struct VS_INPUT
     //row_major float4x4 transform: TRANSFORM;
 };
 
-cbuffer Camera : register(b0)
+cbuffer Camera : register(b1)
 {
      float4x4 view;
      float4x4 projection;
@@ -32,7 +32,7 @@ struct InstanceData
     uint heap_index;
     uint frame_offset;
 };
-ConstantBuffer<InstanceData> instance : register(b2);
+ConstantBuffer<InstanceData> instance : register(b0);
 
 VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
 {
