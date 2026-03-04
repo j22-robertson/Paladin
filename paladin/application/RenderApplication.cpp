@@ -224,7 +224,7 @@ void RenderApplication::Setup() {
 
 
     for (int x = 1; x < 11; x++) {
-        for (int z = 1; z < 11; z++) {
+        for (int z =1; z < 11; z++) {
             auto transform = Transform{};
             transform.SetPosition({x*5000,0,z*5000});
             transform.SetScale({1,1,1});
@@ -235,11 +235,10 @@ void RenderApplication::Setup() {
     }
 
     for (int x = 1; x < 11; x++) {
-        for (int z = 1; z < 11; z++) {
+        for (int z = 1; z <11; z++) {
             auto transform = Transform{};
             transform.SetPosition({-x*5000,0,-z*5000});
             transform.SetScale({1,1,1});
-            //instancing_test_data.push_back(transform.GetData());
             frame_data.insert(sponza_two, transform);
             transforms.push_back(transform);
         }

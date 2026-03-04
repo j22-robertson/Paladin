@@ -31,6 +31,7 @@ struct InstanceData
 {
     uint heap_index;
     uint frame_offset;
+    uint instance_offset;
 };
 ConstantBuffer<InstanceData> instance : register(b2);
 
@@ -38,7 +39,7 @@ VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
 {
     VS_OUTPUT output = (VS_OUTPUT)0;
     ByteAddressBuffer instance_buffer= ResourceDescriptorHeap[instance.heap_index];
-    uint model_address = instance.frame_offset + (instance_id * 128);
+    uint model_address = instance.frame_offset + ((instance_id+instance.instance_offset) * 128);
     uint inv_model_address = model_address+64;
 
     //Opposite order because byte addres buffer implicitly transposes to row_major

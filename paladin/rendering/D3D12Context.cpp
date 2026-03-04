@@ -339,7 +339,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     instance_constant_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
     instance_constant_parameter.Constants.ShaderRegister = 2;
     instance_constant_parameter.Constants.RegisterSpace = 0;
-    instance_constant_parameter.Constants.Num32BitValues = 2;
+    instance_constant_parameter.Constants.Num32BitValues = 3;
 
     D3D12_ROOT_PARAMETER1 mesh_constant_parameter{};
     mesh_constant_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
@@ -989,17 +989,19 @@ void D3D12Context::UpdateInstanceBufferT(std::span<TransformData> instance_data)
 }
 
 void D3D12Context::UpdateRenderFrameData(RenderFrameData &render_frame_data) {
-    std::uint32_t current_instance_count = 0;
+
     render_frame_data.aligned_bytes_per_buffer = aligned_bytes_per_buffer;
     render_frame_data.frame_index = frame_index;
     render_frame_data.instance_buffer_id = instance_buffer_index;
 
     _frame_data = render_frame_data;
     UINT8* destination = static_cast<UINT8*>(instance_data_destination) + (frame_index * aligned_bytes_per_buffer);
+    std::uint32_t current_instance_count = 0;
     for (auto& batch : render_frame_data.batches) {
         std::size_t total_bytes = sizeof(TransformData)*batch.transforms.size();
-        UINT8* batch_destination = destination + current_instance_count* aligned_bytes_per_buffer;
+        UINT8* batch_destination = destination + sizeof(TransformData)*current_instance_count;
         std::memcpy(batch_destination, batch.transforms.data(), total_bytes);
+        current_instance_count+=batch.transforms.size();
     }
 }
 

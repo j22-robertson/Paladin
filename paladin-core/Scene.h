@@ -35,7 +35,7 @@ inline void RenderFrameData::insert(AssetHandle<ModelAsset> model, Transform &tr
     batch.handle = model;
     batch.transforms.push_back(transform.GetData());
     batches.push_back(batch);
-    id_to_batch.insert(std::make_pair(model.inner.index, batch.transforms.size() - 1));
+    id_to_batch.insert(std::make_pair(model.inner.index, batches.size()-1));
 }
 
 

@@ -10,6 +10,7 @@ class GPUResourceRegistry;
 struct InstanceData {
     std::uint32_t heap_offset;
     std::uint32_t frame_offset;
+    std::uint32_t instance_offset;
 };
 
 class IRenderPass {

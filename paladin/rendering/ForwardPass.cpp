@@ -10,13 +10,11 @@ void ForwardPass::Execute(ID3D12GraphicsCommandList8 *command_list, GPUResourceR
 
     uint32_t current_offset = 0;
     std::uint32_t instance_buffer_id =data.instance_buffer_id;
-    auto instance_data = InstanceData{.heap_offset = instance_buffer_id,.frame_offset = data.frame_index * data.aligned_bytes_per_buffer};
-    command_list->SetGraphicsRoot32BitConstants(3,2,&instance_data,0);
+
     for (auto& batch : data.batches) {
-
-
         auto model = registry.GetOpaque<GPUModel>(batch.handle);
-
+        auto instance_data = InstanceData{.heap_offset = instance_buffer_id,.frame_offset = data.frame_index * data.aligned_bytes_per_buffer,.instance_offset = current_offset};
+        command_list->SetGraphicsRoot32BitConstants(3,3,&instance_data,0);
         for (int i = 0; i < model->mesh_handles.size(); i++) {
             auto mesh_handle = model->mesh_handles[i];
             auto mesh = registry.Get<GPUMesh>(mesh_handle);
@@ -30,8 +28,7 @@ void ForwardPass::Execute(ID3D12GraphicsCommandList8 *command_list, GPUResourceR
 
             command_list->IASetVertexBuffers(0,1,&mesh->vertex_buffer_view);
             command_list->IASetIndexBuffer(&mesh->index_buffer_view);
-            command_list->DrawIndexedInstanced(mesh->indices, batch.transforms.size(), 0, 0, current_offset);
-
+            command_list->DrawIndexedInstanced(mesh->indices, batch.transforms.size(), 0, 0, 0);
         }
         current_offset += batch.transforms.size();
     }
