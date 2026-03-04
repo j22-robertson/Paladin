@@ -5,6 +5,7 @@ https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
 https://developer.android.com/games/optimize/vertex-data-management
 https://x.com/SebAaltonen/status/1655959255181152256
 https://abseil.io/fast/hints.html
+#Visibility buffer https://www.jcgt.org/published/0002/02/04/
 
 
 https://simoncoenen.com/blog/programming/StaticReflection
