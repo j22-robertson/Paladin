@@ -252,6 +252,10 @@ bool RenderApplication::Update(float delta_time) {
    // auto tf = &transforms[5];
   //  tf->Rotate(Axis::X_AXIS,rot_test+=0.00001f * delta_time);
   //  instancing_test_data[5] = tf->GetData();
+    auto& tf = transforms[99+4];
+    tf.Rotate(Axis::X_AXIS,rot_test+=0.00001f * delta_time);
+    
+    frame_data.batches[1].transforms[3] = tf.GetData();
     m_render_context->UpdateRenderFrameData(frame_data);
 
     double mouse_x;
