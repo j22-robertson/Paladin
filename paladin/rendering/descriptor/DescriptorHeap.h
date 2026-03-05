@@ -19,6 +19,7 @@ public:
     std::uint32_t DescriptorCount() const;
     std::uint32_t DescriptorIncrementSize() const;
     void IncrementDescriptorCount();
+    ID3D12DescriptorHeap* GetDescriptorHeap() const;
     ~DescriptorHeap() = default;
 private:
     DescriptorHeap(Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> _heap, const D3D12_DESCRIPTOR_HEAP_DESC& _desc, std::uint32_t _ds);

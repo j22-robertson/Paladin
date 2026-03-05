@@ -9,6 +9,7 @@
 
 #include "D3D12MemAlloc.h"
 #include "ResourceManager.h"
+#include "../descriptor/DescriptorHeapManager.h"
 #include "asset/Asset.h"
 #include "asset/AssetHandle.h"
 #include "asset/Texture2D.h"
@@ -21,8 +22,8 @@
 struct GPUTexture2D : GPUResource
 {
     Microsoft::WRL::ComPtr<D3D12MA::Allocation> allocation;
-    UINT srv_descriptor_index = 0;
-    UINT rtv_descriptor_index = 0;
+    ViewHandle srv_handle;
+    ViewHandle rtv_handle;
 };
 
 struct GPUMesh: GPUResource

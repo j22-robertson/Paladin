@@ -45,7 +45,12 @@ std::uint32_t DescriptorHeap::DescriptorIncrementSize() const
 
 void DescriptorHeap::IncrementDescriptorCount()
 {
-    descriptor_count++;
+    descriptor_count+=1;
+}
+
+ID3D12DescriptorHeap* DescriptorHeap::GetDescriptorHeap() const
+{
+    return descriptor_heap.Get();
 }
 
 DescriptorHeap::DescriptorHeap(Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> _heap, const D3D12_DESCRIPTOR_HEAP_DESC& _desc, const std::uint32_t _ds)

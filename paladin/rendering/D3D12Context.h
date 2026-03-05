@@ -57,9 +57,8 @@ public:
 
     void CreatePersistantAllocation(CameraUniform uniform_data);
     void UpdatePersistantAllocation(CameraUniform uniform_data);
-    void UploadFrameData(Camera camera);
+
     void CreateInstanceBuffer();
-    void UpdateInstanceBuffer(std::span<glm::mat4> instance_data);
     void UpdateInstanceBufferT(std::span<TransformData> instance_data);
 
     void UpdateRenderFrameData(RenderFrameData& render_frame_data);
@@ -98,7 +97,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_command_queue = nullptr;
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_swap_chain= nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtv_descriptor_heap = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
+    //Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsv_descriptor_heap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imgui_srv_descriptor_heap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource2> m_render_target[FRAME_BUFFER_COUNT];
@@ -120,9 +119,6 @@ private:
 
     std::vector<std::vector<MeshRange>> model_mesh_ranges;
 
-    UINT srv_index = 0;
-
-    UINT custom_render_target_index = 0;
     UINT custom_rtv_target_index = 0;
 
     std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> custom_targets;
@@ -146,7 +142,7 @@ private:
 
     Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_instance_data=nullptr;
     void* instance_data_destination = nullptr;
-    std::uint32_t instance_buffer_index;
+    //std::uint32_t instance_buffer_index;
     std::uint32_t instance_count;
     std::uint32_t bytes_per_buffer;
     std::uint32_t aligned_bytes_per_buffer;
@@ -174,14 +170,15 @@ private:
     DXShaderCompiler m_shader_compiler = DXShaderCompiler();
 
     ViewHandle depth_views[3];
+    ViewHandle custom_rt_srv[3];
+    ViewHandle camera_cbv;
+    ViewHandle instance_buffer_view;
 
     D3D12_VIEWPORT m_viewport = {};
     D3D12_RECT m_scissor = {};
 
     HANDLE fence_event = nullptr;
 
-    //TODO: make a linear allocator or maybe track with generational indices
-    UINT descriptor_index = 0;
 
     UINT fence_value[FRAME_BUFFER_COUNT] = {};
     UINT frame_index;

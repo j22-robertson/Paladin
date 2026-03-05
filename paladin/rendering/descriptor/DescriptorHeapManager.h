@@ -37,15 +37,18 @@ public:
     ViewHandle CreateShaderResourceView(ID3D12Device* device, std::uint32_t hash,ID3D12Resource* resource, D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr);
     ViewHandle CreateRenderTargetView(ID3D12Device* device, std::uint32_t hash,ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC* desc = nullptr);
     ViewHandle CreateDepthStencilView(ID3D12Device* device, std::uint32_t hash,ID3D12Resource* resource, D3D12_DEPTH_STENCIL_VIEW_DESC* desc = nullptr);
+    ViewHandle CreateConstantBufferView(ID3D12Device* device, std::uint32_t hash,D3D12_CONSTANT_BUFFER_VIEW_DESC* desc = nullptr);
 
-
-    std::optional<DescriptorHeap>  Get(std::uint32_t hash);
-
+    ID3D12DescriptorHeap* GetDescriptorHeap(std::uint32_t hash) const;
     D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(const ViewHandle& handle);
     D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(const ViewHandle& handle);
 
+    D3D12_CPU_DESCRIPTOR_HANDLE GetStartCPUHandle(std::uint32_t hash) const;
+    D3D12_GPU_DESCRIPTOR_HANDLE GetStartGPUHandle(std::uint32_t hash) const;
+
     void Clear();
 private:
+    DescriptorHeap*  Get(std::uint32_t hash);
     std::unordered_map<std::uint32_t, DescriptorHeap> hash_to_heap;
     std::unordered_map<std::uint32_t,std::string> hash_to_name;
 };
