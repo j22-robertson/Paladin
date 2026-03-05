@@ -29,6 +29,8 @@
 #include "resource/GPUResourceRegistry.h"
 #include "resource/ResourceManager.h"
 #include "ForwardPass.h"
+#include "descriptor/DescriptorHeap.h"
+#include "descriptor/DescriptorHeapManager.h"
 
 struct Vertex {
     Vertex(float x, float y, float z, float r, float g, float b, float a) : pos(x, y, z), color(r, g, b, a) {}
@@ -132,6 +134,8 @@ private:
     void* frame_data_destination = nullptr;
 
 
+    DescriptorHeapManager m_descriptor_heap;
+
     UINT frame_descriptor_start = 0;
 
     Microsoft::WRL::ComPtr<D3D12MA::Allocator> m_gpu_allocator = nullptr;
@@ -150,6 +154,7 @@ private:
     std::uint32_t m_window_width;
     std::uint32_t m_window_height;
 
+    std::map<std::uint32_t, DescriptorHeap> m_descriptor_heaps;
 
 
     DXShader vertex_shader;
@@ -167,6 +172,8 @@ private:
 
 
     DXShaderCompiler m_shader_compiler = DXShaderCompiler();
+
+    ViewHandle depth_views[3];
 
     D3D12_VIEWPORT m_viewport = {};
     D3D12_RECT m_scissor = {};

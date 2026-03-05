@@ -9,11 +9,21 @@
 // Sources for implementation:
 // https://lucassardois.medium.com/generational-indices-guide-8e3c5f7fd594
 // http://www.isthe.com/chongo/tech/comp/fnv/index.html#public_domain
+#define PALADIN_HASH(string) CEFNV1AHash32(string)
 
+consteval  std::uint32_t CEFNV1AHash32(const std::string_view& str) {
+    constexpr std::uint32_t fnv1a_prime_32 = 16777619u;
+    std::uint32_t offset_basis = 2166136261u;
+    for (const char& c : str) {
+        offset_basis ^= static_cast<std::uint32_t>(c);
+        offset_basis *= fnv1a_prime_32;
+    }
+    return offset_basis;
+}
 
 constexpr std::uint64_t FNV1AHash64(const std::string_view input_string) {
-    constexpr std::uint64_t fnv1a_64_prime = 1099511628211;
-    std::uint64_t offset_basis =  14695981039346656037;
+    constexpr std::uint64_t fnv1a_64_prime = 1099511628211u;
+    std::uint64_t offset_basis =  14695981039346656037u;
     for (const char& c : input_string) {
         offset_basis ^= static_cast<std::uint64_t>(c);
         offset_basis *= fnv1a_64_prime;
@@ -22,8 +32,8 @@ constexpr std::uint64_t FNV1AHash64(const std::string_view input_string) {
 }
 
 constexpr std::uint32_t FNV1AHash32(const std::string_view& str) {
-   constexpr std::uint32_t fnv1a_prime_32 = 16777619;
-    std::uint32_t offset_basis = 2166136261;
+   constexpr std::uint32_t fnv1a_prime_32 = 16777619u;
+    std::uint32_t offset_basis = 2166136261u;
     for (const char& c : str) {
         offset_basis ^= static_cast<std::uint32_t>(c);
         offset_basis *= fnv1a_prime_32;

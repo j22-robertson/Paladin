@@ -10,6 +10,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_internal.h"
 
+
 D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t window_height) {
 #ifdef PIX_ENABLE
     LoadWinPixEventRuntime();
@@ -153,8 +154,9 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc = {};
 
+
     //TODO: Change num descriptors
-    srv_heap_desc.NumDescriptors =100000;
+    srv_heap_desc.NumDescriptors =100000000;
     srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
@@ -165,6 +167,10 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         PALADIN_LOG(ERR, ErrorResult("Failed to create srv descriptor heap", hr))
     }
 
+    if (m_descriptor_heap.CreateDescriptorHeap(m_device.Get(),PALADIN_HASH("BINDLESS"),srv_heap_desc))
+    {
+        PALADIN_LOG(INFO, "Successfully created BINDLESS")
+    }
 
     D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
 
@@ -260,20 +266,9 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
-    if (auto hr = m_device->CreateDescriptorHeap(&dsv_heap_desc,IID_PPV_ARGS(&m_dsv_descriptor_heap)); SUCCEEDED(hr)) {
-        PALADIN_LOG(INFO, "Successfully created dsv descriptor heap")
-    }
-    else if (FAILED(hr)) {
-        PALADIN_LOG(ERR, ErrorResult("Failed to create dsv descriptor heap", hr))
-    }
-
-    auto dsv_descriptor_size =  m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-
-    D3D12_CPU_DESCRIPTOR_HANDLE dsv_cpu_handle(m_dsv_descriptor_heap->GetCPUDescriptorHandleForHeapStart());
-
+    m_descriptor_heap.CreateDescriptorHeap(m_device.Get(),PALADIN_HASH("DEPTH"),dsv_heap_desc);
     for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++) {
-        m_device->CreateDepthStencilView(m_depth_buffer[i]->GetResource(), nullptr, dsv_cpu_handle);
-        dsv_cpu_handle.ptr += dsv_descriptor_size;
+        depth_views[i]=m_descriptor_heap.CreateDepthStencilView(m_device.Get(), PALADIN_HASH("DEPTH"),m_depth_buffer[i]->GetResource());
     }
 
 
@@ -1527,13 +1522,8 @@ bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
         m_depth_buffer[i].Reset();
     }
 
-
-    auto dsv_handle_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-    auto  dsv_handle = m_dsv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
-
     D3D12MA::ALLOCATION_DESC allocation_desc = {};
     allocation_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-    m_depth_buffer.resize(FRAME_BUFFER_COUNT);
     for (int i = 0; i < FRAME_BUFFER_COUNT; i++) {
 
         m_gpu_allocator->CreateResource(&allocation_desc,
@@ -1543,9 +1533,8 @@ bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
             &m_depth_buffer[i],
             IID_NULL,
             nullptr);
-
-        m_device->CreateDepthStencilView(m_depth_buffer[i]->GetResource(), &depth_stencil_view_desc, dsv_handle);
-        dsv_handle.ptr += dsv_handle_size;
+        auto descriptor_dest = m_descriptor_heap.GetCPUHandle(depth_views[i]);
+        m_device->CreateDepthStencilView(m_depth_buffer[i]->GetResource(), &depth_stencil_view_desc, descriptor_dest);
     }
 
     auto hr = m_command_list->Close();
@@ -1565,6 +1554,8 @@ bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
     frame_index = m_swap_chain->GetCurrentBackBufferIndex();
     return true;
 }
+
+
 
 
 bool D3D12Context::WaitForPreviousFrame()
@@ -1641,14 +1632,14 @@ bool D3D12Context::UpdatePipeline()
         m_command_list->ResourceBarrier(1,&barrier);
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(m_rtv_descriptor_heap->GetCPUDescriptorHandleForHeapStart(),frame_index,m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
+        auto depth_handle = m_descriptor_heap.GetCPUHandle(depth_views[frame_index]);
 
-        CD3DX12_CPU_DESCRIPTOR_HANDLE dsv_handle(m_dsv_descriptor_heap->GetCPUDescriptorHandleForHeapStart(),frame_index,m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV));
-
-        m_command_list->OMSetRenderTargets(1, &custom_rtv_handle, false, &dsv_handle);
+        m_command_list->OMSetRenderTargets(1, &custom_rtv_handle, false, &depth_handle);
 
 
         m_command_list->ClearRenderTargetView(rtv_handle,clear_colour,0,nullptr);
-        m_command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0,0,0,nullptr);
+
+        m_command_list->ClearDepthStencilView(depth_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0,0,0,nullptr);
 
         m_command_list->SetPipelineState(m_pipeline_state.Get());
         ID3D12DescriptorHeap* heaps[] = { m_srv_descriptor_heap.Get()};
@@ -1705,7 +1696,7 @@ bool D3D12Context::UpdatePipeline()
         imgui_transition_to_texture.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
         m_command_list->ResourceBarrier(1,&imgui_transition_to_texture);
 
-        m_command_list->OMSetRenderTargets(1, &rtv_handle, false, &dsv_handle);
+        m_command_list->OMSetRenderTargets(1, &rtv_handle, false, &depth_handle);
 
         ImGui::SetNextWindowSize(ImVec2(m_window_width, m_window_height), ImGuiCond_FirstUseEver);
         ImGui::Begin("Game");
@@ -1775,6 +1766,7 @@ D3D12Context::~D3D12Context() {
     m_frame_data.Reset();
     m_instance_data.Reset();
     m_gpu_resources.Clear();
+    m_descriptor_heap.Clear();
 
     TracyD3D12Destroy(m_tracy_context)
     ImGui_ImplDX12_Shutdown();
@@ -1786,3 +1778,4 @@ D3D12Context::~D3D12Context() {
 #endif
 
 }
+
