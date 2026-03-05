@@ -156,7 +156,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
 
     //TODO: Change num descriptors
-    srv_heap_desc.NumDescriptors =100000000;
+    srv_heap_desc.NumDescriptors =100000;
     srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
