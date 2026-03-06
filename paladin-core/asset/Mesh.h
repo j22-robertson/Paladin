@@ -4,21 +4,39 @@
 
 #ifndef PALADIN_MESH_H
 #define PALADIN_MESH_H
+#include <utility>
+
 #include "Asset.h"
 #include "AssetTraits.h"
 #include "AssetHandle.h"
 #include "Material.h"
 #include "Vertex.h"
+#include "glm/vec3.hpp"
+
+
+struct AABB
+{
+    glm::vec3 min;
+    glm::vec3 max;
+};
 
 class MeshAsset: public Asset
 {
 public:
-    MeshAsset(std::string n,std::vector<Paladin::Vertex> v, std::vector<std::uint32_t> i, AssetHandle<MaterialAsset> m) :name(n), vertices(std::move(v)),indices(std::move(i)),material(std::move(m)){
-    }
+    MeshAsset(std::string n,std::vector<Paladin::Vertex> v,
+        std::vector<std::uint32_t> i,
+        const AssetHandle<MaterialAsset> m, const AABB& aabb) :
+    name(std::move(n)),
+    vertices(std::move(v)),
+    indices(std::move(i)),
+    material(m),
+    bounding_box(aabb)
+    {}
     std::string name;
     std::vector<Paladin::Vertex> vertices;
     std::vector<std::uint32_t> indices;
     AssetHandle<MaterialAsset> material;
+    AABB bounding_box;
 };
 
 //Traits

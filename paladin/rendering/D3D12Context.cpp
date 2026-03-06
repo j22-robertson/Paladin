@@ -468,7 +468,26 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     {
         PALADIN_LOG(ERR, ErrorResult("Failed to create Test pipeline state.", hr))
     }
+    aabb_vs = DXShader(VertexShader, L"debug_aabb_vs.hlsl", L"main");
+    m_shader_compiler.LoadShader(aabb_vs);
+    aabb_fs = DXShader(FragmentShader, L"debug_aabb_fs.hlsl", L"main");
+    m_shader_compiler.LoadShader(aabb_fs);
 
+    aabb_state = std::make_unique<PipelineState>(aabb_vs,aabb_fs,m_bindless_root_signature.Get());
+    aabb_state->gpu_pso.InputLayout.pInputElementDescs = nullptr;
+    aabb_state->gpu_pso.InputLayout.NumElements = 0;
+    aabb_state->gpu_pso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+    aabb_state->gpu_pso.RasterizerState.DepthClipEnable = TRUE;
+
+    aabb_state->gpu_pso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    if (auto hr = m_device->CreateGraphicsPipelineState(&aabb_state->gpu_pso,IID_PPV_ARGS(&aabb_pipeline)); SUCCEEDED(hr))
+    {
+        PALADIN_LOG(INFO, "Successfully created TEST pipeline state")
+    }
+    else if (FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Failed to create Test pipeline state.", hr))
+    }
     m_command_list->Close();
 
     ID3D12CommandList* cmd_lists[] = { m_command_list.Get()};
@@ -879,10 +898,14 @@ void D3D12Context::UpdateRenderFrameData(RenderFrameData &render_frame_data) {
     std::uint32_t current_instance_count = 0;
     for (auto& batch : render_frame_data.batches) {
         std::size_t total_bytes = sizeof(TransformData)*batch.transforms.size();
-        UINT8* batch_destination = destination + sizeof(TransformData)*current_instance_count;
-        std::memcpy(batch_destination, batch.transforms.data(), total_bytes);
+        destination = destination + sizeof(TransformData)*current_instance_count;
+        std::memcpy(destination, batch.transforms.data(), total_bytes);
         current_instance_count+=batch.transforms.size();
     }
+    auto aabb_count = _frame_data.debug_aabb_transforms.size();
+    std::size_t aabb_bytes = sizeof(TransformData)*aabb_count;
+    destination = destination + sizeof(TransformData)*current_instance_count;
+    std::memcpy(destination, _frame_data.debug_aabb_transforms.data(), aabb_bytes);
 }
 
 
@@ -1287,8 +1310,6 @@ bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
             auto [custom_rendertarget, upload] = allocation_pair.value();
 
             m_device->CreateRenderTargetView(custom_rendertarget->GetResource(), nullptr, rtv_cpu_handle);
-
-
             m_device->CreateShaderResourceView(custom_rendertarget->GetResource(), nullptr, m_descriptor_heap.GetCPUHandle(custom_rt_srv[i]));
             upload_allocations.push_back(std::move(upload));
             auto custom_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(custom_rendertarget->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -1454,11 +1475,18 @@ bool D3D12Context::UpdatePipeline()
         m_command_list->SetGraphicsRootDescriptorTable(1,m_descriptor_heap.GetStartGPUHandle(PALADIN_HASH("BINDLESS")));
 
         m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        std::uint32_t current_offset = 0;
         ForwardPass forward_pass{};
         {
             PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Forward Pass", ProfileColors::Green)
-            forward_pass.Execute(m_command_list.Get(), m_gpu_resources, _frame_data);
+            forward_pass.Execute(m_command_list.Get(), m_gpu_resources, _frame_data,current_offset);
         }
+        m_command_list->SetPipelineState(aabb_pipeline.Get());
+        m_command_list->SetGraphicsRootSignature(m_bindless_root_signature.Get());
+        m_command_list->SetDescriptorHeaps(1,heaps);
+        m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+
+        m_command_list->DrawInstanced(24, _frame_data.debug_aabb_transforms.size(),0,current_offset);
 
         D3D12_RESOURCE_BARRIER imgui_transition_to_texture= {};
         imgui_transition_to_texture.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;

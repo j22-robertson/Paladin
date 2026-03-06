@@ -65,7 +65,8 @@ target_link_libraries(imgui PUBLIC glfw)
 target_link_libraries(PaladinCore PUBLIC
         assimp
         stb_interface
-        Tracy::TracyClient)
+        Tracy::TracyClient
+        glm::glm)
 
 
 
@@ -83,7 +84,7 @@ target_link_libraries(PaladinRenderer PRIVATE
         Tracy::TracyClient # Additional runtime profiling capabilities
         imgui # GUI
         assimp # Mesh loading
-        glm::glm
+
 )
 
 target_compile_definitions(PaladinRenderer PRIVATE PALADIN_ROOT_DIR="${PROJECT_SOURCE_DIR}")

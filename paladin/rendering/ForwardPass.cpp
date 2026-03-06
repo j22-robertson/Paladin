@@ -5,10 +5,9 @@
 
 #include "resource/GPUResourceRegistry.h"
 
-void ForwardPass::Execute(ID3D12GraphicsCommandList8 *command_list, GPUResourceRegistry &registry, RenderFrameData& data) {
+void ForwardPass::Execute(ID3D12GraphicsCommandList8 *command_list, GPUResourceRegistry &registry, RenderFrameData& data,std::uint32_t& current_offset) {
     PALADIN_SCOPED_CPU_PROFILE("ForwardPass::Execute", ProfileColors::Green);
 
-    uint32_t current_offset = 0;
     std::uint32_t instance_buffer_id =data.instance_buffer_id;
 
     for (auto& batch : data.batches) {

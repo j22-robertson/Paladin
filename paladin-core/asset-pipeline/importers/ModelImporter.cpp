@@ -32,7 +32,7 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
 
     Assimp::Importer importer;
 
-    const aiScene* scene = importer.ReadFile(full_path.generic_string(), aiProcess_Triangulate|aiProcess_CalcTangentSpace|aiProcess_FlipUVs);
+    const aiScene* scene = importer.ReadFile(full_path.generic_string(), aiProcess_Triangulate|aiProcess_CalcTangentSpace|aiProcess_FlipUVs|aiProcess_GenBoundingBoxes);
     if (!scene) return {};
     std::vector<AssetHandle<MaterialAsset>> materials = std::vector<AssetHandle<MaterialAsset>>();
 
@@ -186,7 +186,15 @@ std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* nod
             }
         }
         std::string name = mesh->mName.Empty() ? file  + ":" +" Mesh:" +std::to_string(i) : mesh->mName.C_Str();
-        auto mesh_handle = m_asset_registry->InsertAsset(std::make_unique<MeshAsset>(name,vertices,indices,materials[mesh->mMaterialIndex]));
+
+        AABB aabb = {};
+
+        auto& min = mesh->mAABB.mMin;
+        aabb.min = glm::vec3(min.x, min.y, min.z);
+
+        auto& max = mesh->mAABB.mMax;
+        aabb.max = glm::vec3(max.x, max.y, max.z);
+        auto mesh_handle = m_asset_registry->InsertAsset(std::make_unique<MeshAsset>(name,vertices,indices,materials[mesh->mMaterialIndex],aabb));
         mesh_handles.push_back(mesh_handle);
         mesh_to_mat[mesh_index] = mesh->mMaterialIndex;
         m_asset_registry->AddDependency(mesh_handle, materials[mesh->mMaterialIndex]);

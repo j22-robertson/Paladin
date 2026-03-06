@@ -141,7 +141,9 @@ void RenderApplication::Setup() {
     ImGui_ImplGlfw_InitForOther(window,true);
 
     std::unique_ptr<GPUModel> gpu_model = std::make_unique<GPUModel>();
-    std::set<OpaqueAssetHandle> material_set;
+    //std::set<OpaqueAssetHandle> material_set;
+
+
 
     auto model = m_asset_registry->GetAsset<ModelAsset>(testing.model_handle);
     gpu_model->mesh_to_material = model->mesh_to_material;
@@ -223,6 +225,7 @@ void RenderApplication::Setup() {
     m_render_context->CreateInstanceBuffer();
 
 
+    auto sponza_model = m_asset_registry->GetAsset<ModelAsset>(sponza);
     for (int x = 1; x < 11; x++) {
         for (int z =1; z < 11; z++) {
             auto transform = Transform{};
@@ -231,6 +234,19 @@ void RenderApplication::Setup() {
             //instancing_test_data.push_back(transform.GetData());
             frame_data.insert(sponza, transform);
             transforms.push_back(transform);
+            for (int i = 0; i < sponza_model->meshes.size(); i++)
+            {
+                const auto mesh = m_asset_registry->GetAsset<MeshAsset>(sponza_model->meshes[i]);
+                const auto& aabb = mesh->bounding_box;
+                auto size = aabb.max -aabb.min;
+                auto aabb_center = (aabb.max + aabb.min)*0.5f;
+                auto position = transform.GetPosition()+aabb_center;
+
+                auto aabb_transform = Transform{};
+                aabb_transform.SetPosition(position);
+                aabb_transform.SetScale(glm::abs(size));
+                frame_data.debug_aabb_transforms.push_back(aabb_transform.GetData());
+            }
         }
     }
 

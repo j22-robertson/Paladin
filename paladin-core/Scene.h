@@ -19,7 +19,9 @@ struct RenderFrameData {
         std::vector<TransformData> transforms;
     };
     void insert(AssetHandle<ModelAsset>  model,Transform& transform);
+    //void insertAABB(Transform& transform);
     std::vector<ModelBatch> batches;
+    std::vector<TransformData> debug_aabb_transforms;
     std::unordered_map<std::uint32_t, std::uint32_t> id_to_batch;
     std::uint32_t instance_buffer_id = 0;
     std::uint32_t frame_index = 0;

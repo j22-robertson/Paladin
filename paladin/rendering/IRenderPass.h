@@ -17,7 +17,7 @@ class IRenderPass {
 public:
     IRenderPass() = default;
     virtual ~IRenderPass() {};
-    virtual void Execute(ID3D12GraphicsCommandList8* command_list, GPUResourceRegistry& registry, RenderFrameData& data) = 0;
+    virtual void Execute(ID3D12GraphicsCommandList8* command_list, GPUResourceRegistry& registry, RenderFrameData& data,std::uint32_t& current_offset) = 0;
 
 private:
 };

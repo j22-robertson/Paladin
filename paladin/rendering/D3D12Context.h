@@ -45,7 +45,7 @@ struct MeshData {
 
 
 constexpr UINT FRAME_BUFFER_COUNT = 3;
-constexpr UINT MAX_INSTANCES = 10000;
+constexpr UINT MAX_INSTANCES = 100000;
 class D3D12Context {
 public:
 
@@ -124,6 +124,11 @@ private:
     std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> custom_targets;
 
     std::unique_ptr<PipelineState> test_state = nullptr;
+
+    std::unique_ptr<PipelineState> aabb_state = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> aabb_pipeline = nullptr;
+    DXShader aabb_vs;
+    DXShader aabb_fs;
    // std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>,Microsoft::WRL::ComPtr<D3D12MA::Allocation>> m_camera_allocation;
 
     Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_frame_data=nullptr;
