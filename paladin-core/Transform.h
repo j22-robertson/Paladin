@@ -28,7 +28,7 @@ public:
     Transform() = default;
 
     [[nodiscard]] bool HasUpdated() const {
-        return has_updated;
+        return dirty;
     }
 
     [[nodiscard]] const glm::vec3& GetPosition() const {
@@ -36,53 +36,67 @@ public:
     }
 
     void SetScale(const glm::vec3& new_scale) {
-        has_updated = true;
+        dirty = true;
         scale = new_scale;
     }
 
 
     void SetPosition(const glm::vec3& new_position) {
-        has_updated = true;
+        dirty = true;
         position = new_position;
     }
 
     //Use Axis constexpr variables
     void Rotate(const glm::vec3& axis,float angle_degrees) {
-        has_updated = true;
+        dirty = true;
         rotation = glm::rotate(rotation, angle_degrees, axis);
     }
 
     const glm::mat4& GetMatrix() {
-        if (!has_updated) return matrix;
+        if (!dirty) return matrix;
         glm::mat4 T = glm::translate(glm::mat4(1.0f),position);
         glm::mat4 R= glm::toMat4(rotation);
         glm::mat4 S = glm::scale(glm::mat4(1.0), scale);
 
-        has_updated = false;
-
         matrix = T*R*S;
+        //transform.inv_model = glm::inverse(transform.model);
+        dirty = false;
         return matrix;
     }
 
     const TransformData& GetData() {
-        if (!has_updated) return transform;
+        if (!dirty) return transform;
         glm::mat4 T = glm::translate(glm::mat4(1.0f),position);
         glm::mat4 R= glm::toMat4(rotation);
         glm::mat4 S = glm::scale(glm::mat4(1.0), scale);
 
-        has_updated = false;
-
         transform.model = T*R*S;
         transform.inv_model = glm::inverse(transform.model);
+
+        dirty = false;
         return transform;
     }
 
+
+    const glm::vec3 Right() {
+        return glm::normalize(glm::vec3(transform.model[0]));
+    }
+
+    const glm::vec3 Up() {
+        return glm::normalize(glm::vec3(transform.model[1]));
+    }
+    const glm::vec3 Forward() {
+        return glm::normalize(glm::vec3(transform.model[2]));
+    }
+
 private:
-    bool has_updated = false;
+    bool dirty = true;
 
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1);
     glm::quat rotation = glm::vec3(0);
+
+
     TransformData transform;
     glm::mat4 matrix = glm::mat4(1.0);
 

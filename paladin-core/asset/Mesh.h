@@ -5,20 +5,16 @@
 #ifndef PALADIN_MESH_H
 #define PALADIN_MESH_H
 #include <utility>
-
 #include "Asset.h"
 #include "AssetTraits.h"
 #include "AssetHandle.h"
 #include "Material.h"
 #include "Vertex.h"
 #include "glm/vec3.hpp"
+#include "utility/BoundingBox.h"
 
 
-struct AABB
-{
-    glm::vec3 min;
-    glm::vec3 max;
-};
+
 
 class MeshAsset: public Asset
 {

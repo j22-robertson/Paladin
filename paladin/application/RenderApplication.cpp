@@ -125,7 +125,7 @@ void RenderApplication::Setup() {
 
         application->m_camera.width = clamped_width;
         application->m_camera.height = clamped_height;
-        application->m_camera.aspect_ratio = (float)width/(float)height;
+        application->m_camera.aspect_ratio = (float)clamped_width/(float)clamped_height;
         application->window_width = clamped_width;
         application->window_height = clamped_height;
         application->m_render_context->OnResize(clamped_width,clamped_height);
@@ -226,8 +226,8 @@ void RenderApplication::Setup() {
 
 
     auto sponza_model = m_asset_registry->GetAsset<ModelAsset>(sponza);
-    for (int x = 1; x < 11; x++) {
-        for (int z =1; z < 11; z++) {
+    for (int x = 1; x < 3; x++) {
+        for (int z =1; z < 3; z++) {
             auto transform = Transform{};
             transform.SetPosition({x*5000,0,z*5000});
             transform.SetScale({1,1,1});
@@ -237,21 +237,28 @@ void RenderApplication::Setup() {
             for (int i = 0; i < sponza_model->meshes.size(); i++)
             {
                 const auto mesh = m_asset_registry->GetAsset<MeshAsset>(sponza_model->meshes[i]);
-                const auto& aabb = mesh->bounding_box;
-                auto size = aabb.max -aabb.min;
-                auto aabb_center = (aabb.max + aabb.min)*0.5f;
+                auto& aabb = mesh->bounding_box;
+                auto aabb_center = aabb.center;
                 auto position = transform.GetPosition()+aabb_center;
+
+                auto aabb_real_transform = Transform{};
+                aabb_real_transform.SetPosition(transform.GetPosition());
+                aabb_real_transform.SetScale(glm::vec3(1.0));
+                AABB_real_transforms.push_back(aabb_real_transform);
 
                 auto aabb_transform = Transform{};
                 aabb_transform.SetPosition(position);
-                aabb_transform.SetScale(glm::abs(size));
+                aabb_transform.SetScale(glm::abs(aabb.maximum-aabb.minimum));
+
+                AABB_transforms.push_back(aabb_transform);
                 frame_data.debug_aabb_transforms.push_back(aabb_transform.GetData());
+                AABBs.push_back(aabb);
             }
         }
     }
 
-    for (int x = 1; x < 11; x++) {
-        for (int z = 1; z <11; z++) {
+    for (int x = 1; x < 3; x++) {
+        for (int z = 1; z <3; z++) {
             auto transform = Transform{};
             transform.SetPosition({-x*5000,0,-z*5000});
             transform.SetScale({1,1,1});
@@ -265,13 +272,20 @@ void RenderApplication::Setup() {
 
 bool RenderApplication::Update(float delta_time) {
     m_camera.direction = glm::vec3(0.0);
-   // auto tf = &transforms[5];
-  //  tf->Rotate(Axis::X_AXIS,rot_test+=0.00001f * delta_time);
-  //  instancing_test_data[5] = tf->GetData();
-    auto& tf = transforms[99+4];
-    tf.Rotate(Axis::X_AXIS,rot_test+=0.00001f * delta_time);
+
+
+   // auto& tf = transforms[99+4];
+   // tf.Rotate(Axis::X_AXIS,rot_test+=0.00001f * delta_time);
     
-    frame_data.batches[1].transforms[3] = tf.GetData();
+    //frame_data.batches[1].transforms[3] = tf.GetData();
+/*
+    frame_data.debug_aabb_transforms.clear();
+    for (int i = 0; i < AABBs.size(); i++) {
+       // if (m_camera.IsOnFrustrum(AABBs[i],AABB_real_transforms[i])) {
+            frame_data.debug_aabb_transforms.push_back(AABB_transforms[i].GetData());
+       // }
+    }*/
+
     m_render_context->UpdateRenderFrameData(frame_data);
 
     double mouse_x;

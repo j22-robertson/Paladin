@@ -5,9 +5,7 @@
 
 #include <random>
 #include <span>
-
 #include "Vertex.h"
-#include "../../../cmake-build-debug/_deps/glm-src/glm/vec3.hpp"
 #include "asset-pipeline/AssetRegistry.h"
 #include "profiling/Profiling.h"
 
@@ -32,7 +30,7 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
 
     Assimp::Importer importer;
 
-    const aiScene* scene = importer.ReadFile(full_path.generic_string(), aiProcess_Triangulate|aiProcess_CalcTangentSpace|aiProcess_FlipUVs|aiProcess_GenBoundingBoxes);
+    const aiScene* scene = importer.ReadFile(full_path.generic_string(), aiProcess_Triangulate|aiProcess_CalcTangentSpace|aiProcess_GenBoundingBoxes|aiProcess_MakeLeftHanded|aiProcess_FlipUVs);
     if (!scene) return {};
     std::vector<AssetHandle<MaterialAsset>> materials = std::vector<AssetHandle<MaterialAsset>>();
 
@@ -86,7 +84,9 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
     mesh_count = scene->mNumMeshes;
     std::vector<std::uint32_t> mesh_to_mat;
     mesh_to_mat.resize(mesh_count);
-    auto meshes = ProcessNode(node, scene,mesh_to_mat,materials,file);
+
+    AABB model_aabb = {};
+    auto meshes = ProcessNode(node, scene,mesh_to_mat,materials,file,model_aabb);
 
     for (auto& mesh : meshes) {
         m_asset_registry->AddDependency(new_model_handle, mesh);
@@ -97,11 +97,11 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
     new_model->materials = std::move(materials);
     new_model->meshes = std::move(meshes);
     new_model->mesh_to_material = std::move(mesh_to_mat);
-
+    new_model->bounding_box = model_aabb;
     return new_model_handle;
 }
 
-std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene,std::vector<std::uint32_t>& mesh_to_mat, const std::span<AssetHandle<MaterialAsset>> materials, const std::string& file)
+std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* node, const aiScene* scene,std::vector<std::uint32_t>& mesh_to_mat, const std::span<AssetHandle<MaterialAsset>> materials, const std::string& file, AABB& model_aabb)
 {
     std::vector<AssetHandle<MeshAsset>> mesh_handles;
 
@@ -187,13 +187,29 @@ std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* nod
         }
         std::string name = mesh->mName.Empty() ? file  + ":" +" Mesh:" +std::to_string(i) : mesh->mName.C_Str();
 
-        AABB aabb = {};
+
 
         auto& min = mesh->mAABB.mMin;
-        aabb.min = glm::vec3(min.x, min.y, min.z);
+        if (model_aabb.minimum.x>min.x)
+            model_aabb.minimum.x = min.x;
+        if (model_aabb.minimum.y>min.y)
+            model_aabb.minimum.y = min.y;
+        if (model_aabb.minimum.z>min.z)
+            model_aabb.minimum.z = min.z;
+        auto min_extent = glm::vec3(min.x, min.y, min.z);
 
         auto& max = mesh->mAABB.mMax;
-        aabb.max = glm::vec3(max.x, max.y, max.z);
+        if (model_aabb.maximum.x<max.x)
+            model_aabb.maximum.x =max.x;
+        if (model_aabb.maximum.y<max.y)
+            model_aabb.maximum.y =max.y;
+        if (model_aabb.maximum.z<max.z)
+            model_aabb.maximum.z =max.z;
+
+        auto max_extent = glm::vec3(max.x, max.y, max.z);
+
+        auto aabb = AABB(min_extent,max_extent);
+
         auto mesh_handle = m_asset_registry->InsertAsset(std::make_unique<MeshAsset>(name,vertices,indices,materials[mesh->mMaterialIndex],aabb));
         mesh_handles.push_back(mesh_handle);
         mesh_to_mat[mesh_index] = mesh->mMaterialIndex;

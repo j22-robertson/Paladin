@@ -897,7 +897,7 @@ void D3D12Context::UpdateRenderFrameData(RenderFrameData &render_frame_data) {
     UINT8* destination = static_cast<UINT8*>(instance_data_destination) + (frame_index * aligned_bytes_per_buffer);
     std::uint32_t current_instance_count = 0;
     for (auto& batch : render_frame_data.batches) {
-        std::size_t total_bytes = sizeof(TransformData)*batch.transforms.size();
+        const std::size_t total_bytes = sizeof(TransformData)*batch.transforms.size();
         destination = destination + sizeof(TransformData)*current_instance_count;
         std::memcpy(destination, batch.transforms.data(), total_bytes);
         current_instance_count+=batch.transforms.size();

@@ -67,6 +67,9 @@ private:
 
     std::unique_ptr<AssetRegistry> m_asset_registry = nullptr;
     std::vector<Transform> transforms;
+    std::vector<Transform> AABB_transforms;
+    std::vector<Transform> AABB_real_transforms;
+    std::vector<AABB> AABBs;
     std::vector<TransformData> instancing_test_data;
 
     float rot_test = 0.0;

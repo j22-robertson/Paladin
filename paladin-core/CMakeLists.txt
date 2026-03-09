@@ -6,6 +6,7 @@ set(PALADIN_CORE_SOURCES
         paladin-core/Camera.h
         paladin-core/Transform.h
         ## UTILITY
+        paladin-core/utility/BoundingBox.h
         paladin-core/utility/StringHash.h
         paladin-core/utility/GenIndices.h
         # ASSET PIPELINE
