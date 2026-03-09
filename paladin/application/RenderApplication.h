@@ -64,6 +64,7 @@ private:
     GLFWwindow* window = nullptr;
 
     Camera m_camera{};
+    Camera frustum_test{};
 
     std::unique_ptr<AssetRegistry> m_asset_registry = nullptr;
     std::vector<Transform> transforms;

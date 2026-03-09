@@ -278,13 +278,16 @@ bool RenderApplication::Update(float delta_time) {
    // tf.Rotate(Axis::X_AXIS,rot_test+=0.00001f * delta_time);
     
     //frame_data.batches[1].transforms[3] = tf.GetData();
-/*
+
     frame_data.debug_aabb_transforms.clear();
     for (int i = 0; i < AABBs.size(); i++) {
-       // if (m_camera.IsOnFrustrum(AABBs[i],AABB_real_transforms[i])) {
+        if (frustum_test.IsOnFrustrum(AABBs[i],AABB_real_transforms[i])) {
             frame_data.debug_aabb_transforms.push_back(AABB_transforms[i].GetData());
-       // }
-    }*/
+        }
+    }
+    if (frame_data.debug_aabb_transforms.size() > 0) {
+        PALADIN_LOG(INFO,"Not culled:" + std::to_string(frame_data.debug_aabb_transforms.size()));
+    }
 
     m_render_context->UpdateRenderFrameData(frame_data);
 
@@ -313,6 +316,10 @@ bool RenderApplication::Update(float delta_time) {
     }
     if (Input::keys[GLFW_KEY_T]) {
         m_camera.direction.y=-1;
+    }
+
+    if (Input::keys[GLFW_KEY_O]) {
+       frustum_test = m_camera;
     }
     m_camera.Update(delta_time);
 

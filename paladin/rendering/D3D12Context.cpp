@@ -895,17 +895,15 @@ void D3D12Context::UpdateRenderFrameData(RenderFrameData &render_frame_data) {
 
     _frame_data = render_frame_data;
     UINT8* destination = static_cast<UINT8*>(instance_data_destination) + (frame_index * aligned_bytes_per_buffer);
-    std::uint32_t current_instance_count = 0;
+    std::size_t byte_offset = 0;
     for (auto& batch : render_frame_data.batches) {
         const std::size_t total_bytes = sizeof(TransformData)*batch.transforms.size();
-        destination = destination + sizeof(TransformData)*current_instance_count;
-        std::memcpy(destination, batch.transforms.data(), total_bytes);
-        current_instance_count+=batch.transforms.size();
+        std::memcpy(destination +byte_offset, batch.transforms.data(), total_bytes);
+        byte_offset+=total_bytes;
     }
     auto aabb_count = _frame_data.debug_aabb_transforms.size();
     std::size_t aabb_bytes = sizeof(TransformData)*aabb_count;
-    destination = destination + sizeof(TransformData)*current_instance_count;
-    std::memcpy(destination, _frame_data.debug_aabb_transforms.data(), aabb_bytes);
+    std::memcpy(destination + byte_offset, _frame_data.debug_aabb_transforms.data(), aabb_bytes);
 }
 
 
@@ -1485,7 +1483,8 @@ bool D3D12Context::UpdatePipeline()
         m_command_list->SetGraphicsRootSignature(m_bindless_root_signature.Get());
         m_command_list->SetDescriptorHeaps(1,heaps);
         m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
-
+        auto instance_data = InstanceData{.heap_offset = _frame_data.instance_buffer_id,.frame_offset =frame_index * aligned_bytes_per_buffer,.instance_offset = current_offset};
+        m_command_list->SetGraphicsRoot32BitConstants(3,3,&instance_data,0);
         m_command_list->DrawInstanced(24, _frame_data.debug_aabb_transforms.size(),0,current_offset);
 
         D3D12_RESOURCE_BARRIER imgui_transition_to_texture= {};
