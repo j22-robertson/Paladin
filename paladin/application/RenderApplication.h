@@ -73,6 +73,8 @@ private:
     std::vector<AABB> AABBs;
     std::vector<TransformData> instancing_test_data;
 
+    Scene scene;
+
     float rot_test = 0.0;
     RenderFrameData frame_data{};
     float m_elapsed_time = 0.0f;

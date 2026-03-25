@@ -6,6 +6,7 @@
 #define PALADIN_CAMERA_H
 #include "Transform.h"
 #include "glm/glm.hpp"
+#include "glm/gtc/matrix_access.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"
 #include "utility/BoundingBox.h"
@@ -13,6 +14,8 @@
 struct CameraUniform {
     glm::mat4 view = glm::mat4(1.0);
     glm::mat4 projection = glm::mat4(1.0);
+    glm::mat4 view_projection = glm::mat4(1.0);
+    glm::mat4 inv_view_projection = glm::mat4(1.0);
 };
 
 
@@ -34,7 +37,7 @@ public:
 
 
     void Update(const float delta) {
-        if (direction == glm::vec3(0.0f,0.0f,0.0f)) {
+        if (direction == glm::vec3(0.0f,0.0f,0.0f) && up_to_date) {
             return;
         }
         up_to_date=false;
@@ -42,12 +45,16 @@ public:
         auto mapped_direction = (direction.x*right+direction.y*up+ direction.z*forward);
         velocity = mapped_direction*speed;
         position +=velocity * delta;
+        GetUniform();
+        ViewFrustum();
     }
 
     const CameraUniform& GetUniform() {
         if (!up_to_date) {
             uniform.view = ViewMatrix();
             uniform.projection = GetProjection();
+            uniform.view_projection = uniform.projection * uniform.view;
+            uniform.inv_view_projection = glm::inverse(uniform.view_projection);
         }
         up_to_date = true;
         return uniform;
@@ -56,17 +63,19 @@ public:
 
     CameraUniform GetUniformMut()
     {
-        if (!up_to_date) {
+        //if (!up_to_date) {
             uniform.view = ViewMatrix();
             uniform.projection = GetProjection();
-        }
+            uniform.view_projection = uniform.projection * uniform.view;
+            uniform.inv_view_projection = glm::inverse(uniform.view_projection);
+       // }
         up_to_date = true;
         return uniform;
     }
 
     // Use X and Y mouse coordinates to rotate camera
     void LookAt(const float current_mouse_x, const float current_mouse_y) {
-        if (current_mouse_x == last_x && current_mouse_y == last_y) {
+        if (current_mouse_x == last_x && current_mouse_y == last_y && up_to_date) {
             return;
         }
         up_to_date = false;
@@ -85,22 +94,22 @@ public:
         last_x = current_mouse_x;
         last_y = current_mouse_y;
 
-        UpdateCameraVectors();
-        ViewFrustum();
+        forward.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        forward.y = sin(glm::radians(pitch));
+        forward.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        forward = glm::normalize(forward);
+        right = glm::normalize(glm::cross(forward,glm::vec3(0.0,1.0,0.0)));
+        up = glm::normalize(glm::cross(right,forward));
     }
 
     //https://iquilezles.org/articles/frustum/
 // https://learnopengl.com/Guest-Articles/2021/Scene/Frustum-Culling
     Frustum ViewFrustum() {
-        const auto& right_ =right;
-        const auto& up_ =up;
-        const auto& forward_ = forward;
-
-        auto m = uniform.projection*uniform.view;
-        glm::vec4 r0(m[0][0], m[1][0], m[2][0], m[3][0]);
-        glm::vec4 r1(m[0][1], m[1][1], m[2][1], m[3][1]);
-        glm::vec4 r2(m[0][2], m[1][2], m[2][2], m[3][2]);
-        glm::vec4 r3(m[0][3], m[1][3], m[2][3], m[3][3]);
+        auto m = uniform.view_projection;
+        glm::vec4 r0= glm::row(m,0);
+        glm::vec4 r1= glm::row(m,1);
+        glm::vec4 r2= glm::row(m,2);
+        glm::vec4 r3= glm::row(m,3);
         frustum.left_face = NormalizePlane(r3+r0);
         frustum.right_face= NormalizePlane(r3-r0);
 
@@ -112,14 +121,14 @@ public:
         return frustum;
     }
     // https://learnopengl.com/Guest-Articles/2021/Scene/Frustum-Culling
-    bool IsOnFrustrum(const AABB&  aabb,Transform& transform) {
-        const auto& transform_data = transform.GetData();
-        const auto& model_matrix = transform_data.model;
-        const glm::vec3 world_location = model_matrix * glm::vec4(aabb.center, 1.0f);
+    bool IsOnFrustrum(const AABB&  aabb,TransformData& transform) const {
+        const auto& model_matrix = transform.model;
+        //const glm::vec4 world_pos = model_matrix * glm::vec4(aabb.center, 1.0f);
+        const glm::vec3 world_location = model_matrix * glm::vec4(aabb.center, 1.0f);//glm::vec3(world_pos) / world_pos.w;
 
-        const glm::vec3 orientation_right = transform.Right() * aabb.extent.x;
-        const glm::vec3 orientation_up = transform.Up() * aabb.extent.y;
-        const glm::vec3 orientation_forward = transform.Forward() * aabb.extent.z;
+        const glm::vec3 orientation_right = glm::vec3(transform.model[0]) * aabb.extent.x;
+        const glm::vec3 orientation_up = glm::vec3(transform.model[1])* aabb.extent.y;
+        const glm::vec3 orientation_forward =glm::vec3(transform.model[2]) * aabb.extent.z;
 /*
         const float new_Ii = std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, orientation_right)) +
         std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, orientation_up)) +
@@ -135,7 +144,7 @@ public:
         float new_x = std::abs(orientation_right.x) + std::abs(orientation_up.x) + std::abs(orientation_forward.x);
         float new_y = std::abs(orientation_right.y) + std::abs(orientation_up.y) + std::abs(orientation_forward.y);
         float new_z = std::abs(orientation_right.z) + std::abs(orientation_up.z) + std::abs(orientation_forward.z);
-        const auto world_aabb = AABB(world_location, new_x,new_y, new_z);
+        const auto world_aabb = AABB(world_location, new_x,new_y,new_z);
 
         return (world_aabb.IsOnForwardPlane(frustum.left_face) &&
             world_aabb.IsOnForwardPlane(frustum.right_face) &&
@@ -145,14 +154,7 @@ public:
             world_aabb.IsOnForwardPlane(frustum.far_face));
     }
 
-    void UpdateCameraVectors() {
-        forward.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-        forward.y = sin(glm::radians(pitch));
-        forward.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-        forward = glm::normalize(forward);
-        right = glm::normalize(glm::cross(forward,glm::vec3(0.0,1.0,0.0)));
-        up = glm::normalize(glm::cross(right,forward));
-    }
+
 
     glm::vec3 velocity = glm::vec3(0.0);
 
@@ -181,8 +183,8 @@ private:
 
     float fov = 90.0f;
 
-    float z_near = 1.0f;
-    float z_far = 500000.0f;
+    float z_near = 0.5f;
+    float z_far = 6000.0f;
     Frustum frustum = {};
     [[nodiscard]] glm::mat4 RotationMatrix() const
     {

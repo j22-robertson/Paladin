@@ -28,3 +28,22 @@ void ForwardPass::Execute(ID3D12GraphicsCommandList8 *command_list, GPUResourceR
         current_offset += batch.transforms.size();
     }
 }
+
+void ForwardPass::ExecuteTest(ID3D12GraphicsCommandList8 *command_list, GPUResourceRegistry &registry, FrameUploadData& frame_data) {
+    PALADIN_SCOPED_CPU_PROFILE("ForwardPass::ExecuteTest", ProfileColors::Green);
+
+    for (const auto& e : frame_data.visible_meshes) {
+        auto instance_data = InstanceData{.heap_offset = frame_data.instance_buffer_id,
+            .frame_offset = frame_data.frame_index * frame_data.aligned_bytes_per_buffer,
+            .id_heap_index = frame_data.id_heap_index,
+            .instance_offset = e.instance_index};
+        command_list->SetGraphicsRoot32BitConstants(3,5,&instance_data,0);
+        auto mesh = registry.GetOpaque<GPUMesh>(e.mesh_handle);
+        auto material = registry.GetOpaque<GPUMaterial>(mesh->material);
+        auto albedo = registry.Get<GPUTexture2D>(material->albedo);
+        command_list->SetGraphicsRoot32BitConstants(2,1,&albedo->srv_handle.index,0);
+        command_list->IASetVertexBuffers(0,1,&mesh->vertex_buffer_view);
+        command_list->IASetIndexBuffer(&mesh->index_buffer_view);
+        command_list->DrawIndexedInstanced(mesh->indices, e.instance_count, 0, 0, 0);
+    }
+}

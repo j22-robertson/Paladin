@@ -8,10 +8,25 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Camera.h"
 #include "Transform.h"
 #include "asset/AssetHandle.h"
 
 struct ModelAsset;
+
+
+struct Scene {
+    struct SceneEntry {
+        AssetHandle<ModelAsset> model_handle;
+        std::uint32_t transform_index;
+        std::uint32_t transform_count;
+    };
+    std::vector<Transform> all_transforms;
+    std::vector<SceneEntry> model_entries;
+    std::vector<AssetHandle<ModelAsset>> all_models;
+    Camera camera;
+};
+
 
 struct RenderFrameData {
     struct ModelBatch {
@@ -26,6 +41,26 @@ struct RenderFrameData {
     std::uint32_t instance_buffer_id = 0;
     std::uint32_t frame_index = 0;
     std::uint32_t aligned_bytes_per_buffer = 0;
+    Camera camera;
+};
+
+struct FrameUploadData {
+    struct MeshDrawBatch {
+        OpaqueAssetHandle mesh_handle;
+        //OpaqueAssetHandle material_handle;
+        std::uint32_t instance_index;
+        std::uint32_t instance_count;
+    };
+    std::vector<TransformData> transforms;
+    std::vector<MeshDrawBatch> visible_meshes;
+
+    std::vector<std::uint32_t> instance_indices;
+    std::uint32_t instance_buffer_id = 0;
+    std::uint32_t frame_index = 0;
+    std::uint32_t aligned_bytes_per_buffer = 0;
+    std::uint32_t id_aligned_bytes = 0;
+    std::uint32_t id_heap_index = 0;
+    Camera camera;
 };
 
 inline void RenderFrameData::insert(AssetHandle<ModelAsset> model, Transform &transform) {

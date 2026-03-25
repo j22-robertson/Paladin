@@ -35,6 +35,7 @@ public:
     D3D12_INDEX_BUFFER_VIEW index_buffer_view;
     std::uint32_t indices;
     OpaqueAssetHandle material;
+    AABB aabb;
 };
 
 struct GPUMaterial: GPUResource

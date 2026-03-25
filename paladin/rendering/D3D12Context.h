@@ -42,6 +42,12 @@ struct MeshData {
     std::uint32_t material_id;
 };
 
+struct DrawData {
+    std::uint32_t mesh_index = -1;
+    std::uint32_t albedo = -1;
+    std::vector<std::uint32_t> transform_indices;
+};
+
 
 
 constexpr UINT FRAME_BUFFER_COUNT = 3;
@@ -55,11 +61,17 @@ public:
     CreateAllocation(
         const D3D12_RESOURCE_DESC& resource_desc, void* data);
 
+    void CreateVisibleInstanceIDBuffer();
+
+    void CrateVisibleInstanceIDBuffer();
+
     void CreatePersistantAllocation(CameraUniform uniform_data);
     void UpdatePersistantAllocation(CameraUniform uniform_data);
 
     void CreateInstanceBuffer();
     void UpdateInstanceBufferT(std::span<TransformData> instance_data);
+
+    void UpdateFrameData(FrameUploadData &render_frame_data);
 
     void UpdateRenderFrameData(RenderFrameData& render_frame_data);
     void OnResize(std::uint32_t new_width, std::uint32_t new_height) {
@@ -87,9 +99,9 @@ public:
     bool m_resized = false;
     int imgui_descriptor_index=0;
     ~D3D12Context();
-
-private:
     bool WaitForPreviousFrame();
+private:
+
     bool UpdatePipeline();
     void FlushDevice();
     bool Resize(std::uint32_t new_width, std::uint32_t new_height);
@@ -144,13 +156,19 @@ private:
     Microsoft::WRL::ComPtr<IDXGIAdapter1> m_adapter = nullptr;
 
     GPUResourceRegistry m_gpu_resources = GPUResourceRegistry();
-
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_instance_id_data=nullptr;
     Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_instance_data=nullptr;
     void* instance_data_destination = nullptr;
+    void* id_data_destination = nullptr;
     //std::uint32_t instance_buffer_index;
     std::uint32_t instance_count;
     std::uint32_t bytes_per_buffer;
     std::uint32_t aligned_bytes_per_buffer;
+
+    FrameUploadData temp_frame_data;
+
+
+    std::uint32_t temp_aligned_byes;
 
     std::uint32_t m_window_width;
     std::uint32_t m_window_height;
@@ -178,7 +196,7 @@ private:
     ViewHandle custom_rt_srv[3];
     ViewHandle camera_cbv;
     ViewHandle instance_buffer_view;
-
+    ViewHandle instance_id_view;
     D3D12_VIEWPORT m_viewport = {};
     D3D12_RECT m_scissor = {};
 

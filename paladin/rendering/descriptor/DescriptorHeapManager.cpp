@@ -47,7 +47,7 @@ ViewHandle DescriptorHeapManager::CreateRenderTargetView(ID3D12Device* device, s
             cpu_start.ptr += descriptor_size*heap->DescriptorCount();
             device->CreateRenderTargetView(resource, desc,cpu_start);
             heap->IncrementDescriptorCount();
-            return {index, hash,DescriptorHeapType::CBV_SRV_UAV};
+            return {index, hash,DescriptorHeapType::RTV};
         }
         return {};
 }
@@ -60,7 +60,7 @@ ViewHandle DescriptorHeapManager::CreateRenderTargetView(ID3D12Device* device, s
             const auto dest = heap->WriteDest();
             device->CreateDepthStencilView(resource, desc,dest);
             heap->IncrementDescriptorCount();
-            return {index, hash,DescriptorHeapType::CBV_SRV_UAV};
+            return {index, hash,DescriptorHeapType::DSV};
         }
         return {};
     }

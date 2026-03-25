@@ -45,6 +45,9 @@ public:
     template<typename T> requires IsPaladinAsset<T>
     T* GetAsset(AssetHandle<T> handle);
 
+    template<class T> requires IsPaladinAsset<T>
+    T *GetAsset(OpaqueAssetHandle handle);
+
     template<typename T> requires IsImportable<T>
     AssetHandle<T> ImportAsset(std::string file);
 
@@ -123,6 +126,17 @@ T* AssetRegistry::GetAsset(AssetHandle<T> handle) {
     }
     return nullptr;
 }
+template<typename T> requires IsPaladinAsset<T>
+T* AssetRegistry::GetAsset(OpaqueAssetHandle handle) {
+    if (handle.type_id != typeid(T).hash_code()) return nullptr;
+
+    AssetHandle<T> reconstructed_handle = {handle.inner};
+    if (auto manager = GetManager<T>(); manager != nullptr) {
+        return manager->GetAsset(reconstructed_handle);
+    }
+    return nullptr;
+}
+
 template<typename T> requires IsImportable<T>
 AssetHandle<T> AssetRegistry::ImportAsset(std::string file)
 {

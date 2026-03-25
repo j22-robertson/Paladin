@@ -44,7 +44,6 @@ public:
         gpu_pso.NumRenderTargets = 1;
         gpu_pso.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
         gpu_pso.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC2(D3D12_DEFAULT);
-        gpu_pso.DepthStencilState.DepthEnable = true;
         gpu_pso.DSVFormat = DXGI_FORMAT_D32_FLOAT;
         gpu_pso.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 

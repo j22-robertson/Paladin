@@ -10,6 +10,8 @@ class GPUResourceRegistry;
 struct InstanceData {
     std::uint32_t heap_offset;
     std::uint32_t frame_offset;
+    std::uint32_t id_heap_index;
+    std::uint32_t id_frame_offset;
     std::uint32_t instance_offset;
 };
 

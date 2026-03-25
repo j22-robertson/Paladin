@@ -64,7 +64,7 @@ public:
         return matrix;
     }
 
-    const TransformData& GetData() {
+     TransformData& GetData() {
         if (!dirty) return transform;
         glm::mat4 T = glm::translate(glm::mat4(1.0f),position);
         glm::mat4 R= glm::toMat4(rotation);

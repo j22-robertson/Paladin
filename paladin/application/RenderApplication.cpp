@@ -4,6 +4,8 @@
 
 #include "RenderApplication.h"
 
+#include <ranges>
+
 #include "Scene.h"
 #include "asset/Mesh.h"
 
@@ -27,6 +29,10 @@ void RenderApplication::run() {
         float delta_time = current_time - m_last_frame_time;
         m_elapsed_time += delta_time;
         m_last_frame_time = current_time;
+        if (!m_render_context->WaitForPreviousFrame()) {
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+            break;
+        }
         Update(delta_time);
         if (!m_render_context->Render())
         {
@@ -223,8 +229,12 @@ void RenderApplication::Setup() {
     //m_render_context->UploadModel(all_vertices, all_indices,mesh_ranges);
     m_render_context->CreatePersistantAllocation(m_camera.GetUniformMut());
     m_render_context->CreateInstanceBuffer();
+    m_render_context->CreateVisibleInstanceIDBuffer();
 
-
+    Scene::SceneEntry entry = {};
+    entry.model_handle = sponza;
+    entry.transform_index = scene.all_transforms.size();
+    entry.transform_count = 0;
     auto sponza_model = m_asset_registry->GetAsset<ModelAsset>(sponza);
     for (int x = 1; x < 3; x++) {
         for (int z =1; z < 3; z++) {
@@ -232,64 +242,35 @@ void RenderApplication::Setup() {
             transform.SetPosition({x*5000,0,z*5000});
             transform.SetScale({1,1,1});
             //instancing_test_data.push_back(transform.GetData());
-            frame_data.insert(sponza, transform);
-            transforms.push_back(transform);
-            for (int i = 0; i < sponza_model->meshes.size(); i++)
-            {
-                const auto mesh = m_asset_registry->GetAsset<MeshAsset>(sponza_model->meshes[i]);
-                auto& aabb = mesh->bounding_box;
-                auto aabb_center = aabb.center;
-                auto position = transform.GetPosition()+aabb_center;
+            //frame_data.insert(sponza, transform);
 
-                auto aabb_real_transform = Transform{};
-                aabb_real_transform.SetPosition(transform.GetPosition());
-                aabb_real_transform.SetScale(glm::vec3(1.0));
-                AABB_real_transforms.push_back(aabb_real_transform);
-
-                auto aabb_transform = Transform{};
-                aabb_transform.SetPosition(position);
-                aabb_transform.SetScale(glm::abs(aabb.maximum-aabb.minimum));
-
-                AABB_transforms.push_back(aabb_transform);
-                frame_data.debug_aabb_transforms.push_back(aabb_transform.GetData());
-                AABBs.push_back(aabb);
-            }
+            //transforms.push_back(transform);
+            scene.all_transforms.push_back(transform);
+            entry.transform_count++;
         }
     }
+    scene.model_entries.push_back(entry);
 
+    Scene::SceneEntry entry_two = {};
+    entry_two.model_handle = sponza_two;
+    entry_two.transform_index = scene.all_transforms.size();
+    entry_two.transform_count = 0;
     for (int x = 1; x < 3; x++) {
         for (int z = 1; z <3; z++) {
             auto transform = Transform{};
             transform.SetPosition({-x*5000,0,-z*5000});
             transform.SetScale({1,1,1});
-            frame_data.insert(sponza_two, transform);
-            transforms.push_back(transform);
+            scene.all_transforms.push_back(transform);
+            entry_two.transform_count++;
         }
     }
+    scene.model_entries.push_back(entry_two);
 
     //m_render_context->UploadFrameData(m_camera);
 }
 
 bool RenderApplication::Update(float delta_time) {
     m_camera.direction = glm::vec3(0.0);
-
-
-   // auto& tf = transforms[99+4];
-   // tf.Rotate(Axis::X_AXIS,rot_test+=0.00001f * delta_time);
-    
-    //frame_data.batches[1].transforms[3] = tf.GetData();
-
-    frame_data.debug_aabb_transforms.clear();
-    for (int i = 0; i < AABBs.size(); i++) {
-        if (frustum_test.IsOnFrustrum(AABBs[i],AABB_real_transforms[i])) {
-            frame_data.debug_aabb_transforms.push_back(AABB_transforms[i].GetData());
-        }
-    }
-    if (frame_data.debug_aabb_transforms.size() > 0) {
-        PALADIN_LOG(INFO,"Not culled:" + std::to_string(frame_data.debug_aabb_transforms.size()));
-    }
-
-    m_render_context->UpdateRenderFrameData(frame_data);
 
     double mouse_x;
     double mouse_y;
@@ -317,13 +298,84 @@ bool RenderApplication::Update(float delta_time) {
     if (Input::keys[GLFW_KEY_T]) {
         m_camera.direction.y=-1;
     }
-
-    if (Input::keys[GLFW_KEY_O]) {
-       frustum_test = m_camera;
-    }
     m_camera.Update(delta_time);
+    //m_camera.GetUniformMut();
+    if (Input::keys[GLFW_KEY_O]) {
+        frustum_test = m_camera;
+        frustum_test.GetUniformMut();
+    }
+
+
+    std::vector<ModelAsset*> models_to_draw;
+    std::vector<DrawData> draw_batches;
+
+/*
+    FrameUploadData frame_upload_data = {};
+    frame_upload_data.camera = m_camera;
+    std::unordered_map<AssetHandle<MeshAsset>, std::vector<std::uint32_t>> visible_instances;
+    for (auto& entry : scene.model_entries) {
+        auto model = m_asset_registry->GetAsset<ModelAsset>(entry.model_handle);
+        auto model_tranforms = std::span(scene.all_transforms.data()+entry.transform_index,entry.transform_count);
+        for (auto& transform : model_tranforms) {
+            auto transform_data = transform.GetData();
+            if (m_camera.IsOnFrustrum(model->bounding_box, transform.GetData())) {
+                for (int i = 0; i < model->meshes.size(); i++) {
+                    auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
+                    if (m_camera.IsOnFrustrum(mesh->bounding_box,transform_data)) {
+                        visible_instances[model->meshes[i]].push_back(frame_upload_data.transforms.size());
+                    }
+                }
+                frame_upload_data.transforms.push_back(transform_data);
+            }
+        }
+    }*/
+
+
+    FrameUploadData frame_upload_data = {};
+    frame_upload_data.camera = m_camera;
+    std::unordered_map<AssetHandle<MeshAsset>, std::vector<std::uint32_t>> visible_instances;
+    for (auto& entry : scene.model_entries) {
+        auto model = m_asset_registry->GetAsset<ModelAsset>(entry.model_handle);
+        auto model_tranforms = std::span(scene.all_transforms.data()+entry.transform_index,entry.transform_count);
+        for (auto& transform : model_tranforms) {
+            auto transform_data = transform.GetData();
+                for (int i = 0; i < model->meshes.size(); i++) {
+                    auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
+                    if (m_camera.IsOnFrustrum(mesh->bounding_box,transform_data)) {
+                        visible_instances[model->meshes[i]].push_back(frame_upload_data.transforms.size());
+                    }
+                }
+                frame_upload_data.transforms.push_back(transform_data);
+
+        }
+    }
+
+    for (auto[mesh_handle, visible_instance_indices] : visible_instances) {
+        if (visible_instance_indices.empty()) continue;
+        FrameUploadData::MeshDrawBatch draw_batch ={};
+        draw_batch.mesh_handle = mesh_handle;
+        draw_batch.instance_count= visible_instance_indices.size();
+        draw_batch.instance_index = frame_upload_data.instance_indices.size();
+        frame_upload_data.instance_indices.insert(frame_upload_data.instance_indices.end(), visible_instance_indices.begin(), visible_instance_indices.end());
+        frame_upload_data.visible_meshes.push_back(draw_batch);
+    }
+/*
+    for (int i = 0; i < AABBs.size(); i++) {
+        if (frustum_test.IsOnFrustrum(AABBs[i],AABB_real_transforms[i].GetData())) {
+            frame_data.debug_aabb_transforms.push_back(AABB_transforms[i].GetData());
+        }
+    }
+    if (frame_data.debug_aabb_transforms.size() > 0) {
+        PALADIN_LOG(INFO,"Not culled:" + std::to_string(frame_data.debug_aabb_transforms.size()));
+    }*/
+
+    //frame_data.camera = m_camera;
+    //m_render_context->UpdateRenderFrameData(frame_data);
+
 
     m_render_context->UpdatePersistantAllocation(m_camera.GetUniformMut());
+    m_render_context->UpdateFrameData(frame_upload_data);
+
 
     //PALADIN_LOG(INFO, "Mouse X:" + std::to_string(mouse_x) + " Mouse Y:" + std::to_string(mouse_y));
 

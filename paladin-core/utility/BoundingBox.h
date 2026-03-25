@@ -25,7 +25,7 @@ struct Plane {
 
 inline Plane NormalizePlane(glm::vec4 p) {
     float mag = glm::length(glm::vec3(p));
-    return Plane(glm::vec3(p) / mag, p.w / mag);
+    return Plane{glm::vec3(p) / mag, p.w / mag};
 }
 struct AABB
 {
@@ -50,10 +50,11 @@ struct AABB
         center = (maximum+minimum)*0.5f;
         extent = {maximum.x-center.x,maximum.y-center.y,maximum.z-center.z};
     }
+
     bool IsOnForwardPlane(const Plane& plane) const {
         const float r = extent.x * std::abs(plane.normal.x) +
           extent.y * std::abs(plane.normal.y) + extent.z * std::abs(plane.normal.z);
-        return plane.SDFToPlane(center)>=-r;
+        return plane.SDFToPlane(center)>=(-r-0.01f);
     }
     glm::vec3 minimum = MAX_VEC3();
     glm::vec3 maximum = MIN_VEC3();

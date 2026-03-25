@@ -97,6 +97,7 @@ AssetHandle<ModelAsset> ModelImporter::LoadAsset(std::string file)
     new_model->materials = std::move(materials);
     new_model->meshes = std::move(meshes);
     new_model->mesh_to_material = std::move(mesh_to_mat);
+    model_aabb = AABB(model_aabb.minimum, model_aabb.maximum);
     new_model->bounding_box = model_aabb;
     return new_model_handle;
 }
@@ -114,9 +115,6 @@ std::vector<AssetHandle<MeshAsset>> ModelImporter::ProcessNode(const aiNode* nod
         aiMesh* mesh = scene->mMeshes[mesh_index];
 
         vertices.resize(mesh->mNumVertices);
-
-
-
 
         for (int j = 0; j < mesh->mNumVertices; j++)
         {
