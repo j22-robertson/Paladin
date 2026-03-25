@@ -276,35 +276,36 @@ bool RenderApplication::Update(float delta_time) {
     double mouse_y;
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
 
-    m_camera.LookAt(mouse_x,mouse_y);
+    //m_camera.LookAt(mouse_x,mouse_y);
 
-
-
+    glm::vec3 direction = glm::vec3(0.0);
     if (Input::keys[GLFW_KEY_W]) {
-        m_camera.direction.z =1;
+        direction.z =1;
     }
     if (Input::keys[GLFW_KEY_S]) {
-        m_camera.direction.z =-1;
+        direction.z =-1;
     }
     if (Input::keys[GLFW_KEY_D]) {
-        m_camera.direction.x =1;
+        direction.x =1;
     }
     if (Input::keys[GLFW_KEY_A]) {
-        m_camera.direction.x=-1;
+        direction.x=-1;
     }
     if (Input::keys[GLFW_KEY_R]) {
-        m_camera.direction.y=1;
+        direction.y=1;
     }
     if (Input::keys[GLFW_KEY_T]) {
-        m_camera.direction.y=-1;
+       direction.y=-1;
     }
-    m_camera.Update(delta_time);
+
     //m_camera.GetUniformMut();
     if (Input::keys[GLFW_KEY_O]) {
         frustum_test = m_camera;
-        frustum_test.GetUniformMut();
+        frustum_test.direction = direction;
+        frustum_test.FullUpdate(delta_time, mouse_x, mouse_y);
     }
-
+    m_camera.direction =direction;
+    m_camera.FullUpdate(delta_time, mouse_x, mouse_y);
 
     std::vector<ModelAsset*> models_to_draw;
     std::vector<DrawData> draw_batches;
@@ -329,6 +330,12 @@ bool RenderApplication::Update(float delta_time) {
             }
         }
     }*/
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<std::uint32_t> dis(0, 5);
+
+    auto rand_int = dis(gen);
 
 
     FrameUploadData frame_upload_data = {};

@@ -36,6 +36,7 @@ void ForwardPass::ExecuteTest(ID3D12GraphicsCommandList8 *command_list, GPUResou
         auto instance_data = InstanceData{.heap_offset = frame_data.instance_buffer_id,
             .frame_offset = frame_data.frame_index * frame_data.aligned_bytes_per_buffer,
             .id_heap_index = frame_data.id_heap_index,
+            .id_frame_offset = frame_data.frame_index * frame_data.id_aligned_bytes,
             .instance_offset = e.instance_index};
         command_list->SetGraphicsRoot32BitConstants(3,5,&instance_data,0);
         auto mesh = registry.GetOpaque<GPUMesh>(e.mesh_handle);

@@ -49,6 +49,7 @@ VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
 	ByteAddressBuffer identifier_buffer= ResourceDescriptorHeap[instance.id_heap_index];
 	uint id_address = instance.id_frame_offset+((instance_id+instance.instance_offset)*4);
 	uint transform_id = identifier_buffer.Load(id_address);
+	//uint transform_id = instance_id;
     uint model_address = instance.frame_offset + (transform_id * 128);
     uint inv_model_address = model_address+64;
 

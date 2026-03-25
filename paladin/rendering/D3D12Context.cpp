@@ -569,13 +569,7 @@ bool D3D12Context::Render()
 {
     PALADIN_SCOPED_CPU_PROFILE("D3D12Context::Render", ProfileColors::Red);
     PALADIN_BEGIN_GPU_PROFILE(m_command_queue.Get(), ProfileColors::Green, "D3D12Context::Render")
-    /*if (!WaitForPreviousFrame())
-    {
-        return false;
-    }*/
-
     if (m_resized)  Resize(m_window_width,m_window_height);
-
     TracyD3D12Collect(m_tracy_context)
     TracyD3D12NewFrame(m_tracy_context)
 /*
@@ -880,7 +874,7 @@ void D3D12Context::CreateVisibleInstanceIDBuffer() {
 void D3D12Context::CreateInstanceBuffer() {
     std::size_t bytes_per_buffer = sizeof(TransformData)* MAX_INSTANCES;
     aligned_bytes_per_buffer = (bytes_per_buffer + 255) & ~255;
-    UINT aligned_size =aligned_bytes_per_buffer * FRAME_BUFFER_COUNT;
+    UINT aligned_size =(aligned_bytes_per_buffer * FRAME_BUFFER_COUNT)+ 255 & ~255;;
 
 
     auto instance_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(aligned_size);

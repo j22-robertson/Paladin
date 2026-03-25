@@ -54,7 +54,7 @@ struct AABB
     bool IsOnForwardPlane(const Plane& plane) const {
         const float r = extent.x * std::abs(plane.normal.x) +
           extent.y * std::abs(plane.normal.y) + extent.z * std::abs(plane.normal.z);
-        return plane.SDFToPlane(center)>=(-r-0.01f);
+        return -r<=plane.SDFToPlane(center);
     }
     glm::vec3 minimum = MAX_VEC3();
     glm::vec3 maximum = MIN_VEC3();

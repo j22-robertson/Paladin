@@ -45,8 +45,14 @@ public:
         auto mapped_direction = (direction.x*right+direction.y*up+ direction.z*forward);
         velocity = mapped_direction*speed;
         position +=velocity * delta;
-        GetUniform();
-        ViewFrustum();
+        //GetUniform();
+       // ViewFrustum();
+    }
+
+    void FullUpdate(const float delta, float mouse_x, float mouse_y) {
+        LookAt(mouse_x,mouse_y);
+        Update(delta);
+        Sync();
     }
 
     const CameraUniform& GetUniform() {
@@ -55,6 +61,19 @@ public:
             uniform.projection = GetProjection();
             uniform.view_projection = uniform.projection * uniform.view;
             uniform.inv_view_projection = glm::inverse(uniform.view_projection);
+            auto m = uniform.view_projection;
+            glm::vec4 r0= glm::row(m,0);
+            glm::vec4 r1= glm::row(m,1);
+            glm::vec4 r2= glm::row(m,2);
+            glm::vec4 r3= glm::row(m,3);
+            frustum.left_face = NormalizePlane(r3+r0);
+            frustum.right_face= NormalizePlane(r3-r0);
+
+            frustum.bottom_face = NormalizePlane(r3+r1);
+            frustum.top_face = NormalizePlane(r3-r1);
+
+            frustum.near_face = NormalizePlane(r2);
+            frustum.far_face = NormalizePlane(r3-r2);
         }
         up_to_date = true;
         return uniform;
@@ -63,14 +82,52 @@ public:
 
     CameraUniform GetUniformMut()
     {
-        //if (!up_to_date) {
+        if (!up_to_date) {
             uniform.view = ViewMatrix();
             uniform.projection = GetProjection();
             uniform.view_projection = uniform.projection * uniform.view;
             uniform.inv_view_projection = glm::inverse(uniform.view_projection);
-       // }
+            auto m = uniform.view_projection;
+            glm::vec4 r0= glm::row(m,0);
+            glm::vec4 r1= glm::row(m,1);
+            glm::vec4 r2= glm::row(m,2);
+            glm::vec4 r3= glm::row(m,3);
+            frustum.left_face = NormalizePlane(r3+r0);
+            frustum.right_face= NormalizePlane(r3-r0);
+
+            frustum.bottom_face = NormalizePlane(r3+r1);
+            frustum.top_face = NormalizePlane(r3-r1);
+
+            frustum.near_face = NormalizePlane(r2);
+            frustum.far_face = NormalizePlane(r3-r2);
+        }
         up_to_date = true;
         return uniform;
+    }
+
+    void Sync() {
+
+        if (!up_to_date) {
+            uniform.view = ViewMatrix();
+            uniform.projection = GetProjection();
+            uniform.view_projection = uniform.projection * uniform.view;
+            uniform.inv_view_projection = glm::inverse(uniform.view_projection);
+
+            auto m = uniform.view_projection;
+            glm::vec4 r0= glm::row(m,0);
+            glm::vec4 r1= glm::row(m,1);
+            glm::vec4 r2= glm::row(m,2);
+            glm::vec4 r3= glm::row(m,3);
+            frustum.left_face = NormalizePlane(r3+r0);
+            frustum.right_face= NormalizePlane(r3-r0);
+
+            frustum.bottom_face = NormalizePlane(r3+r1);
+            frustum.top_face = NormalizePlane(r3-r1);
+
+            frustum.near_face = NormalizePlane(r2);
+            frustum.far_face = NormalizePlane(r3-r2);
+        }
+        up_to_date = true;
     }
 
     // Use X and Y mouse coordinates to rotate camera
@@ -105,19 +162,21 @@ public:
     //https://iquilezles.org/articles/frustum/
 // https://learnopengl.com/Guest-Articles/2021/Scene/Frustum-Culling
     Frustum ViewFrustum() {
-        auto m = uniform.view_projection;
-        glm::vec4 r0= glm::row(m,0);
-        glm::vec4 r1= glm::row(m,1);
-        glm::vec4 r2= glm::row(m,2);
-        glm::vec4 r3= glm::row(m,3);
-        frustum.left_face = NormalizePlane(r3+r0);
-        frustum.right_face= NormalizePlane(r3-r0);
+        if (!up_to_date) {
+            auto m = uniform.view_projection;
+            glm::vec4 r0= glm::row(m,0);
+            glm::vec4 r1= glm::row(m,1);
+            glm::vec4 r2= glm::row(m,2);
+            glm::vec4 r3= glm::row(m,3);
+            frustum.left_face = NormalizePlane(r3+r0);
+            frustum.right_face= NormalizePlane(r3-r0);
 
-        frustum.bottom_face = NormalizePlane(r3+r1);
-        frustum.top_face = NormalizePlane(r3-r1);
+            frustum.bottom_face = NormalizePlane(r3+r1);
+            frustum.top_face = NormalizePlane(r3-r1);
 
-        frustum.near_face = NormalizePlane(r2);
-        frustum.far_face = NormalizePlane(r3-r2);
+            frustum.near_face = NormalizePlane(r2);
+            frustum.far_face = NormalizePlane(r3-r2);
+        }
         return frustum;
     }
     // https://learnopengl.com/Guest-Articles/2021/Scene/Frustum-Culling
@@ -184,7 +243,7 @@ private:
     float fov = 90.0f;
 
     float z_near = 0.5f;
-    float z_far = 6000.0f;
+    float z_far = 60000.0f;
     Frustum frustum = {};
     [[nodiscard]] glm::mat4 RotationMatrix() const
     {
