@@ -3,6 +3,7 @@ set(PALADIN_SOURCES
         #UTILS
         paladin/rendering/render-utils/DXShader.h
         paladin/rendering/render-utils/PipelineState.h
+        paladin/rendering/GPUBufferEntry.h
         #Descriptor
         paladin/rendering/descriptor/DescriptorHeap.cpp
         paladin/rendering/descriptor/DescriptorHeap.h

@@ -236,8 +236,8 @@ void RenderApplication::Setup() {
     entry.transform_index = scene.all_transforms.size();
     entry.transform_count = 0;
     auto sponza_model = m_asset_registry->GetAsset<ModelAsset>(sponza);
-    for (int x = 1; x < 3; x++) {
-        for (int z =1; z < 3; z++) {
+    for (int x = 1; x < 15; x++) {
+        for (int z =1; z < 15; z++) {
             auto transform = Transform{};
             transform.SetPosition({x*5000,0,z*5000});
             transform.SetScale({1,1,1});
@@ -255,8 +255,8 @@ void RenderApplication::Setup() {
     entry_two.model_handle = sponza_two;
     entry_two.transform_index = scene.all_transforms.size();
     entry_two.transform_count = 0;
-    for (int x = 1; x < 3; x++) {
-        for (int z = 1; z <3; z++) {
+    for (int x = 1; x < 15; x++) {
+        for (int z = 1; z <15; z++) {
             auto transform = Transform{};
             transform.SetPosition({-x*5000,0,-z*5000});
             transform.SetScale({1,1,1});
@@ -346,6 +346,9 @@ bool RenderApplication::Update(float delta_time) {
         auto model_tranforms = std::span(scene.all_transforms.data()+entry.transform_index,entry.transform_count);
         for (auto& transform : model_tranforms) {
             auto transform_data = transform.GetData();
+            if (m_camera.IsOnFrustrum(model->bounding_box, transform_data)) {
+
+
                 for (int i = 0; i < model->meshes.size(); i++) {
                     auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
                     if (m_camera.IsOnFrustrum(mesh->bounding_box,transform_data)) {
@@ -353,7 +356,7 @@ bool RenderApplication::Update(float delta_time) {
                     }
                 }
                 frame_upload_data.transforms.push_back(transform_data);
-
+            }
         }
     }
 

@@ -26,7 +26,6 @@ struct ViewHandle
     std::uint32_t index=0;
     // The identifier for the heap the view exists in
     std::uint32_t heap_identifier =0;
-
     DescriptorHeapType type=DescriptorHeapType::UNINITIALIZED;
 };
 

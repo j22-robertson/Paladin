@@ -29,6 +29,7 @@
 #include "resource/GPUResourceRegistry.h"
 #include "resource/ResourceManager.h"
 #include "ForwardPass.h"
+#include "GPUBufferEntry.h"
 #include "descriptor/DescriptorHeap.h"
 #include "descriptor/DescriptorHeapManager.h"
 
@@ -48,6 +49,25 @@ struct DrawData {
     std::vector<std::uint32_t> transform_indices;
 };
 
+
+
+struct SceneFrameData {
+    std::uint32_t camera_identifier;
+    std::uint32_t frame_index;
+    float delta_time;
+
+    /*
+    std::uint32_t lights_identifier;
+    std::uint32_t environment_map;*/
+};
+
+struct TestPerFrameData{
+    std::uint32_t frame_index;
+    std::uint32_t ib_buffer_bytes;
+    std::uint32_t ib_heap_index;
+    std::uint32_t draw_id_buffer_bytes;
+    std::uint32_t draw_id_heap_index;
+};
 
 
 constexpr UINT FRAME_BUFFER_COUNT = 3;
@@ -70,6 +90,7 @@ public:
 
     void CreateInstanceBuffer();
     void UpdateInstanceBufferT(std::span<TransformData> instance_data);
+
 
     void UpdateFrameData(FrameUploadData &render_frame_data);
 
@@ -162,8 +183,8 @@ private:
     void* id_data_destination = nullptr;
     //std::uint32_t instance_buffer_index;
     std::uint32_t instance_count;
-    std::uint32_t bytes_per_buffer;
-    std::uint32_t aligned_bytes_per_buffer;
+    //std::uint32_t bytes_per_buffer;
+    //std::uint32_t aligned_bytes_per_buffer;
 
     FrameUploadData temp_frame_data;
 
@@ -195,8 +216,13 @@ private:
     ViewHandle depth_views[3];
     ViewHandle custom_rt_srv[3];
     ViewHandle camera_cbv;
+
     ViewHandle instance_buffer_view;
+    GPUBufferEntry instance_buffer_entry;
+
     ViewHandle instance_id_view;
+    GPUBufferEntry instance_draw_id_entry;
+
     D3D12_VIEWPORT m_viewport = {};
     D3D12_RECT m_scissor = {};
 
@@ -211,4 +237,6 @@ private:
 #endif
 
 };
+
+
 #endif //PALADIN_D3DX12CONTEXT_H

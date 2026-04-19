@@ -7,6 +7,7 @@
 #include <iostream>
 #include <ostream>
 
+#include "GPUBufferEntry.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_internal.h"
 
@@ -120,6 +121,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     swap_chain_desc.OutputWindow = hwnd;
     swap_chain_desc.SampleDesc = sample_desc;
     swap_chain_desc.Windowed = true;
+    swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
 
 
@@ -325,14 +327,21 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     srv_ranges[0].OffsetInDescriptorsFromTableStart = 0;
     srv_ranges[0].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
-    D3D12_ROOT_PARAMETER1 bindless_params[4];
+    D3D12_ROOT_PARAMETER1 bindless_params[5];
 
     D3D12_ROOT_PARAMETER1 instance_constant_parameter{};
     instance_constant_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
     instance_constant_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
     instance_constant_parameter.Constants.ShaderRegister = 2;
     instance_constant_parameter.Constants.RegisterSpace = 0;
-    instance_constant_parameter.Constants.Num32BitValues = 5;
+    instance_constant_parameter.Constants.Num32BitValues = 1;
+
+    D3D12_ROOT_PARAMETER1 frame_data_parameter{};
+    frame_data_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    frame_data_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+    frame_data_parameter.Constants.ShaderRegister = 3;
+    frame_data_parameter.Constants.RegisterSpace = 0;
+    frame_data_parameter.Constants.Num32BitValues = 5;
 
     D3D12_ROOT_PARAMETER1 mesh_constant_parameter{};
     mesh_constant_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
@@ -356,12 +365,13 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     bindless_params[0] = b_camera_root_parameter;
     bindless_params[2] = mesh_constant_parameter;
     bindless_params[3] = instance_constant_parameter;
+    bindless_params[4] = frame_data_parameter;
 
     CD3DX12_STATIC_SAMPLER_DESC samplers[1] ={};
     samplers[0].Init(0,D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP);
 
     bindless_root_signature_desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-    bindless_root_signature_desc.Desc_1_1.NumParameters = 4;
+    bindless_root_signature_desc.Desc_1_1.NumParameters = 5;
     bindless_root_signature_desc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED| D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
     bindless_root_signature_desc.Desc_1_1.pParameters = bindless_params;
     bindless_root_signature_desc.Desc_1_1.NumStaticSamplers = 1;
@@ -483,11 +493,11 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     aabb_state->gpu_pso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
     if (auto hr = m_device->CreateGraphicsPipelineState(&aabb_state->gpu_pso,IID_PPV_ARGS(&aabb_pipeline)); SUCCEEDED(hr))
     {
-        PALADIN_LOG(INFO, "Successfully created TEST pipeline state")
+        PALADIN_LOG(INFO, "Successfully created AABB pipeline state")
     }
     else if (FAILED(hr))
     {
-        PALADIN_LOG(ERR, ErrorResult("Failed to create Test pipeline state.", hr))
+        PALADIN_LOG(ERR, ErrorResult("Failed to create AABB pipeline state.", hr))
     }
     m_command_list->Close();
 
@@ -654,7 +664,7 @@ bool D3D12Context::Render()
             return false;
         }
 
-        if (auto hr = m_swap_chain->Present(0,0); FAILED(hr))
+        if (auto hr = m_swap_chain->Present(0,DXGI_PRESENT_ALLOW_TEARING); FAILED(hr))
         {
             PALADIN_LOG(ERR, ErrorResult("Failed to present swap chain", hr))
             return false;
@@ -829,9 +839,11 @@ nullptr);
 }
 
 void D3D12Context::CreateVisibleInstanceIDBuffer() {
+
     std::size_t bytes_ = sizeof(std::uint32_t)* MAX_INSTANCES;
     temp_aligned_byes = (bytes_ + 255) & ~255;
     UINT aligned_size =temp_aligned_byes * FRAME_BUFFER_COUNT;
+
 
 
     auto _buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(aligned_size);
@@ -869,15 +881,18 @@ void D3D12Context::CreateVisibleInstanceIDBuffer() {
     srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
 
     instance_id_view = m_descriptor_heap.CreateShaderResourceView(m_device.Get(), PALADIN_HASH("BINDLESS"), m_instance_id_data->GetResource(), &srv_desc);
+
+    instance_draw_id_entry.aligned_size_bytes = temp_aligned_byes;
+    instance_draw_id_entry.heap_identifier = instance_id_view.index;
 }
 
 void D3D12Context::CreateInstanceBuffer() {
     std::size_t bytes_per_buffer = sizeof(TransformData)* MAX_INSTANCES;
-    aligned_bytes_per_buffer = (bytes_per_buffer + 255) & ~255;
-    UINT aligned_size =(aligned_bytes_per_buffer * FRAME_BUFFER_COUNT)+ 255 & ~255;;
+    instance_buffer_entry.aligned_size_bytes = (bytes_per_buffer + 255) & ~255;
+    UINT aligned_size_total =(instance_buffer_entry.aligned_size_bytes * FRAME_BUFFER_COUNT)+ 255 & ~255;
 
 
-    auto instance_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(aligned_size);
+    auto instance_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(aligned_size_total);
 
     HRESULT hr;
     D3D12MA::ALLOCATION_DESC upload_allocation_desc = {};
@@ -907,11 +922,13 @@ void D3D12Context::CreateInstanceBuffer() {
     srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
     srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
     srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srv_desc.Buffer.NumElements = aligned_size/4;
+    srv_desc.Buffer.NumElements = aligned_size_total/4;
     srv_desc.Buffer.StructureByteStride = 0;
     srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
 
     instance_buffer_view = m_descriptor_heap.CreateShaderResourceView(m_device.Get(), PALADIN_HASH("BINDLESS"), m_instance_data->GetResource(), &srv_desc);
+
+    instance_buffer_entry.heap_identifier= instance_buffer_view.index;
 }
 
 
@@ -925,18 +942,18 @@ void D3D12Context::UpdateInstanceBufferT(std::span<TransformData> instance_data)
 
 
 void D3D12Context::UpdateFrameData(FrameUploadData &render_frame_data) {
-
-    render_frame_data.aligned_bytes_per_buffer = aligned_bytes_per_buffer;
+    //TODO: REFACTOR AT SOME POINT
+    render_frame_data.aligned_bytes_per_buffer = instance_buffer_entry.aligned_size_bytes;
     render_frame_data.frame_index = frame_index;
     render_frame_data.instance_buffer_id = instance_buffer_view.index;
     render_frame_data.id_aligned_bytes = temp_aligned_byes;
     render_frame_data.id_heap_index = instance_id_view.index;
     temp_frame_data = render_frame_data;
 
-    UINT8* destination = static_cast<UINT8*>(instance_data_destination) + (frame_index * aligned_bytes_per_buffer);
+    UINT8* destination = static_cast<UINT8*>(instance_data_destination) + (frame_index * instance_buffer_entry.aligned_size_bytes);
     std::memcpy(destination, render_frame_data.transforms.data(), sizeof(TransformData)*render_frame_data.transforms.size());
 
-    UINT8* id_destination = static_cast<UINT8*>(id_data_destination) + (frame_index * temp_aligned_byes);
+    UINT8* id_destination = static_cast<UINT8*>(id_data_destination) + (frame_index * instance_draw_id_entry.aligned_size_bytes);
     std::memcpy(id_destination, render_frame_data.instance_indices.data(), sizeof(std::uint32_t)*render_frame_data.instance_indices.size());
 }
 
@@ -1307,6 +1324,7 @@ bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
 
 
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
+
     if (auto hr = m_swap_chain->GetDesc1(&swap_chain_desc); FAILED(hr)) {
         PALADIN_LOG(ERR, ErrorResult("Failed to get swap chain desc on resize", hr))
         return false;
@@ -1527,6 +1545,16 @@ bool D3D12Context::UpdatePipeline()
 
         m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         std::uint32_t current_offset = 0;
+
+        TestPerFrameData pfd = {
+            .frame_index = frame_index,
+            .ib_buffer_bytes = instance_buffer_entry.aligned_size_bytes,
+            .ib_heap_index = instance_buffer_entry.heap_identifier,
+            .draw_id_buffer_bytes = instance_draw_id_entry.aligned_size_bytes,
+            .draw_id_heap_index = instance_draw_id_entry.heap_identifier,
+        };
+
+        m_command_list->SetGraphicsRoot32BitConstants(4,5,&pfd,0);
         ForwardPass forward_pass{};
         {
             PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Forward Pass", ProfileColors::Green)
@@ -1548,7 +1576,12 @@ bool D3D12Context::UpdatePipeline()
         m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
         m_command_list->IASetVertexBuffers(0,0,nullptr);
         m_command_list->IASetIndexBuffer(nullptr);
-        auto instance_data = InstanceData{.heap_offset = _frame_data.instance_buffer_id,.frame_offset =frame_index * aligned_bytes_per_buffer,.instance_offset = current_offset};
+        auto instance_data = InstanceData{
+            .heap_offset = _frame_data.instance_buffer_id,
+            .frame_offset =frame_index * instance_buffer_entry.aligned_size_bytes,
+            .instance_offset = current_offset
+        };
+
         m_command_list->SetGraphicsRoot32BitConstants(3,5,&instance_data,0);
         m_command_list->DrawInstanced(24, 1,0,0);
 

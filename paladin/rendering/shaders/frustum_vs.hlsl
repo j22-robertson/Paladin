@@ -1,8 +1,8 @@
 
 cbuffer Camera : register(b0)
 {
-     float4x4 view;
-     float4x4 projection;
+    float4x4 view;
+    float4x4 projection;
     float4x4 view_projection;
     float4x4 inv_view_projection;
 }

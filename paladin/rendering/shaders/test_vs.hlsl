@@ -19,6 +19,14 @@ cbuffer Camera : register(b0)
 	float4x4 inv_view_projection;
 }
 
+struct PerFrameData{
+	uint frame_index;
+	uint ib_buffer_bytes;
+	uint ib_heap_index;
+	uint draw_id_buffer_bytes;
+	uint draw_id_heap_index;
+};
+
 struct VS_OUTPUT
 {
     float4 pos : SV_POSITION;
@@ -38,19 +46,25 @@ struct InstanceData
     uint instance_offset;
 };
 
-struct
+struct InstanceOffset{
+	uint offset;
+};
 
-ConstantBuffer<InstanceData> instance : register(b2);
+
+ConstantBuffer<InstanceOffset> instance_offset : register(b2);
+ConstantBuffer<PerFrameData> frame_data : register(b3);
 
 VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
 {
     VS_OUTPUT output = (VS_OUTPUT)0;
-    ByteAddressBuffer instance_buffer= ResourceDescriptorHeap[instance.heap_index];
-	ByteAddressBuffer identifier_buffer= ResourceDescriptorHeap[instance.id_heap_index];
-	uint id_address = instance.id_frame_offset+((instance_id+instance.instance_offset)*4);
+    ByteAddressBuffer instance_buffer= ResourceDescriptorHeap[frame_data.ib_heap_index];
+
+	ByteAddressBuffer identifier_buffer= ResourceDescriptorHeap[frame_data.draw_id_heap_index];
+
+	uint id_address = frame_data.draw_id_buffer_bytes*frame_data.frame_index+((instance_id+instance_offset.offset)*4);
 	uint transform_id = identifier_buffer.Load(id_address);
 	//uint transform_id = instance_id;
-    uint model_address = instance.frame_offset + (transform_id * 128);
+    uint model_address = frame_data.ib_buffer_bytes*frame_data.frame_index + (transform_id * 128);
     uint inv_model_address = model_address+64;
 
     //Opposite order because byte addres buffer implicitly transposes to row_major
@@ -65,7 +79,7 @@ VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
 
     //float4 view_pos = mul(view, world_pos);
    // output.pos = mul(projection,view_pos);
-output.pos = mul(view_projection,world_pos);
+	output.pos = mul(view_projection,world_pos);
     output.color = input.color;
     output.normal = normal;
     output.tangent = tangent;

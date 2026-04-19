@@ -33,12 +33,13 @@ void ForwardPass::ExecuteTest(ID3D12GraphicsCommandList8 *command_list, GPUResou
     PALADIN_SCOPED_CPU_PROFILE("ForwardPass::ExecuteTest", ProfileColors::Green);
 
     for (const auto& e : frame_data.visible_meshes) {
+        /*
         auto instance_data = InstanceData{.heap_offset = frame_data.instance_buffer_id,
             .frame_offset = frame_data.frame_index * frame_data.aligned_bytes_per_buffer,
             .id_heap_index = frame_data.id_heap_index,
             .id_frame_offset = frame_data.frame_index * frame_data.id_aligned_bytes,
-            .instance_offset = e.instance_index};
-        command_list->SetGraphicsRoot32BitConstants(3,5,&instance_data,0);
+            .instance_offset = e.instance_index};*/
+        command_list->SetGraphicsRoot32BitConstants(3,1,&e.instance_index,0);
         auto mesh = registry.GetOpaque<GPUMesh>(e.mesh_handle);
         auto material = registry.GetOpaque<GPUMaterial>(mesh->material);
         auto albedo = registry.Get<GPUTexture2D>(material->albedo);
