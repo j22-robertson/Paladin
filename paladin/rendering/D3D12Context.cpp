@@ -1546,7 +1546,7 @@ bool D3D12Context::UpdatePipeline()
         m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         std::uint32_t current_offset = 0;
 
-        TestPerFrameData pfd = {
+        PerFrameData pfd = {
             .frame_index = frame_index,
             .ib_buffer_bytes = instance_buffer_entry.aligned_size_bytes,
             .ib_heap_index = instance_buffer_entry.heap_identifier,
@@ -1558,7 +1558,7 @@ bool D3D12Context::UpdatePipeline()
         ForwardPass forward_pass{};
         {
             PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Forward Pass", ProfileColors::Green)
-            forward_pass.ExecuteTest(m_command_list.Get(), m_gpu_resources, temp_frame_data);
+            forward_pass.Execute(m_command_list.Get(), m_gpu_resources, temp_frame_data);
         }
 /*
         m_command_list->SetPipelineState(aabb_pipeline.Get());
@@ -1569,6 +1569,7 @@ bool D3D12Context::UpdatePipeline()
         m_command_list->SetGraphicsRoot32BitConstants(3,3,&instance_data,0);
         m_command_list->DrawInstanced(24, _frame_data.debug_aabb_transforms.size(),0,current_offset);*/
 
+        /*
         m_command_list->SetPipelineState(aabb_pipeline.Get());
         m_command_list->SetGraphicsRootSignature(m_bindless_root_signature.Get());
         m_command_list->SetGraphicsRootConstantBufferView(0,frame_address);
@@ -1583,7 +1584,7 @@ bool D3D12Context::UpdatePipeline()
         };
 
         m_command_list->SetGraphicsRoot32BitConstants(3,5,&instance_data,0);
-        m_command_list->DrawInstanced(24, 1,0,0);
+        m_command_list->DrawInstanced(24, 1,0,0);*/
 
         D3D12_RESOURCE_BARRIER imgui_transition_to_texture= {};
         imgui_transition_to_texture.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;

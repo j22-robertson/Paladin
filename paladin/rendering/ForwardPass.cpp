@@ -4,7 +4,7 @@
 #include "ForwardPass.h"
 
 #include "resource/GPUResourceRegistry.h"
-
+/*
 void ForwardPass::Execute(ID3D12GraphicsCommandList8 *command_list, GPUResourceRegistry &registry, RenderFrameData& data,std::uint32_t& current_offset) {
     PALADIN_SCOPED_CPU_PROFILE("ForwardPass::Execute", ProfileColors::Green);
 
@@ -27,18 +27,11 @@ void ForwardPass::Execute(ID3D12GraphicsCommandList8 *command_list, GPUResourceR
         }
         current_offset += batch.transforms.size();
     }
-}
+}*/
 
-void ForwardPass::ExecuteTest(ID3D12GraphicsCommandList8 *command_list, GPUResourceRegistry &registry, FrameUploadData& frame_data) {
+void ForwardPass::Execute(ID3D12GraphicsCommandList8 *command_list, GPUResourceRegistry &registry, FrameUploadData& frame_data) {
     PALADIN_SCOPED_CPU_PROFILE("ForwardPass::ExecuteTest", ProfileColors::Green);
-
     for (const auto& e : frame_data.visible_meshes) {
-        /*
-        auto instance_data = InstanceData{.heap_offset = frame_data.instance_buffer_id,
-            .frame_offset = frame_data.frame_index * frame_data.aligned_bytes_per_buffer,
-            .id_heap_index = frame_data.id_heap_index,
-            .id_frame_offset = frame_data.frame_index * frame_data.id_aligned_bytes,
-            .instance_offset = e.instance_index};*/
         command_list->SetGraphicsRoot32BitConstants(3,1,&e.instance_index,0);
         auto mesh = registry.GetOpaque<GPUMesh>(e.mesh_handle);
         auto material = registry.GetOpaque<GPUMaterial>(mesh->material);

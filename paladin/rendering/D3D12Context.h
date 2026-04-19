@@ -61,13 +61,7 @@ struct SceneFrameData {
     std::uint32_t environment_map;*/
 };
 
-struct TestPerFrameData{
-    std::uint32_t frame_index;
-    std::uint32_t ib_buffer_bytes;
-    std::uint32_t ib_heap_index;
-    std::uint32_t draw_id_buffer_bytes;
-    std::uint32_t draw_id_heap_index;
-};
+
 
 
 constexpr UINT FRAME_BUFFER_COUNT = 3;

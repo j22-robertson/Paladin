@@ -7,19 +7,18 @@
 #include "d3d12.h"
 #include "Scene.h"
 class GPUResourceRegistry;
-struct InstanceData {
-    std::uint32_t heap_offset;
-    std::uint32_t frame_offset;
-    std::uint32_t id_heap_index;
-    std::uint32_t id_frame_offset;
-    std::uint32_t instance_offset;
+struct PerFrameData{
+    std::uint32_t frame_index;
+    std::uint32_t ib_buffer_bytes;
+    std::uint32_t ib_heap_index;
+    std::uint32_t draw_id_buffer_bytes;
+    std::uint32_t draw_id_heap_index;
 };
-
 class IRenderPass {
 public:
     IRenderPass() = default;
     virtual ~IRenderPass() {};
-    virtual void Execute(ID3D12GraphicsCommandList8* command_list, GPUResourceRegistry& registry, RenderFrameData& data,std::uint32_t& current_offset) = 0;
+    virtual void Execute(ID3D12GraphicsCommandList8 *command_list, GPUResourceRegistry &registry,FrameUploadData &frame_data) = 0;
 
 private:
 };
