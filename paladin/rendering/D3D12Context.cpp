@@ -581,7 +581,7 @@ bool D3D12Context::Render()
     PALADIN_BEGIN_GPU_PROFILE(m_command_queue.Get(), ProfileColors::Green, "D3D12Context::Render")
     if (m_resized)  Resize(m_window_width,m_window_height);
     TracyD3D12Collect(m_tracy_context)
-    TracyD3D12NewFrame(m_tracy_context)
+    TracyD3D12NewFrame(m_tracy_context);
 /*
     {
         PALADIN_SCOPED_CPU_PROFILE("VS Hot Reload", ProfileColors::Blue);

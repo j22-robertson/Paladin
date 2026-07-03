@@ -32,10 +32,6 @@ public:
         return nullptr;
     }
 
-    const std::span<std::unique_ptr<T>> GetCollection() const {
-        return this->asset_storage;
-    }
-
     std::vector<AssetHandle<T>> InsertAssets(std::vector<std::unique_ptr<T>> assets) {
         std::vector<AssetHandle<T>> new_asset_handles;
         if (assets.empty()) return {};

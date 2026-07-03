@@ -342,20 +342,16 @@ bool RenderApplication::Update(float delta_time) {
     std::unordered_map<AssetHandle<MeshAsset>, std::vector<std::uint32_t>> visible_instances;
     {
         PALADIN_SCOPED_CPU_PROFILE("Frustum Cull CPU",ProfileColors::Blue);
-        auto models = m_asset_registry->GetSpan<ModelAsset>();
-        auto meshes = m_asset_registry->GetSpan<MeshAsset>();
-
         for (auto& entry : scene.model_entries) {
-            auto model = *models[entry.model_handle.inner.index];
-                //m_asset_registry->GetAsset<ModelAsset>(entry.model_handle);
+            auto model =m_asset_registry->GetAsset<ModelAsset>(entry.model_handle);
             auto model_tranforms = std::span(scene.all_transforms.data()+entry.transform_index,entry.transform_count);
             for (auto& transform : model_tranforms) {
                 auto transform_data = transform.GetData();
-                if (m_camera.IsOnFrustrum(model.bounding_box, transform_data)) {
-                    for (int i = 0; i < model.meshes.size(); i++) {
-                        auto mesh = m_asset_registry->GetAsset<MeshAsset>(model.meshes[i]);
+                if (m_camera.IsOnFrustrum(model->bounding_box, transform_data)) {
+                    for (int i = 0; i < model->meshes.size(); i++) {
+                        auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
                         if (m_camera.IsOnFrustrum(mesh->bounding_box,transform_data)) {
-                            visible_instances[model.meshes[i]].push_back(frame_upload_data.transforms.size());
+                            visible_instances[model->meshes[i]].push_back(frame_upload_data.transforms.size());
                         }
                     }
                     frame_upload_data.transforms.push_back(transform_data);
