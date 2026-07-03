@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include "IAssetManagerBase.h"
 #include "profiling/Profiling.h"
+#include <span>
 
 // TODO: Maybe Optional is better here?
 template<typename T>
@@ -29,6 +30,10 @@ public:
             return asset_storage[handle.inner.index].get();
         }
         return nullptr;
+    }
+
+    const std::span<std::unique_ptr<T>> GetCollection() const {
+        return this->asset_storage;
     }
 
     std::vector<AssetHandle<T>> InsertAssets(std::vector<std::unique_ptr<T>> assets) {

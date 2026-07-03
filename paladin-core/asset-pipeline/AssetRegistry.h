@@ -75,6 +75,8 @@ public:
     template<typename T> requires IsImportable<T>
     void RequestImport(const std::string& file);
 
+    template<typename T> requires IsPaladinAsset<T>
+    std::span<std::unique_ptr<T>> GetSpan();
 private:
 
     template<typename T> requires IsImportable<T>
@@ -135,6 +137,13 @@ T* AssetRegistry::GetAsset(OpaqueAssetHandle handle) {
         return manager->GetAsset(reconstructed_handle);
     }
     return nullptr;
+}
+template<typename T> requires IsPaladinAsset<T>
+std::span<std::unique_ptr<T>> AssetRegistry::GetSpan(){
+    if (auto manager = GetManager<T>(); manager != nullptr) {
+        return manager->GetCollection();
+    }
+    return std::span<std::unique_ptr<T>>();
 }
 
 template<typename T> requires IsImportable<T>

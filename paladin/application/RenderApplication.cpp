@@ -337,38 +337,47 @@ bool RenderApplication::Update(float delta_time) {
 
     auto rand_int = dis(gen);
 
-
     FrameUploadData frame_upload_data = {};
     frame_upload_data.camera = m_camera;
     std::unordered_map<AssetHandle<MeshAsset>, std::vector<std::uint32_t>> visible_instances;
-    for (auto& entry : scene.model_entries) {
-        auto model = m_asset_registry->GetAsset<ModelAsset>(entry.model_handle);
-        auto model_tranforms = std::span(scene.all_transforms.data()+entry.transform_index,entry.transform_count);
-        for (auto& transform : model_tranforms) {
-            auto transform_data = transform.GetData();
-            if (m_camera.IsOnFrustrum(model->bounding_box, transform_data)) {
+    {
+        PALADIN_SCOPED_CPU_PROFILE("Frustum Cull CPU",ProfileColors::Blue);
+        auto models = m_asset_registry->GetSpan<ModelAsset>();
+        auto meshes = m_asset_registry->GetSpan<MeshAsset>();
 
-
-                for (int i = 0; i < model->meshes.size(); i++) {
-                    auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
-                    if (m_camera.IsOnFrustrum(mesh->bounding_box,transform_data)) {
-                        visible_instances[model->meshes[i]].push_back(frame_upload_data.transforms.size());
+        for (auto& entry : scene.model_entries) {
+            auto model = *models[entry.model_handle.inner.index];
+                //m_asset_registry->GetAsset<ModelAsset>(entry.model_handle);
+            auto model_tranforms = std::span(scene.all_transforms.data()+entry.transform_index,entry.transform_count);
+            for (auto& transform : model_tranforms) {
+                auto transform_data = transform.GetData();
+                if (m_camera.IsOnFrustrum(model.bounding_box, transform_data)) {
+                    for (int i = 0; i < model.meshes.size(); i++) {
+                        auto mesh = m_asset_registry->GetAsset<MeshAsset>(model.meshes[i]);
+                        if (m_camera.IsOnFrustrum(mesh->bounding_box,transform_data)) {
+                            visible_instances[model.meshes[i]].push_back(frame_upload_data.transforms.size());
+                        }
                     }
+                    frame_upload_data.transforms.push_back(transform_data);
                 }
-                frame_upload_data.transforms.push_back(transform_data);
             }
         }
     }
 
-    for (auto[mesh_handle, visible_instance_indices] : visible_instances) {
-        if (visible_instance_indices.empty()) continue;
-        FrameUploadData::MeshDrawBatch draw_batch ={};
-        draw_batch.mesh_handle = mesh_handle;
-        draw_batch.instance_count= visible_instance_indices.size();
-        draw_batch.instance_index = frame_upload_data.instance_indices.size();
-        frame_upload_data.instance_indices.insert(frame_upload_data.instance_indices.end(), visible_instance_indices.begin(), visible_instance_indices.end());
-        frame_upload_data.visible_meshes.push_back(draw_batch);
+    {
+        PALADIN_SCOPED_CPU_PROFILE("GPU Extraction Write",ProfileColors::Blue);
+
+        for (auto[mesh_handle, visible_instance_indices] : visible_instances) {
+            if (visible_instance_indices.empty()) continue;
+            FrameUploadData::MeshDrawBatch draw_batch ={};
+            draw_batch.mesh_handle = mesh_handle;
+            draw_batch.instance_count= visible_instance_indices.size();
+            draw_batch.instance_index = frame_upload_data.instance_indices.size();
+            frame_upload_data.instance_indices.insert(frame_upload_data.instance_indices.end(), visible_instance_indices.begin(), visible_instance_indices.end());
+            frame_upload_data.visible_meshes.push_back(draw_batch);
+        }
     }
+
 /*
     for (int i = 0; i < AABBs.size(); i++) {
         if (frustum_test.IsOnFrustrum(AABBs[i],AABB_real_transforms[i].GetData())) {

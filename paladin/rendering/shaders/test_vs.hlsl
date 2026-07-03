@@ -60,22 +60,25 @@ VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
     ByteAddressBuffer instance_buffer= ResourceDescriptorHeap[frame_data.ib_heap_index];
 
 	ByteAddressBuffer identifier_buffer= ResourceDescriptorHeap[frame_data.draw_id_heap_index];
-
+	// Get address of identifier for current instance
 	uint id_address = frame_data.draw_id_buffer_bytes*frame_data.frame_index+((instance_id+instance_offset.offset)*4);
+	// Load identifier
 	uint transform_id = identifier_buffer.Load(id_address);
-	//uint transform_id = instance_id;
+	// Use identifier as an offset to get correct model matrix
     uint model_address = frame_data.ib_buffer_bytes*frame_data.frame_index + (transform_id * 128);
+	// Get Inverse model matrix using model address + matrix offset of 64 bytes
     uint inv_model_address = model_address+64;
 
-    //Opposite order because byte addres buffer implicitly transposes to row_major
+    //Opposite order because byte address buffer implicitly transposes to row_major
     float4x4 model = instance_buffer.Load<float4x4>(model_address);
+	// Classical transformations for tangent/normal/bitangent
     float4x4 inv_model = instance_buffer.Load<float4x4>(inv_model_address);
     float3x3 inv_transpose_model = (float3x3)transpose(inv_model);
     float3 tangent = normalize(float3(mul(input.tangent,inv_transpose_model)));
     float3 normal =  normalize(float3(mul(input.normal,inv_transpose_model)));
     float3 bitangent =  normalize(float3(mul(input.bitangent,inv_transpose_model)));
     float4 world_pos = mul(float4(input.pos, 1.0f), model);
-    //Opposite order because byte addres buffer implicitly transposes to row_major
+    //Opposite order because byte address buffer implicitly transposes to row_major
 
     //float4 view_pos = mul(view, world_pos);
    // output.pos = mul(projection,view_pos);

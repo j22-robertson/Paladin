@@ -47,9 +47,8 @@ struct RenderFrameData {
 struct FrameUploadData {
     struct MeshDrawBatch {
         OpaqueAssetHandle mesh_handle;
-        //OpaqueAssetHandle material_handle;
-        std::uint32_t instance_index;
-        std::uint32_t instance_count;
+        std::uint32_t instance_index; // Offset to where transforms start for instances of this mesh
+        std::uint32_t instance_count; // Number of transforms associated with mesh (Draw count)
     };
     std::vector<TransformData> transforms;
     std::vector<MeshDrawBatch> visible_meshes;
