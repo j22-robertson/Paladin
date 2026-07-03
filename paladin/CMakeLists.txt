@@ -1,8 +1,9 @@
 set(PALADIN_SOURCES
         paladin/application/IApplication.h
         #UTILS
+        paladin/rendering/render-utils/ComputePipelineState.h
         paladin/rendering/render-utils/DXShader.h
-        paladin/rendering/render-utils/PipelineState.h
+        paladin/rendering/render-utils/GraphicsPipelineState.h
         paladin/rendering/GPUBufferEntry.h
         #Descriptor
         paladin/rendering/descriptor/DescriptorHeap.cpp

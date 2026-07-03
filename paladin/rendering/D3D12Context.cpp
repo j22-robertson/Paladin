@@ -194,6 +194,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     //D3D12_CPU_DESCRIPTOR_HANDLE srv_cpu_handle(m_srv_descriptor_heap->GetCPUDescriptorHandleForHeapStart());
 
+    
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
     srv_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -433,7 +434,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
    vertex_shader_bytecode = test_vs.GetBytecode();
 
-    test_state = std::make_unique<PipelineState>(test_vs,fragment_shader,m_bindless_root_signature.Get());
+    test_state = std::make_unique<GraphicsPipelineState>(test_vs,fragment_shader,m_bindless_root_signature.Get());
 
     int channels = 4;
     std::vector<float> blank_data;
@@ -483,7 +484,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     aabb_fs = DXShader(FragmentShader, L"frustum_fs.hlsl", L"main");
     m_shader_compiler.LoadShader(aabb_fs);
 
-    aabb_state = std::make_unique<PipelineState>(aabb_vs,aabb_fs,m_bindless_root_signature.Get());
+    aabb_state = std::make_unique<GraphicsPipelineState>(aabb_vs,aabb_fs,m_bindless_root_signature.Get());
     aabb_state->gpu_pso.InputLayout.pInputElementDescs = nullptr;
     aabb_state->gpu_pso.InputLayout.NumElements = 0;
     aabb_state->gpu_pso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;

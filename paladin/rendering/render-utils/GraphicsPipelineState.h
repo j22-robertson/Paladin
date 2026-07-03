@@ -9,10 +9,11 @@
 #include "DXShader.h"
 #include "d3dx12/d3dx12_core.h"
 
-class PipelineState {
+class GraphicsPipelineState {
 public:
 
-    PipelineState(DXShader& vertex_shader, DXShader& fragment_shader, ID3D12RootSignature* signature) {
+
+    GraphicsPipelineState(DXShader& vertex_shader, DXShader& fragment_shader, ID3D12RootSignature* signature) {
 
         gpu_pso = {};
         input_layout_desc ={};

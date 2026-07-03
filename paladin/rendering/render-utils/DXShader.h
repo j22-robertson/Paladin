@@ -13,9 +13,9 @@ enum ShaderType
 {
     VertexShader,
     FragmentShader,
-    /*
     ComputeShader,
     MeshShader,
+    /*
     AmplificationShader,
     */
     NONE,

@@ -25,7 +25,7 @@
 #include "Vertex.h"
 #include "asset/Mesh.h"
 #include "asset/Texture2D.h"
-#include "render-utils/PipelineState.h"
+#include "render-utils/GraphicsPipelineState.h"
 #include "resource/GPUResourceRegistry.h"
 #include "resource/ResourceManager.h"
 #include "ForwardPass.h"
@@ -150,9 +150,9 @@ private:
 
     std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> custom_targets;
 
-    std::unique_ptr<PipelineState> test_state = nullptr;
+    std::unique_ptr<GraphicsPipelineState> test_state = nullptr;
 
-    std::unique_ptr<PipelineState> aabb_state = nullptr;
+    std::unique_ptr<GraphicsPipelineState> aabb_state = nullptr;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> aabb_pipeline = nullptr;
     DXShader aabb_vs;
     DXShader aabb_fs;
