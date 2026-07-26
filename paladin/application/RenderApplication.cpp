@@ -5,7 +5,7 @@
 #include "RenderApplication.h"
 
 #include <ranges>
-
+#include <cstddef>
 #include "Scene.h"
 #include "asset/Mesh.h"
 
@@ -56,8 +56,6 @@ void RenderApplication::Setup() {
    // io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 
-   // Input::keys[1024] = {false};
-
     AssetHandle<ModelAsset> sponza = {};
     AssetHandle<ModelAsset> sponza_two = {};
     m_asset_registry = std::make_unique<AssetRegistry>();
@@ -74,14 +72,14 @@ void RenderApplication::Setup() {
     std::vector<Paladin::Vertex> all_vertices = std::vector<Paladin::Vertex>();
     std::vector<std::uint32_t> all_indices = std::vector<std::uint32_t>();
 
-    std::vector<MeshRange> mesh_ranges = std::vector<MeshRange>();
+    std::vector<MeshDescriptor> mesh_ranges = std::vector<MeshDescriptor>();
 
     EntityTest testing = {.transform = Transform(), .model_handle = sponza};
 
 
     std::vector<std::pair<std::uint32_t,TextureRange>> mesh_to_albedo;
 
-#include <cstddef>
+
 
     PALADIN_LOG(INFO, "Offset Pos: " + std::to_string(offsetof(Paladin::Vertex, x)));
     PALADIN_LOG(INFO, "Offset Normal: " + std::to_string(offsetof(Paladin::Vertex, nx)));
@@ -90,23 +88,51 @@ void RenderApplication::Setup() {
     PALADIN_LOG(INFO, "Offset Color: " + std::to_string(offsetof(Paladin::Vertex, r)));
     PALADIN_LOG(INFO, "Offset UV: " + std::to_string(offsetof(Paladin::Vertex, u)));
 
-    for (auto mesh_handle : m_asset_registry->GetAsset<ModelAsset>(testing.model_handle)->meshes) {
+
+    auto sponza_model = m_asset_registry->GetAsset<ModelAsset>(sponza);
+    for (int i = 0; i < sponza_model->meshes.size(); i++) {
+        auto mesh_handle = sponza_model->meshes[i];
         auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
 
+        auto v_start = static_cast<std::uint32_t>(all_vertices.size());
+        auto i_start = static_cast<std::uint32_t>(all_indices.size());
 
-
-        auto v_start = (std::uint32_t)all_vertices.size();
-        auto i_start = (std::uint32_t)all_indices.size();
-
-        if (v_start < 200) {
-            PALADIN_LOG(INFO, "This should only happen once.")
-        }
         all_indices.insert(all_indices.end(), mesh->indices.begin(), mesh->indices.end());
         all_vertices.insert(all_vertices.end(), mesh->vertices.begin(), mesh->vertices.end());
 
-        mesh_ranges.push_back(MeshRange{
+        auto material_handle = sponza_model->materials[sponza_model->mesh_to_material[i]];
+        auto material = m_asset_registry->GetAsset<MaterialAsset>(material_handle);
+        auto albedo_handle = material->GetTexture(Albedo);
+        auto roughness_handle = material->GetTexture(Roughness);
+        auto metallic_handle = material->GetTexture(Metallic);
+        auto normal_handle = material->GetTexture(Normal);
+
+        std::unique_ptr<GPUMaterial> gpu_material = std::make_unique<GPUMaterial>();
+
+        auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
+        if (albedo_texture != nullptr) {
+            gpu_material->albedo = m_render_context->UploadTexture2D(*albedo_texture, albedo_handle);
+        }
+        auto roughness_texture = m_asset_registry->GetAsset<Texture2DAsset>(roughness_handle);
+        if (roughness_texture != nullptr) {
+            gpu_material->roughness= m_render_context->UploadTexture2D(*roughness_texture, roughness_handle);
+
+        }
+        auto metallic_texture =  m_asset_registry->GetAsset<Texture2DAsset>(metallic_handle);
+        if (metallic_texture != nullptr) {
+            gpu_material->metallic =m_render_context->UploadTexture2D(*metallic_texture, metallic_handle);
+        }
+        auto normal_texture = m_asset_registry->GetAsset<Texture2DAsset>(normal_handle);
+        if (normal_texture != nullptr) {
+            gpu_material->normal= m_render_context->UploadTexture2D(*normal_texture, normal_handle);
+        }
+
+        m_render_context->AddMaterial(std::move(gpu_material),material_handle);
+
+        auto material_indices = m_render_context->GetMaterialIndices(material_handle);
+
+        mesh_ranges.push_back(MeshDescriptor{
             .vertex_start_location = v_start,
-            .vertex_count = static_cast<std::uint32_t>(mesh->vertices.size()),
             .index_start_location = i_start,
             .index_count = static_cast<std::uint32_t>(mesh->indices.size())});
     }
@@ -183,7 +209,6 @@ void RenderApplication::Setup() {
         auto normal_texture = m_asset_registry->GetAsset<Texture2DAsset>(normal_handle);
         if (normal_texture != nullptr) {
             gpu_material->normal= m_render_context->UploadTexture2D(*normal_texture, normal_handle);
-            //PALADIN_LOG(INFO, "normal null")
         }
         gpu_model->material_handles.push_back( m_render_context->AddMaterial( std::move(gpu_material), material_handle));
     }
@@ -226,8 +251,8 @@ void RenderApplication::Setup() {
         gpu_model_two->material_handles.push_back( m_render_context->AddMaterial( std::move(gpu_material), material_handle));
     }
     m_render_context->AddModel(std::move(gpu_model_two), sponza_two);
-    //m_render_context->UploadModel(all_vertices, all_indices,mesh_ranges);
     m_render_context->CreatePersistantAllocation(m_camera.GetUniformMut());
+
     m_render_context->CreateInstanceBuffer();
     m_render_context->CreateVisibleInstanceIDBuffer();
 
@@ -235,9 +260,22 @@ void RenderApplication::Setup() {
     entry.model_handle = sponza;
     entry.transform_index = scene.all_transforms.size();
     entry.transform_count = 0;
-    auto sponza_model = m_asset_registry->GetAsset<ModelAsset>(sponza);
+   // auto sponza_model = m_asset_registry->GetAsset<ModelAsset>(sponza);
     for (int x = 1; x < 15; x++) {
         for (int z =1; z < 15; z++) {
+            auto transform = Transform{};
+            transform.SetPosition({x*5000,0,z*5000});
+            transform.SetScale({1,1,1});
+            //instancing_test_data.push_back(transform.GetData());
+            //frame_data.insert(sponza, transform);
+
+            //transforms.push_back(transform);
+            scene.all_transforms.push_back(transform);
+            entry.transform_count++;
+        }
+    }
+    for (int x = 1; x < 15; x++) {
+        for (int z =1; z > -15; z--) {
             auto transform = Transform{};
             transform.SetPosition({x*5000,0,z*5000});
             transform.SetScale({1,1,1});
@@ -270,6 +308,7 @@ void RenderApplication::Setup() {
 }
 
 bool RenderApplication::Update(float delta_time) {
+    PALADIN_SCOPED_CPU_PROFILE("AppUpdate",ProfileColors::Blue);
     m_camera.direction = glm::vec3(0.0);
 
     double mouse_x;
@@ -343,16 +382,18 @@ bool RenderApplication::Update(float delta_time) {
     {
         PALADIN_SCOPED_CPU_PROFILE("Frustum Cull CPU",ProfileColors::Blue);
         for (auto& entry : scene.model_entries) {
-            auto model =m_asset_registry->GetAsset<ModelAsset>(entry.model_handle);
+            auto model = m_asset_registry->GetAsset<ModelAsset>(entry.model_handle);
             auto model_tranforms = std::span(scene.all_transforms.data()+entry.transform_index,entry.transform_count);
             for (auto& transform : model_tranforms) {
+                PALADIN_SCOPED_CPU_PROFILE("Cull Model",ProfileColors::Blue);
                 auto transform_data = transform.GetData();
                 if (m_camera.IsOnFrustrum(model->bounding_box, transform_data)) {
                     for (int i = 0; i < model->meshes.size(); i++) {
-                        auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
-                        if (m_camera.IsOnFrustrum(mesh->bounding_box,transform_data)) {
+                       // PALADIN_SCOPED_CPU_PROFILE("Cull Mesh",ProfileColors::Red);
+                        //auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
+                       // if (m_camera.IsOnFrustrum(mesh->bounding_box,transform_data)) {
                             visible_instances[model->meshes[i]].push_back(frame_upload_data.transforms.size());
-                        }
+                       // }
                     }
                     frame_upload_data.transforms.push_back(transform_data);
                 }

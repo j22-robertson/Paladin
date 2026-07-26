@@ -49,7 +49,13 @@ struct DrawData {
     std::vector<std::uint32_t> transform_indices;
 };
 
-
+struct MaterialIndices
+{
+    std::uint32_t albedo = 0;
+    std::uint32_t normal = 0;
+    std::uint32_t roughness = 0;
+    std::uint32_t metallic = 0;
+};
 
 struct SceneFrameData {
     std::uint32_t camera_identifier;
@@ -78,6 +84,8 @@ public:
     void CreateVisibleInstanceIDBuffer();
 
     void CrateVisibleInstanceIDBuffer();
+
+    MaterialIndices GetMaterialIndices(OpaqueAssetHandle material_handle);
 
     void CreatePersistantAllocation(CameraUniform uniform_data);
     void UpdatePersistantAllocation(CameraUniform uniform_data);
@@ -108,7 +116,7 @@ public:
 
     void UploadModel(std::span<Paladin::Vertex> model_vertices,
         std::span<std::uint32_t> model_indices,
-        std::vector<MeshRange> mesh_ranges);
+        std::vector<MeshDescriptor> mesh_ranges);
 
 
     bool m_resized = false;

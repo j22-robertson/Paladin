@@ -4,7 +4,7 @@ project(Paladin)
 set(CMAKE_CXX_STANDARD 20)
 
 if (WIN32)
-    set(CMAKE_OBJECT_PATH_MAX 660)
+    set(CMAKE_OBJECT_PATH_MAX 1500)
 endif ()
 add_subdirectory(paladin-core)
 add_library(PaladinCore STATIC ${PALADIN_CORE_SOURCES})

@@ -51,7 +51,7 @@ struct AABB
         extent = {maximum.x-center.x,maximum.y-center.y,maximum.z-center.z};
     }
 
-    bool IsOnForwardPlane(const Plane& plane) const {
+    [[nodiscard]] bool IsOnForwardPlane(const Plane& plane) const {
         const float r = extent.x * std::abs(plane.normal.x) +
           extent.y * std::abs(plane.normal.y) + extent.z * std::abs(plane.normal.z);
         return -r<=plane.SDFToPlane(center);

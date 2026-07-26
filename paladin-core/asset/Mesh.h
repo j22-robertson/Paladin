@@ -40,14 +40,15 @@ template<>
 struct UploadableToGPU<MeshAsset> {
     static constexpr bool value = true;
 };
-
-struct MeshRange {
-    // The offset
+/// Describes the start location of vertices, indices and the index count as well as srv indices for material properties
+struct MeshDescriptor {
     std::uint32_t vertex_start_location = 0;
-    std::uint32_t vertex_count = 0;
-    //Off set
     std::uint32_t index_start_location = 0;
     std::uint32_t index_count = 0;
+    std::uint32_t albedo = 0;
+    std::uint32_t normal = 0;
+    std::uint32_t roughness = 0;
+    std::uint32_t metallic = 0;
 };
 
 

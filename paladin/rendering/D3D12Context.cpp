@@ -978,6 +978,25 @@ void D3D12Context::UpdateRenderFrameData(RenderFrameData &render_frame_data) {
 }
 
 
+MaterialIndices D3D12Context::GetMaterialIndices(OpaqueAssetHandle material_handle)
+{
+    auto material = m_gpu_resources.GetOpaque<GPUMaterial>(material_handle);
+    auto albedo = m_gpu_resources.Get<GPUTexture2D>(material->albedo);
+    auto normal = m_gpu_resources.Get<GPUTexture2D>(material->normal);
+    auto roughness = m_gpu_resources.Get<GPUTexture2D>(material->roughness);
+    auto metallic = m_gpu_resources.Get<GPUTexture2D>(material->metallic);
+
+
+    auto mat_indices = MaterialIndices{
+        .albedo = albedo->srv_handle.index,
+        .normal = normal->srv_handle.index,
+        .roughness = roughness->srv_handle.index,
+        .metallic = metallic->srv_handle.index
+    };
+
+    return mat_indices;
+}
+
 void D3D12Context::CreatePersistantAllocation(CameraUniform uniform_data) {
 
     std::size_t camera_bytes = sizeof(CameraUniform);
@@ -1221,7 +1240,7 @@ GPUResourceHandle<GPUModel> D3D12Context::AddModel(std::unique_ptr<GPUModel> mod
     return m_gpu_resources.Insert<GPUModel>(std::move(model), handle);
 }
 
-void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices,  std::vector<MeshRange> mesh_ranges) {
+void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::span<std::uint32_t> model_indices,  std::vector<MeshDescriptor> mesh_ranges) {
     PALADIN_LOG(INFO, "Uploading model")
     PALADIN_SCOPED_CPU_PROFILE("Upload Model", ProfileColors::Red);
 
