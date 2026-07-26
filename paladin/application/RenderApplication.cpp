@@ -130,11 +130,19 @@ void RenderApplication::Setup() {
         m_render_context->AddMaterial(std::move(gpu_material),material_handle);
 
         auto material_indices = m_render_context->GetMaterialIndices(material_handle);
-
-        mesh_ranges.push_back(MeshDescriptor{
+        auto mesh_descriptor = MeshDescriptor{
             .vertex_start_location = v_start,
             .index_start_location = i_start,
-            .index_count = static_cast<std::uint32_t>(mesh->indices.size())});
+            .index_count = static_cast<std::uint32_t>(mesh->indices.size()),
+
+            .albedo = material_indices.albedo,
+            .normal = material_indices.normal,
+            .roughness = material_indices.roughness,
+            .metallic = material_indices.metallic,
+        };
+        auto mesh_descriptor_index = mesh_ranges.size();
+        descriptor_fetch.insert(std::make_pair(mesh_handle,mesh_descriptor_index));
+        mesh_ranges.push_back(mesh_descriptor);
     }
 
 
@@ -314,7 +322,6 @@ bool RenderApplication::Update(float delta_time) {
     double mouse_x;
     double mouse_y;
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
-
     //m_camera.LookAt(mouse_x,mouse_y);
 
     glm::vec3 direction = glm::vec3(0.0);
@@ -348,6 +355,20 @@ bool RenderApplication::Update(float delta_time) {
 
     std::vector<ModelAsset*> models_to_draw;
     std::vector<DrawData> draw_batches;
+    FrameUploadData test_upload_data = {};
+
+    for (auto entry : scene.model_entries)
+    {
+        auto model = m_asset_registry->GetAsset<ModelAsset>(entry.model_handle);
+        for (auto mesh_handle : model->meshes)
+        {
+            test_upload_data.visible_meshes.push_back(FrameUploadData::MeshDrawBatch{
+                .mesh_handle = mesh_handle,
+                .instance_index = entry.transform_index,
+                .instance_count = entry.transform_count});
+
+        }
+    }
 
 /*
     FrameUploadData frame_upload_data = {};
@@ -378,6 +399,7 @@ bool RenderApplication::Update(float delta_time) {
 
     FrameUploadData frame_upload_data = {};
     frame_upload_data.camera = m_camera;
+    /*
     std::unordered_map<AssetHandle<MeshAsset>, std::vector<std::uint32_t>> visible_instances;
     {
         PALADIN_SCOPED_CPU_PROFILE("Frustum Cull CPU",ProfileColors::Blue);
@@ -413,7 +435,7 @@ bool RenderApplication::Update(float delta_time) {
             frame_upload_data.instance_indices.insert(frame_upload_data.instance_indices.end(), visible_instance_indices.begin(), visible_instance_indices.end());
             frame_upload_data.visible_meshes.push_back(draw_batch);
         }
-    }
+    }*/
 
 /*
     for (int i = 0; i < AABBs.size(); i++) {

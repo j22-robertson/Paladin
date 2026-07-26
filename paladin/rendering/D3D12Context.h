@@ -106,6 +106,8 @@ public:
 
     GPUResourceHandle<GPUTexture2D>  UploadTexture2D( Texture2DAsset& texture, OpaqueAssetHandle handle);
     GPUResourceHandle<GPUMesh> UploadMesh(MeshAsset& mesh,OpaqueAssetHandle handle);
+    void UploadMeshDescriptors(std::span<MeshDescriptor> mesh_descriptors);
+    void UploadIVBuffers(std::span<Paladin::Vertex> vertices, std::span<uint32_t> indices);
 
     GPUResourceHandle<GPUMaterial> AddMaterial(std::unique_ptr<GPUMaterial> material, OpaqueAssetHandle handle);
     GPUResourceHandle<GPUModel> AddModel(std::unique_ptr<GPUModel> model, OpaqueAssetHandle handle);
@@ -152,7 +154,7 @@ private:
 
     std::vector<std::pair<D3D12_INDEX_BUFFER_VIEW, Microsoft::WRL::ComPtr<D3D12MA::Allocation>>> index_buffers;
 
-    std::vector<std::vector<MeshRange>> model_mesh_ranges;
+    std::vector<std::vector<MeshDescriptor>> model_mesh_ranges;
 
     UINT custom_rtv_target_index = 0;
 
@@ -209,8 +211,12 @@ private:
         { 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
         { -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
     };
-
-
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_mesh_descriptors;
+    ViewHandle m_mesh_descriptor_view = {};
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_vertex_buffer;
+    ViewHandle m_vertex_buffer_view = {};
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_index_buffer;
+    ViewHandle m_index_buffer_view = {};
 
 
     DXShaderCompiler m_shader_compiler = DXShaderCompiler();

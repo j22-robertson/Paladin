@@ -73,6 +73,8 @@ private:
     std::vector<AABB> AABBs;
     std::vector<TransformData> instancing_test_data;
 
+    std::unordered_map<AssetHandle<MeshAsset>,std::size_t> descriptor_fetch;
+
     Scene scene;
 
     float rot_test = 0.0;

@@ -60,7 +60,7 @@ VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
     ByteAddressBuffer instance_buffer= ResourceDescriptorHeap[frame_data.ib_heap_index];
 
 	ByteAddressBuffer identifier_buffer= ResourceDescriptorHeap[frame_data.draw_id_heap_index];
-	// Get address of identifier for current instance
+	// Get address of identifier for current instance (instance id(Current instance being drawn, based on instance count) + offset(Start location) * 4 bytes for uint step size)
 	uint id_address = frame_data.draw_id_buffer_bytes*frame_data.frame_index+((instance_id+instance_offset.offset)*4);
 	// Load identifier
 	uint transform_id = identifier_buffer.Load(id_address);

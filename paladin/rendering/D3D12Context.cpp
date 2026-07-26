@@ -886,11 +886,13 @@ void D3D12Context::CreateVisibleInstanceIDBuffer() {
     instance_draw_id_entry.heap_identifier = instance_id_view.index;
 }
 
+
+
+
 void D3D12Context::CreateInstanceBuffer() {
     std::size_t bytes_per_buffer = sizeof(TransformData)* MAX_INSTANCES;
     instance_buffer_entry.aligned_size_bytes = (bytes_per_buffer + 255) & ~255;
     UINT aligned_size_total =(instance_buffer_entry.aligned_size_bytes * FRAME_BUFFER_COUNT)+ 255 & ~255;
-
 
     auto instance_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(aligned_size_total);
 
@@ -1229,6 +1231,155 @@ GPUResourceHandle<GPUMesh> D3D12Context::UploadMesh(MeshAsset& mesh, OpaqueAsset
     return m_gpu_resources.Insert<GPUMesh>(std::move(gpu_mesh), handle);
    // m_gpu_resources.Insert<GPUMesh>()
 
+}
+
+
+void D3D12Context::UploadMeshDescriptors(std::span<MeshDescriptor> mesh_descriptors)
+{
+    PALADIN_SCOPED_CPU_PROFILE("Upload Mesh Descriptors", ProfileColors::Red);
+
+    WaitForPreviousFrame();
+    HRESULT hr;
+    m_command_list->Reset(m_command_allocator[frame_index].Get(), nullptr);
+
+    std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> upload_buffers;
+
+    std::size_t buff_total_bytes = mesh_descriptors.size()*sizeof(MeshDescriptor);
+    //std::size_t index_total_bytes = indices.size()*sizeof(std::uint32_t);
+
+    auto buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(buff_total_bytes);
+    //auto index_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(index_total_bytes);
+
+
+    if (auto allocation_pair = CreateAllocation(buffer_desc,(void*)mesh_descriptors.data()); allocation_pair.has_value())
+    {
+        {
+            auto [buffer_allocation, buffer_upload_allocation] = allocation_pair.value();
+            m_command_list->CopyBufferRegion(buffer_allocation->GetResource(),0,buffer_upload_allocation->GetResource(),0,buff_total_bytes);
+
+            auto buffer_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(buffer_allocation->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+
+            D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+            srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+            srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+            srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            srv_desc.Buffer.NumElements = buff_total_bytes/4;
+            srv_desc.Buffer.StructureByteStride = 0;
+            srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+
+            upload_buffers.push_back(std::move(buffer_upload_allocation));
+            m_mesh_descriptors = std::move(buffer_allocation);
+            m_mesh_descriptor_view = m_descriptor_heap.CreateShaderResourceView(m_device.Get(),PALADIN_HASH("BINDLESS"),m_mesh_descriptors->GetResource(), &srv_desc);
+
+
+            m_command_list->ResourceBarrier(1, &buffer_transition_barrier);
+        }
+    }
+    hr = m_command_list->Close();
+    if (FAILED(hr)) {
+        PALADIN_LOG(ERR, ErrorResult("Failed to close command list", hr));
+    }
+    ID3D12CommandList* ppCommandLists[] = { m_command_list.Get() };
+    m_command_queue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    fence_value[frame_index]++;
+    hr =  m_command_queue->Signal(m_fence[frame_index].Get(), fence_value[frame_index]);
+
+    if (m_fence[frame_index]->GetCompletedValue() < fence_value[frame_index]) {
+        m_fence[frame_index]->SetEventOnCompletion(fence_value[frame_index], fence_event);
+        WaitForSingleObject(fence_event, INFINITE);
+    }
+}
+
+
+void D3D12Context::UploadIVBuffers(std::span<Paladin::Vertex> vertices, std::span<std::uint32_t> indices)
+{
+    PALADIN_SCOPED_CPU_PROFILE("Upload Main V Buffer and I Buffer", ProfileColors::Red);
+
+    WaitForPreviousFrame();
+    HRESULT hr;
+    m_command_list->Reset(m_command_allocator[frame_index].Get(), nullptr);
+
+    std::vector<Microsoft::WRL::ComPtr<D3D12MA::Allocation>> upload_buffers;
+
+    std::size_t vertex_total_bytes = vertices.size()*sizeof(Paladin::Vertex);
+    std::size_t index_total_bytes = indices.size()*sizeof(std::uint32_t);
+
+    auto vertex_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(vertex_total_bytes);
+    auto index_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(index_total_bytes);
+
+
+    if (auto allocation_pair = CreateAllocation(vertex_buffer_desc,(void*)vertices.data()); allocation_pair.has_value())
+    {
+        {
+            auto [vertex_allocation, vertex_upload_allocation] = allocation_pair.value();
+            m_command_list->CopyBufferRegion(vertex_allocation->GetResource(),0,vertex_upload_allocation->GetResource(),0,vertex_total_bytes);
+
+            auto vertex_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(vertex_allocation->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+
+            D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+            srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+            srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+            srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            srv_desc.Buffer.NumElements = vertex_total_bytes/4;
+            srv_desc.Buffer.StructureByteStride = 0;
+            srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+
+            upload_buffers.push_back(std::move(vertex_upload_allocation));
+            m_vertex_buffer = std::move(vertex_allocation);
+            m_vertex_buffer_view = m_descriptor_heap.CreateShaderResourceView(m_device.Get(),PALADIN_HASH("BINDLESS"),m_vertex_buffer->GetResource(), &srv_desc);
+
+
+            m_command_list->ResourceBarrier(1, &vertex_transition_barrier);
+        }
+
+
+
+    }
+
+    if (auto allocation_pair = CreateAllocation(index_buffer_desc,(void*)indices.data()); allocation_pair.has_value())
+    {
+        {
+            auto [index_allocation, index_upload_allocation] = allocation_pair.value();
+            //PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Copying Mesh index Data", ProfileColors::Red)
+            m_command_list->CopyBufferRegion(index_allocation->GetResource(),0,index_upload_allocation->GetResource(),0,index_total_bytes);
+
+            D3D12_INDEX_BUFFER_VIEW index_buffer_view = {};
+            index_buffer_view.BufferLocation = index_allocation->GetResource()->GetGPUVirtualAddress();
+            index_buffer_view.SizeInBytes = index_total_bytes;
+            index_buffer_view.Format = DXGI_FORMAT_R32_UINT;
+
+            auto index_transition_barrier = CD3DX12_RESOURCE_BARRIER::Transition(index_allocation->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
+
+
+            D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+            srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+            srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+            srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            srv_desc.Buffer.NumElements = vertex_total_bytes/4;
+            srv_desc.Buffer.StructureByteStride = 0;
+            srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+
+            upload_buffers.push_back(std::move(index_upload_allocation));
+            m_index_buffer = std::move(index_allocation);
+            m_index_buffer_view = m_descriptor_heap.CreateShaderResourceView(m_device.Get(),PALADIN_HASH("BINDLESS"),m_index_buffer->GetResource(), &srv_desc);
+            m_command_list->ResourceBarrier(1, &index_transition_barrier);
+        }
+    }
+
+
+    hr = m_command_list->Close();
+    if (FAILED(hr)) {
+        PALADIN_LOG(ERR, ErrorResult("Failed to close command list", hr));
+    }
+    ID3D12CommandList* ppCommandLists[] = { m_command_list.Get() };
+    m_command_queue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    fence_value[frame_index]++;
+    hr =  m_command_queue->Signal(m_fence[frame_index].Get(), fence_value[frame_index]);
+
+    if (m_fence[frame_index]->GetCompletedValue() < fence_value[frame_index]) {
+        m_fence[frame_index]->SetEventOnCompletion(fence_value[frame_index], fence_event);
+        WaitForSingleObject(fence_event, INFINITE);
+    }
 }
 
 GPUResourceHandle<GPUMaterial> D3D12Context::AddMaterial(std::unique_ptr<GPUMaterial> material, OpaqueAssetHandle handle) {
