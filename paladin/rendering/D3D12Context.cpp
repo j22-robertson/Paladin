@@ -316,6 +316,10 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
 
 
+
+
+
+
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC bindless_root_signature_desc = {};
 
     D3D12_DESCRIPTOR_RANGE1 srv_ranges[1] ={};
@@ -341,6 +345,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     b_camera_root_parameter.Descriptor.ShaderRegister = 0;
 
     D3D12_ROOT_PARAMETER1 mesh_constant_parameter{};
+
     mesh_constant_parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
     mesh_constant_parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     mesh_constant_parameter.Constants.ShaderRegister = 1;
@@ -401,6 +406,36 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         PALADIN_LOG(ERR, ErrorResult("Failed to create bindless root signature", hr))
     }
 
+
+
+    D3D12_INDIRECT_ARGUMENT_DESC arguments[3] = {};
+    arguments[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
+    arguments[0].Constant.RootParameterIndex = 2;
+    arguments[0].Constant.Num32BitValuesToSet = 1;
+    arguments[0].Constant.DestOffsetIn32BitValues = 0;
+
+    arguments[1].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
+    arguments[1].Constant.RootParameterIndex = 3;
+    arguments[1].Constant.Num32BitValuesToSet = 1;
+    arguments[1].Constant.DestOffsetIn32BitValues = 0;
+
+    arguments[2].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
+
+    D3D12_COMMAND_SIGNATURE_DESC command_signature_desc = {};
+    command_signature_desc.ByteStride = sizeof(InstancedIndirectCmd);
+    command_signature_desc.NumArgumentDescs = 3;
+    command_signature_desc.pArgumentDescs = arguments;
+    command_signature_desc.NodeMask = 0;
+
+
+    if (auto hr = m_device->CreateCommandSignature(
+    &command_signature_desc,
+    m_bindless_root_signature.Get(),
+    IID_PPV_ARGS(&m_command_signature));
+    FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Unable to create command signature",hr))
+    }
 
     vertex_shader = DXShader(VertexShader, L"vs.vert",L"main");
     D3D12_SHADER_BYTECODE vertex_shader_bytecode = {};
@@ -1024,6 +1059,7 @@ MaterialIndices D3D12Context::GetMaterialIndices(OpaqueAssetHandle material_hand
         .metallic = metal_srv_handle
     };
 
+
     return mat_indices;
 }
 
@@ -1262,7 +1298,7 @@ GPUResourceHandle<GPUMesh> D3D12Context::UploadMesh(MeshAsset& mesh, OpaqueAsset
 }
 
 
-void D3D12Context::UploadMeshDescriptors(std::vector<MeshDescriptor> mesh_descriptors, std::map<OpaqueAssetHandle, std::size_t> descriptor_fetch)
+void D3D12Context::UploadMeshDescriptors(std::vector<MeshDescriptor> mesh_descriptors, std::map<OpaqueAssetHandle, std::uint32_t> descriptor_fetch)
 {
     PALADIN_SCOPED_CPU_PROFILE("Upload Mesh Descriptors", ProfileColors::Red);
     m_mesh_descriptors = mesh_descriptors;
@@ -1666,6 +1702,55 @@ bool D3D12Context::WaitForPreviousFrame()
     return true;
 }
 
+void D3D12Context::CreateIndirectCommandBuffer() {
+
+    std::size_t bytes_per_buffer = sizeof(InstancedIndirectCmd)* MAX_COMMANDS;
+    command_buffer_entry.aligned_size_bytes = (bytes_per_buffer + 255) & ~255;
+    UINT aligned_size_total =(command_buffer_entry.aligned_size_bytes * FRAME_BUFFER_COUNT)+ 255 & ~255;
+
+    auto indirect_command_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(aligned_size_total);
+
+    HRESULT hr;
+    D3D12MA::ALLOCATION_DESC upload_allocation_desc = {};
+    upload_allocation_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+
+    hr = m_gpu_allocator->CreateResource(&upload_allocation_desc,
+   &indirect_command_buffer_desc,
+   D3D12_RESOURCE_STATE_GENERIC_READ,
+   nullptr,
+   &m_indirect_command_data,
+   IID_NULL, nullptr);
+
+    if (FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Failed to create upload allocation", hr))
+        //return nullptr;
+    }
+
+    CD3DX12_RANGE read_range(0, 0);
+    hr = m_indirect_command_data->GetResource()->Map(0,&read_range,&indirect_command_buffer_dest);
+    if (FAILED(hr))
+    {
+        PALADIN_LOG(ERR, ErrorResult("Failed to map upload allocation", hr))
+    }
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+    srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+    srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+    srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srv_desc.Buffer.NumElements = aligned_size_total/4;
+    srv_desc.Buffer.StructureByteStride = 0;
+    srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+
+    command_buffer_view = m_descriptor_heap.CreateShaderResourceView(m_device.Get(), PALADIN_HASH("BINDLESS"), m_indirect_command_data->GetResource(), &srv_desc);
+    command_buffer_entry.heap_identifier= command_buffer_view.index;
+}
+
+void D3D12Context::UpdateIndirectCommandBuffer(std::span<InstancedIndirectCmd> arguments) {
+    UINT8* destination = static_cast<UINT8*>(indirect_command_buffer_dest) + (frame_index * command_buffer_entry.aligned_size_bytes);
+    std::memcpy(destination, arguments.data(), sizeof(InstancedIndirectCmd)*arguments.size());
+}
+
 bool D3D12Context::UpdatePipeline()
 {
     PALADIN_SCOPED_CPU_PROFILE("D3D12Context::UpdatePipeline",ProfileColors::Red);
@@ -1756,45 +1841,35 @@ bool D3D12Context::UpdatePipeline()
         m_command_list->SetGraphicsRoot32BitConstants(4,8,&pfd,0);
 
 
+        std::vector<InstancedIndirectCmd> indirect_cmds;
+        indirect_cmds.reserve(temp_frame_data.visible_meshes.size());
         for (auto mesh : temp_frame_data.visible_meshes) {
             const auto descriptor_index = m_descriptor_fetch[mesh.mesh_handle];
             const auto& descriptor = m_mesh_descriptors[descriptor_index];
-            m_command_list->SetGraphicsRoot32BitConstants(2,1,&descriptor_index,0);
-            m_command_list->SetGraphicsRoot32BitConstants(3,1,&mesh.instance_index,0);
+            InstancedIndirectCmd indirect_cmd = {
+                .draw_index = descriptor_index,
+                .instance_index = mesh.instance_index,
+                .draw_arguments ={
+                    .VertexCountPerInstance = descriptor.index_count,
+                    .InstanceCount = mesh.instance_count,
+                    .StartVertexLocation = 0,
+                    .StartInstanceLocation = 0,
+            },};
+            indirect_cmds.push_back(indirect_cmd);
 
-            m_command_list->DrawInstanced(descriptor.index_count,mesh.instance_count,0,0);
+            //m_command_list->SetGraphicsRoot32BitConstants(2,1,&descriptor_index,0);
+           // m_command_list->SetGraphicsRoot32BitConstants(3,1,&mesh.instance_index,0);
+
+            //m_command_list->DrawInstanced(descriptor.index_count,mesh.instance_count,0,0);
         }
-        /*
-        ForwardPass forward_pass{};
-        {
-            PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Forward Pass", ProfileColors::Green)
-            forward_pass.Execute(m_command_list.Get(), m_gpu_resources, temp_frame_data);
-        }*/
-/*
-        m_command_list->SetPipelineState(aabb_pipeline.Get());
-        m_command_list->SetGraphicsRootSignature(m_bindless_root_signature.Get());
-        m_command_list->SetDescriptorHeaps(1,heaps);
-        m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
-        auto instance_data = InstanceData{.heap_offset = _frame_data.instance_buffer_id,.frame_offset =frame_index * aligned_bytes_per_buffer,.instance_offset = current_offset};
-        m_command_list->SetGraphicsRoot32BitConstants(3,3,&instance_data,0);
-        m_command_list->DrawInstanced(24, _frame_data.debug_aabb_transforms.size(),0,current_offset);*/
+        UpdateIndirectCommandBuffer(indirect_cmds);
 
-        /*
-        m_command_list->SetPipelineState(aabb_pipeline.Get());
-        m_command_list->SetGraphicsRootSignature(m_bindless_root_signature.Get());
-        m_command_list->SetGraphicsRootConstantBufferView(0,frame_address);
-        m_command_list->SetDescriptorHeaps(1,heaps);
-        m_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
-        m_command_list->IASetVertexBuffers(0,0,nullptr);
-        m_command_list->IASetIndexBuffer(nullptr);
-        auto instance_data = InstanceData{
-            .heap_offset = _frame_data.instance_buffer_id,
-            .frame_offset =frame_index * instance_buffer_entry.aligned_size_bytes,
-            .instance_offset = current_offset
-        };
-
-        m_command_list->SetGraphicsRoot32BitConstants(3,5,&instance_data,0);
-        m_command_list->DrawInstanced(24, 1,0,0);*/
+        m_command_list->ExecuteIndirect(m_command_signature.Get(),
+            indirect_cmds.size(),
+            m_indirect_command_data->GetResource(),
+            frame_index*command_buffer_entry.aligned_size_bytes,
+            nullptr,
+            0);
 
         D3D12_RESOURCE_BARRIER imgui_transition_to_texture= {};
         imgui_transition_to_texture.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;

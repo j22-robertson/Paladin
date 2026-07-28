@@ -61,11 +61,16 @@ struct SceneFrameData {
     std::uint32_t environment_map;*/
 };
 
-
+struct InstancedIndirectCmd {
+    std::uint32_t draw_index;
+    std::uint32_t instance_index;
+    D3D12_DRAW_ARGUMENTS draw_arguments;
+};
 
 
 constexpr UINT FRAME_BUFFER_COUNT = 3;
 constexpr UINT MAX_INSTANCES = 100000;
+constexpr UINT MAX_COMMANDS = 10000;
 class D3D12Context {
 public:
 
@@ -99,7 +104,7 @@ public:
     GPUResourceHandle<GPUTexture2D>  UploadTexture2D( Texture2DAsset& texture, OpaqueAssetHandle handle);
     GPUResourceHandle<GPUMesh> UploadMesh(MeshAsset& mesh,OpaqueAssetHandle handle);
 
-    void UploadMeshDescriptors(std::vector<MeshDescriptor> mesh_descriptors, std::map<OpaqueAssetHandle, std::size_t> descriptor_fetch);
+    void UploadMeshDescriptors(std::vector<MeshDescriptor> mesh_descriptors, std::map<OpaqueAssetHandle, std::uint32_t> descriptor_fetch);
     void UploadIVBuffers(std::span<Paladin::Vertex> vertices, std::span<uint32_t> indices);
 
     GPUResourceHandle<GPUMaterial> AddMaterial(std::unique_ptr<GPUMaterial> material, OpaqueAssetHandle handle);
@@ -118,8 +123,11 @@ public:
     int imgui_descriptor_index=0;
     ~D3D12Context();
     bool WaitForPreviousFrame();
+
+    void CreateIndirectCommandBuffer();
 private:
 
+    void UpdateIndirectCommandBuffer(std::span<InstancedIndirectCmd> arguments);
     bool UpdatePipeline();
     void FlushDevice();
     bool Resize(std::uint32_t new_width, std::uint32_t new_height);
@@ -176,8 +184,13 @@ private:
     GPUResourceRegistry m_gpu_resources = GPUResourceRegistry();
     Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_instance_id_data=nullptr;
     Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_instance_data=nullptr;
+
+    Microsoft::WRL::ComPtr<ID3D12CommandSignature> m_command_signature = nullptr;
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_indirect_command_data=nullptr;
     void* instance_data_destination = nullptr;
     void* id_data_destination = nullptr;
+
+    void* indirect_command_buffer_dest = nullptr;
     //std::uint32_t instance_buffer_index;
     std::uint32_t instance_count;
     //std::uint32_t bytes_per_buffer;
@@ -205,7 +218,7 @@ private:
         { -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
     };
 
-    std::map<OpaqueAssetHandle,std::size_t> m_descriptor_fetch;
+    std::map<OpaqueAssetHandle,std::uint32_t> m_descriptor_fetch;
     std::vector<MeshDescriptor> m_mesh_descriptors;
     Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_mesh_descriptor_allocation;
     ViewHandle m_mesh_descriptor_view = {};
@@ -226,6 +239,9 @@ private:
 
     ViewHandle instance_id_view;
     GPUBufferEntry instance_draw_id_entry;
+
+    ViewHandle command_buffer_view;
+    GPUBufferEntry command_buffer_entry;
 
     D3D12_VIEWPORT m_viewport = {};
     D3D12_RECT m_scissor = {};
