@@ -31,7 +31,8 @@ public:
         sample_desc.Count = 1;
         sample_desc.Quality=0;
 
-        gpu_pso.InputLayout = input_layout_desc;
+        //gpu_pso.InputLayout = input_layout_desc;
+        gpu_pso.InputLayout = {nullptr, 0};
         gpu_pso.pRootSignature =signature;
         gpu_pso.VS = vertex_shader.GetBytecode();
         gpu_pso.PS = fragment_shader.GetBytecode();
@@ -42,7 +43,7 @@ public:
         gpu_pso.RasterizerState = CD3DX12_RASTERIZER_DESC2(D3D12_DEFAULT);
         gpu_pso.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         gpu_pso.NumRenderTargets = 1;
-        gpu_pso.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+        gpu_pso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
         gpu_pso.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC2(D3D12_DEFAULT);
         gpu_pso.DSVFormat = DXGI_FORMAT_D32_FLOAT;
         gpu_pso.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;

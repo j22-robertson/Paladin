@@ -13,6 +13,10 @@ struct PerFrameData{
     std::uint32_t ib_heap_index;
     std::uint32_t draw_id_buffer_bytes;
     std::uint32_t draw_id_heap_index;
+
+    std::uint32_t vertex_heap_index;
+    std::uint32_t index_heap_index;
+    std::uint32_t descriptor_heap_index;
 };
 class IRenderPass {
 public:

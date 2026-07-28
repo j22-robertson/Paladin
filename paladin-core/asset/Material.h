@@ -5,6 +5,7 @@
 #ifndef PALADIN_MATERIAL_H
 #define PALADIN_MATERIAL_H
 #include <unordered_map>
+#include <string>
 #include "AssetHandle.h"
 #include "Asset.h"
 
@@ -17,6 +18,14 @@ enum MaterialProperty
     Roughness=3,
     AmbientOcclusion=4,
     Invalid = -1,
+};
+
+struct MaterialIndices
+{
+    std::uint32_t albedo = 0;
+    std::uint32_t normal = 0;
+    std::uint32_t roughness = 0;
+    std::uint32_t metallic = 0;
 };
 
 class Texture2DAsset;

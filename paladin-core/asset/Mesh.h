@@ -42,6 +42,8 @@ struct UploadableToGPU<MeshAsset> {
 };
 /// Describes the start location of vertices, indices and the index count as well as srv indices for material properties
 struct MeshDescriptor {
+    //TODO: Refactor out the material properties, those can be per-instance instead. Maybe material_id -> Material Which contains individual ids for the textures
+
     std::uint32_t vertex_start_location = 0;
     std::uint32_t index_start_location = 0;
     std::uint32_t index_count = 0;
@@ -49,6 +51,7 @@ struct MeshDescriptor {
     std::uint32_t normal = 0;
     std::uint32_t roughness = 0;
     std::uint32_t metallic = 0;
+    std::uint32_t ambient_occlusion = 0;
 };
 
 

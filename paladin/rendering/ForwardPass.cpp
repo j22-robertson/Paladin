@@ -42,3 +42,10 @@ void ForwardPass::Execute(ID3D12GraphicsCommandList8 *command_list, GPUResourceR
         command_list->DrawIndexedInstanced(mesh->indices, e.instance_count, 0, 0, 0);
     }
 }
+
+//For testing purposes before implementing ExecuteIndirect and a compute cull pass later.
+void ForwardPass::ExecuteVertexPull(ID3D12GraphicsCommandList8 *command_list, GPUResourceRegistry &registry,FrameUploadData &frame_data, std::span<MeshDescriptor> mesh_descriptors) {
+
+
+
+}

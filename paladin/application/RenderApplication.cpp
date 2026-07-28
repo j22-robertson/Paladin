@@ -73,7 +73,7 @@ void RenderApplication::Setup() {
     std::vector<std::uint32_t> all_indices = std::vector<std::uint32_t>();
 
     std::vector<MeshDescriptor> mesh_ranges = std::vector<MeshDescriptor>();
-
+    std::map<OpaqueAssetHandle, MeshDescriptor> mesh_descriptors = std::map<OpaqueAssetHandle, MeshDescriptor>();
     EntityTest testing = {.transform = Transform(), .model_handle = sponza};
 
 
@@ -88,71 +88,17 @@ void RenderApplication::Setup() {
     PALADIN_LOG(INFO, "Offset Color: " + std::to_string(offsetof(Paladin::Vertex, r)));
     PALADIN_LOG(INFO, "Offset UV: " + std::to_string(offsetof(Paladin::Vertex, u)));
 
-
+    //Load model from Generational Allocator using a Handle<T>
     auto sponza_model = m_asset_registry->GetAsset<ModelAsset>(sponza);
-    for (int i = 0; i < sponza_model->meshes.size(); i++) {
-        auto mesh_handle = sponza_model->meshes[i];
-        auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
 
-        auto v_start = static_cast<std::uint32_t>(all_vertices.size());
-        auto i_start = static_cast<std::uint32_t>(all_indices.size());
 
-        all_indices.insert(all_indices.end(), mesh->indices.begin(), mesh->indices.end());
-        all_vertices.insert(all_vertices.end(), mesh->vertices.begin(), mesh->vertices.end());
-
-        auto material_handle = sponza_model->materials[sponza_model->mesh_to_material[i]];
-        auto material = m_asset_registry->GetAsset<MaterialAsset>(material_handle);
-        auto albedo_handle = material->GetTexture(Albedo);
-        auto roughness_handle = material->GetTexture(Roughness);
-        auto metallic_handle = material->GetTexture(Metallic);
-        auto normal_handle = material->GetTexture(Normal);
-
-        std::unique_ptr<GPUMaterial> gpu_material = std::make_unique<GPUMaterial>();
-
-        auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
-        if (albedo_texture != nullptr) {
-            gpu_material->albedo = m_render_context->UploadTexture2D(*albedo_texture, albedo_handle);
-        }
-        auto roughness_texture = m_asset_registry->GetAsset<Texture2DAsset>(roughness_handle);
-        if (roughness_texture != nullptr) {
-            gpu_material->roughness= m_render_context->UploadTexture2D(*roughness_texture, roughness_handle);
-
-        }
-        auto metallic_texture =  m_asset_registry->GetAsset<Texture2DAsset>(metallic_handle);
-        if (metallic_texture != nullptr) {
-            gpu_material->metallic =m_render_context->UploadTexture2D(*metallic_texture, metallic_handle);
-        }
-        auto normal_texture = m_asset_registry->GetAsset<Texture2DAsset>(normal_handle);
-        if (normal_texture != nullptr) {
-            gpu_material->normal= m_render_context->UploadTexture2D(*normal_texture, normal_handle);
-        }
-
-        m_render_context->AddMaterial(std::move(gpu_material),material_handle);
-
-        auto material_indices = m_render_context->GetMaterialIndices(material_handle);
-        auto mesh_descriptor = MeshDescriptor{
-            .vertex_start_location = v_start,
-            .index_start_location = i_start,
-            .index_count = static_cast<std::uint32_t>(mesh->indices.size()),
-
-            .albedo = material_indices.albedo,
-            .normal = material_indices.normal,
-            .roughness = material_indices.roughness,
-            .metallic = material_indices.metallic,
-        };
-        auto mesh_descriptor_index = mesh_ranges.size();
-        descriptor_fetch.insert(std::make_pair(mesh_handle,mesh_descriptor_index));
-        mesh_ranges.push_back(mesh_descriptor);
-    }
 
 
     glfwInit();
     window = glfwCreateWindow(window_width, window_height, "Paladin-Triangle", nullptr, nullptr);
 
-
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwSetWindowUserPointer(window,this);
-
 
     glfwSetKeyCallback(window, Input::InputCallback);
 
@@ -180,11 +126,77 @@ void RenderApplication::Setup() {
     m_render_context = std::make_shared<D3D12Context>(hwnd, window_width,window_height);
     ImGui_ImplGlfw_InitForOther(window,true);
 
+
+
     std::unique_ptr<GPUModel> gpu_model = std::make_unique<GPUModel>();
     //std::set<OpaqueAssetHandle> material_set;
 
+ for (int i = 0; i < sponza_model->meshes.size(); i++) {
+     auto mesh_handle = sponza_model->meshes[i];
+     auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
 
+     auto v_start = static_cast<std::uint32_t>(all_vertices.size());
+     auto i_start = static_cast<std::uint32_t>(all_indices.size());
 
+     all_indices.insert(all_indices.end(), mesh->indices.begin(), mesh->indices.end());
+     all_vertices.insert(all_vertices.end(), mesh->vertices.begin(), mesh->vertices.end());
+
+     auto material_handle = sponza_model->materials[sponza_model->mesh_to_material[i]];
+     auto material = m_asset_registry->GetAsset<MaterialAsset>(material_handle);
+     auto albedo_handle = material->GetTexture(Albedo);
+     auto roughness_handle = material->GetTexture(Roughness);
+     auto metallic_handle = material->GetTexture(Metallic);
+     auto normal_handle = material->GetTexture(Normal);
+
+     std::unique_ptr<GPUMaterial> gpu_material = std::make_unique<GPUMaterial>();
+     gpu_material->albedo = {};
+     gpu_material->normal = {};
+     gpu_material->roughness = {};
+     gpu_material->metallic= {};
+
+     auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
+     if (albedo_texture != nullptr) {
+         gpu_material->albedo = m_render_context->UploadTexture2D(*albedo_texture, albedo_handle);
+         //gpu_material->albedo= {};
+     }
+
+     auto roughness_texture = m_asset_registry->GetAsset<Texture2DAsset>(roughness_handle);
+     if (roughness_texture != nullptr) {
+         gpu_material->roughness= m_render_context->UploadTexture2D(*roughness_texture, roughness_handle);
+         //gpu_material->roughness= {};
+     }
+
+     auto metallic_texture =  m_asset_registry->GetAsset<Texture2DAsset>(metallic_handle);
+     if (metallic_texture != nullptr) {
+            gpu_material->metallic = m_render_context->UploadTexture2D(*metallic_texture, metallic_handle);
+
+     }
+     auto normal_texture = m_asset_registry->GetAsset<Texture2DAsset>(normal_handle);
+     if (normal_texture != nullptr) {
+         gpu_material->normal= m_render_context->UploadTexture2D(*normal_texture, normal_handle);
+     }
+
+        m_render_context->AddMaterial(std::move(gpu_material),material_handle);
+
+        auto material_indices = m_render_context->GetMaterialIndices(material_handle);
+        auto mesh_descriptor = MeshDescriptor{
+            .vertex_start_location = v_start,
+            .index_start_location = i_start,
+            .index_count = static_cast<std::uint32_t>(mesh->indices.size()),
+
+            .albedo = material_indices.albedo,
+            .normal = material_indices.normal,
+            .roughness = material_indices.roughness,
+            .metallic = material_indices.metallic,
+        };
+        auto mesh_descriptor_index = mesh_ranges.size();
+        descriptor_fetch.insert(std::make_pair(mesh_handle,mesh_descriptor_index));
+        mesh_ranges.push_back(mesh_descriptor);
+       // mesh_descriptors.insert(std::make_pair(mesh_handle, mesh_descriptor));
+    }
+    //m_render_context->UploadMeshDescriptors(mesh_ranges,descriptor_fetch);
+
+/*
     auto model = m_asset_registry->GetAsset<ModelAsset>(testing.model_handle);
     gpu_model->mesh_to_material = model->mesh_to_material;
     for (int i = 0; i < model->meshes.size(); i++)
@@ -259,10 +271,15 @@ void RenderApplication::Setup() {
         gpu_model_two->material_handles.push_back( m_render_context->AddMaterial( std::move(gpu_material), material_handle));
     }
     m_render_context->AddModel(std::move(gpu_model_two), sponza_two);
-    m_render_context->CreatePersistantAllocation(m_camera.GetUniformMut());
-
+    */
     m_render_context->CreateInstanceBuffer();
     m_render_context->CreateVisibleInstanceIDBuffer();
+
+    m_render_context->CreatePersistantAllocation(m_camera.GetUniformMut());
+    m_render_context->UploadIVBuffers(all_vertices,all_indices);
+
+    m_render_context->UploadMeshDescriptors(mesh_ranges,descriptor_fetch);
+
 
     Scene::SceneEntry entry = {};
     entry.model_handle = sponza;
@@ -283,7 +300,7 @@ void RenderApplication::Setup() {
         }
     }
     for (int x = 1; x < 15; x++) {
-        for (int z =1; z > -15; z--) {
+        for (int z =-1; z > -15; z--) {
             auto transform = Transform{};
             transform.SetPosition({x*5000,0,z*5000});
             transform.SetScale({1,1,1});
@@ -296,7 +313,7 @@ void RenderApplication::Setup() {
         }
     }
     scene.model_entries.push_back(entry);
-
+/*
     Scene::SceneEntry entry_two = {};
     entry_two.model_handle = sponza_two;
     entry_two.transform_index = scene.all_transforms.size();
@@ -310,7 +327,7 @@ void RenderApplication::Setup() {
             entry_two.transform_count++;
         }
     }
-    scene.model_entries.push_back(entry_two);
+    scene.model_entries.push_back(entry_two);*/
 
     //m_render_context->UploadFrameData(m_camera);
 }
@@ -357,20 +374,8 @@ bool RenderApplication::Update(float delta_time) {
     std::vector<DrawData> draw_batches;
     FrameUploadData test_upload_data = {};
 
-    for (auto entry : scene.model_entries)
-    {
-        auto model = m_asset_registry->GetAsset<ModelAsset>(entry.model_handle);
-        for (auto mesh_handle : model->meshes)
-        {
-            test_upload_data.visible_meshes.push_back(FrameUploadData::MeshDrawBatch{
-                .mesh_handle = mesh_handle,
-                .instance_index = entry.transform_index,
-                .instance_count = entry.transform_count});
 
-        }
-    }
 
-/*
     FrameUploadData frame_upload_data = {};
     frame_upload_data.camera = m_camera;
     std::unordered_map<AssetHandle<MeshAsset>, std::vector<std::uint32_t>> visible_instances;
@@ -379,17 +384,17 @@ bool RenderApplication::Update(float delta_time) {
         auto model_tranforms = std::span(scene.all_transforms.data()+entry.transform_index,entry.transform_count);
         for (auto& transform : model_tranforms) {
             auto transform_data = transform.GetData();
-            if (m_camera.IsOnFrustrum(model->bounding_box, transform.GetData())) {
+           // if (m_camera.IsOnFrustrum(model->bounding_box, transform.GetData())) {
                 for (int i = 0; i < model->meshes.size(); i++) {
                     auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
-                    if (m_camera.IsOnFrustrum(mesh->bounding_box,transform_data)) {
+                   // if (m_camera.IsOnFrustrum(mesh->bounding_box,transform_data)) {
                         visible_instances[model->meshes[i]].push_back(frame_upload_data.transforms.size());
-                    }
+                  //  }
                 }
                 frame_upload_data.transforms.push_back(transform_data);
-            }
+           // }
         }
-    }*/
+    }
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -397,7 +402,7 @@ bool RenderApplication::Update(float delta_time) {
 
     auto rand_int = dis(gen);
 
-    FrameUploadData frame_upload_data = {};
+    //FrameUploadData frame_upload_data = {};
     frame_upload_data.camera = m_camera;
     /*
     std::unordered_map<AssetHandle<MeshAsset>, std::vector<std::uint32_t>> visible_instances;
@@ -421,11 +426,10 @@ bool RenderApplication::Update(float delta_time) {
                 }
             }
         }
-    }
+    }*/
 
     {
         PALADIN_SCOPED_CPU_PROFILE("GPU Extraction Write",ProfileColors::Blue);
-
         for (auto[mesh_handle, visible_instance_indices] : visible_instances) {
             if (visible_instance_indices.empty()) continue;
             FrameUploadData::MeshDrawBatch draw_batch ={};
@@ -435,7 +439,7 @@ bool RenderApplication::Update(float delta_time) {
             frame_upload_data.instance_indices.insert(frame_upload_data.instance_indices.end(), visible_instance_indices.begin(), visible_instance_indices.end());
             frame_upload_data.visible_meshes.push_back(draw_batch);
         }
-    }*/
+    }
 
 /*
     for (int i = 0; i < AABBs.size(); i++) {

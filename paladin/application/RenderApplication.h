@@ -73,7 +73,7 @@ private:
     std::vector<AABB> AABBs;
     std::vector<TransformData> instancing_test_data;
 
-    std::unordered_map<AssetHandle<MeshAsset>,std::size_t> descriptor_fetch;
+    std::map<OpaqueAssetHandle,std::size_t> descriptor_fetch;
 
     Scene scene;
 

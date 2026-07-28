@@ -49,13 +49,7 @@ struct DrawData {
     std::vector<std::uint32_t> transform_indices;
 };
 
-struct MaterialIndices
-{
-    std::uint32_t albedo = 0;
-    std::uint32_t normal = 0;
-    std::uint32_t roughness = 0;
-    std::uint32_t metallic = 0;
-};
+
 
 struct SceneFrameData {
     std::uint32_t camera_identifier;
@@ -83,8 +77,6 @@ public:
 
     void CreateVisibleInstanceIDBuffer();
 
-    void CrateVisibleInstanceIDBuffer();
-
     MaterialIndices GetMaterialIndices(OpaqueAssetHandle material_handle);
 
     void CreatePersistantAllocation(CameraUniform uniform_data);
@@ -106,7 +98,8 @@ public:
 
     GPUResourceHandle<GPUTexture2D>  UploadTexture2D( Texture2DAsset& texture, OpaqueAssetHandle handle);
     GPUResourceHandle<GPUMesh> UploadMesh(MeshAsset& mesh,OpaqueAssetHandle handle);
-    void UploadMeshDescriptors(std::span<MeshDescriptor> mesh_descriptors);
+
+    void UploadMeshDescriptors(std::vector<MeshDescriptor> mesh_descriptors, std::map<OpaqueAssetHandle, std::size_t> descriptor_fetch);
     void UploadIVBuffers(std::span<Paladin::Vertex> vertices, std::span<uint32_t> indices);
 
     GPUResourceHandle<GPUMaterial> AddMaterial(std::unique_ptr<GPUMaterial> material, OpaqueAssetHandle handle);
@@ -211,7 +204,10 @@ private:
         { 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
         { -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
     };
-    Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_mesh_descriptors;
+
+    std::map<OpaqueAssetHandle,std::size_t> m_descriptor_fetch;
+    std::vector<MeshDescriptor> m_mesh_descriptors;
+    Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_mesh_descriptor_allocation;
     ViewHandle m_mesh_descriptor_view = {};
     Microsoft::WRL::ComPtr<D3D12MA::Allocation> m_vertex_buffer;
     ViewHandle m_vertex_buffer_view = {};
