@@ -91,6 +91,7 @@ void RenderApplication::Setup() {
     //Load model from Generational Allocator using a Handle<T>
     auto sponza_model = m_asset_registry->GetAsset<ModelAsset>(sponza);
 
+    auto sponza_model_two = m_asset_registry->GetAsset<ModelAsset>(sponza_two);
 
 
 
@@ -194,6 +195,72 @@ void RenderApplication::Setup() {
         mesh_ranges.push_back(mesh_descriptor);
        // mesh_descriptors.insert(std::make_pair(mesh_handle, mesh_descriptor));
     }
+
+  for (int i = 0; i < sponza_model_two->meshes.size(); i++) {
+     auto mesh_handle = sponza_model_two->meshes[i];
+     auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
+
+     auto v_start = static_cast<std::uint32_t>(all_vertices.size());
+     auto i_start = static_cast<std::uint32_t>(all_indices.size());
+
+     all_indices.insert(all_indices.end(), mesh->indices.begin(), mesh->indices.end());
+     all_vertices.insert(all_vertices.end(), mesh->vertices.begin(), mesh->vertices.end());
+
+     auto material_handle = sponza_model_two->materials[sponza_model_two->mesh_to_material[i]];
+     auto material = m_asset_registry->GetAsset<MaterialAsset>(material_handle);
+     auto albedo_handle = material->GetTexture(Albedo);
+     auto roughness_handle = material->GetTexture(Roughness);
+     auto metallic_handle = material->GetTexture(Metallic);
+     auto normal_handle = material->GetTexture(Normal);
+
+     std::unique_ptr<GPUMaterial> gpu_material = std::make_unique<GPUMaterial>();
+     gpu_material->albedo = {};
+     gpu_material->normal = {};
+     gpu_material->roughness = {};
+     gpu_material->metallic= {};
+
+     auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
+     if (albedo_texture != nullptr) {
+         gpu_material->albedo = m_render_context->UploadTexture2D(*albedo_texture, albedo_handle);
+         //gpu_material->albedo= {};
+     }
+
+     auto roughness_texture = m_asset_registry->GetAsset<Texture2DAsset>(roughness_handle);
+     if (roughness_texture != nullptr) {
+         gpu_material->roughness= m_render_context->UploadTexture2D(*roughness_texture, roughness_handle);
+         //gpu_material->roughness= {};
+     }
+
+     auto metallic_texture =  m_asset_registry->GetAsset<Texture2DAsset>(metallic_handle);
+     if (metallic_texture != nullptr) {
+            gpu_material->metallic = m_render_context->UploadTexture2D(*metallic_texture, metallic_handle);
+
+     }
+     auto normal_texture = m_asset_registry->GetAsset<Texture2DAsset>(normal_handle);
+     if (normal_texture != nullptr) {
+         gpu_material->normal= m_render_context->UploadTexture2D(*normal_texture, normal_handle);
+     }
+
+        m_render_context->AddMaterial(std::move(gpu_material),material_handle);
+
+        auto material_indices = m_render_context->GetMaterialIndices(material_handle);
+        auto mesh_descriptor = MeshDescriptor{
+            .vertex_start_location = v_start,
+            .index_start_location = i_start,
+            .index_count = static_cast<std::uint32_t>(mesh->indices.size()),
+
+            .albedo = material_indices.albedo,
+            .normal = material_indices.normal,
+            .roughness = material_indices.roughness,
+            .metallic = material_indices.metallic,
+        };
+        auto mesh_descriptor_index = mesh_ranges.size();
+        descriptor_fetch.insert(std::make_pair(mesh_handle,mesh_descriptor_index));
+        mesh_ranges.push_back(mesh_descriptor);
+       // mesh_descriptors.insert(std::make_pair(mesh_handle, mesh_descriptor));
+    }
+
+
     //m_render_context->UploadMeshDescriptors(mesh_ranges,descriptor_fetch);
 
 /*
@@ -272,14 +339,6 @@ void RenderApplication::Setup() {
     }
     m_render_context->AddModel(std::move(gpu_model_two), sponza_two);
     */
-    m_render_context->CreateInstanceBuffer();
-    m_render_context->CreateVisibleInstanceIDBuffer();
-
-    m_render_context->CreatePersistantAllocation(m_camera.GetUniformMut());
-    m_render_context->UploadIVBuffers(all_vertices,all_indices);
-
-    m_render_context->UploadMeshDescriptors(mesh_ranges,descriptor_fetch);
-
 
     Scene::SceneEntry entry = {};
     entry.model_handle = sponza;
@@ -299,6 +358,7 @@ void RenderApplication::Setup() {
             entry.transform_count++;
         }
     }
+    /*
     for (int x = 1; x < 15; x++) {
         for (int z =-1; z > -15; z--) {
             auto transform = Transform{};
@@ -311,9 +371,9 @@ void RenderApplication::Setup() {
             scene.all_transforms.push_back(transform);
             entry.transform_count++;
         }
-    }
+    }*/
     scene.model_entries.push_back(entry);
-/*
+
     Scene::SceneEntry entry_two = {};
     entry_two.model_handle = sponza_two;
     entry_two.transform_index = scene.all_transforms.size();
@@ -327,9 +387,17 @@ void RenderApplication::Setup() {
             entry_two.transform_count++;
         }
     }
-    scene.model_entries.push_back(entry_two);*/
+    scene.model_entries.push_back(entry_two);
 
     //m_render_context->UploadFrameData(m_camera);
+    m_render_context->CreateInstanceBuffer();
+    m_render_context->CreateVisibleInstanceIDBuffer();
+
+    m_render_context->CreatePersistantAllocation(m_camera.GetUniformMut());
+    m_render_context->UploadIVBuffers(all_vertices,all_indices);
+
+    m_render_context->UploadMeshDescriptors(mesh_ranges,descriptor_fetch);
+
 }
 
 bool RenderApplication::Update(float delta_time) {
