@@ -184,29 +184,16 @@ public:
     bool IsOnFrustrum(const AABB&  aabb,TransformData& transform) const {
         PALADIN_SCOPED_CPU_PROFILE("Frustum check",ProfileColors::Green);
         const auto& model_matrix = transform.model;
-        //const glm::vec4 world_pos = model_matrix * glm::vec4(aabb.center, 1.0f);
-        const glm::vec3 world_location = model_matrix * glm::vec4(aabb.center, 1.0f);//glm::vec3(world_pos) / world_pos.w;
+        const glm::vec3 world_location = model_matrix * glm::vec4(aabb.center, 1.0f);
 
         const glm::vec3 orientation_right = glm::vec3(transform.model[0]) * aabb.extent.x;
         const glm::vec3 orientation_up = glm::vec3(transform.model[1])* aabb.extent.y;
         const glm::vec3 orientation_forward =glm::vec3(transform.model[2]) * aabb.extent.z;
-/*
-        const float new_Ii = std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, orientation_right)) +
-        std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, orientation_up)) +
-        std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, orientation_forward));
 
-        const float new_Ij = std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, orientation_right)) +
-                std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, orientation_up)) +
-                std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, orientation_forward));
-
-        const float new_Ik = std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, orientation_right)) +
-              std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, orientation_up)) +
-              std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, orientation_forward));*/
         float new_x = std::abs(orientation_right.x) + std::abs(orientation_up.x) + std::abs(orientation_forward.x);
         float new_y = std::abs(orientation_right.y) + std::abs(orientation_up.y) + std::abs(orientation_forward.y);
         float new_z = std::abs(orientation_right.z) + std::abs(orientation_up.z) + std::abs(orientation_forward.z);
         const auto world_aabb = AABB(world_location, new_x,new_y,new_z);
-        //PALADIN_SCOPED_CPU_PROFILE("Plane check",ProfileColors::Red);
         return (world_aabb.IsOnForwardPlane(frustum.left_face) &&
             world_aabb.IsOnForwardPlane(frustum.right_face) &&
             world_aabb.IsOnForwardPlane(frustum.top_face) &&
