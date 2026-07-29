@@ -53,7 +53,6 @@ void RenderApplication::Setup() {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags  |= ImGuiConfigFlags_ViewportsEnable;
-   // io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 
     AssetHandle<ModelAsset> sponza = {};
@@ -74,7 +73,6 @@ void RenderApplication::Setup() {
 
     std::vector<MeshDescriptor> mesh_ranges = std::vector<MeshDescriptor>();
     std::map<OpaqueAssetHandle, MeshDescriptor> mesh_descriptors = std::map<OpaqueAssetHandle, MeshDescriptor>();
-    EntityTest testing = {.transform = Transform(), .model_handle = sponza};
 
 
     std::vector<std::pair<std::uint32_t,TextureRange>> mesh_to_albedo;
@@ -127,10 +125,7 @@ void RenderApplication::Setup() {
     m_render_context = std::make_shared<D3D12Context>(hwnd, window_width,window_height);
     ImGui_ImplGlfw_InitForOther(window,true);
 
-
-
     std::unique_ptr<GPUModel> gpu_model = std::make_unique<GPUModel>();
-    //std::set<OpaqueAssetHandle> material_set;
 
  for (int i = 0; i < sponza_model->meshes.size(); i++) {
      auto mesh_handle = sponza_model->meshes[i];
@@ -158,13 +153,11 @@ void RenderApplication::Setup() {
      auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
      if (albedo_texture != nullptr) {
          gpu_material->albedo = m_render_context->UploadTexture2D(*albedo_texture, albedo_handle);
-         //gpu_material->albedo= {};
      }
 
      auto roughness_texture = m_asset_registry->GetAsset<Texture2DAsset>(roughness_handle);
      if (roughness_texture != nullptr) {
          gpu_material->roughness= m_render_context->UploadTexture2D(*roughness_texture, roughness_handle);
-         //gpu_material->roughness= {};
      }
 
      auto metallic_texture =  m_asset_registry->GetAsset<Texture2DAsset>(metallic_handle);
@@ -193,7 +186,6 @@ void RenderApplication::Setup() {
         auto mesh_descriptor_index = mesh_ranges.size();
         descriptor_fetch.insert(std::make_pair(mesh_handle,mesh_descriptor_index));
         mesh_ranges.push_back(mesh_descriptor);
-       // mesh_descriptors.insert(std::make_pair(mesh_handle, mesh_descriptor));
     }
 
   for (int i = 0; i < sponza_model_two->meshes.size(); i++) {
@@ -222,19 +214,16 @@ void RenderApplication::Setup() {
      auto albedo_texture = m_asset_registry->GetAsset<Texture2DAsset>(albedo_handle);
      if (albedo_texture != nullptr) {
          gpu_material->albedo = m_render_context->UploadTexture2D(*albedo_texture, albedo_handle);
-         //gpu_material->albedo= {};
      }
 
      auto roughness_texture = m_asset_registry->GetAsset<Texture2DAsset>(roughness_handle);
      if (roughness_texture != nullptr) {
          gpu_material->roughness= m_render_context->UploadTexture2D(*roughness_texture, roughness_handle);
-         //gpu_material->roughness= {};
      }
 
      auto metallic_texture =  m_asset_registry->GetAsset<Texture2DAsset>(metallic_handle);
      if (metallic_texture != nullptr) {
             gpu_material->metallic = m_render_context->UploadTexture2D(*metallic_texture, metallic_handle);
-
      }
      auto normal_texture = m_asset_registry->GetAsset<Texture2DAsset>(normal_handle);
      if (normal_texture != nullptr) {
@@ -257,41 +246,23 @@ void RenderApplication::Setup() {
         auto mesh_descriptor_index = mesh_ranges.size();
         descriptor_fetch.insert(std::make_pair(mesh_handle,mesh_descriptor_index));
         mesh_ranges.push_back(mesh_descriptor);
-       // mesh_descriptors.insert(std::make_pair(mesh_handle, mesh_descriptor));
     }
 
     Scene::SceneEntry entry = {};
     entry.model_handle = sponza;
     entry.transform_index = scene.all_transforms.size();
     entry.transform_count = 0;
-   // auto sponza_model = m_asset_registry->GetAsset<ModelAsset>(sponza);
+
     for (int x = 1; x < 15; x++) {
         for (int z =1; z < 15; z++) {
             auto transform = Transform{};
             transform.SetPosition({x*5000,0,z*5000});
             transform.SetScale({1,1,1});
-            //instancing_test_data.push_back(transform.GetData());
-            //frame_data.insert(sponza, transform);
 
-            //transforms.push_back(transform);
             scene.all_transforms.push_back(transform);
             entry.transform_count++;
         }
     }
-    /*
-    for (int x = 1; x < 15; x++) {
-        for (int z =-1; z > -15; z--) {
-            auto transform = Transform{};
-            transform.SetPosition({x*5000,0,z*5000});
-            transform.SetScale({1,1,1});
-            //instancing_test_data.push_back(transform.GetData());
-            //frame_data.insert(sponza, transform);
-
-            //transforms.push_back(transform);
-            scene.all_transforms.push_back(transform);
-            entry.transform_count++;
-        }
-    }*/
     scene.model_entries.push_back(entry);
 
     Scene::SceneEntry entry_two = {};
@@ -330,7 +301,7 @@ bool RenderApplication::Update(float delta_time) {
     double mouse_x;
     double mouse_y;
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
-    //m_camera.LookAt(mouse_x,mouse_y);
+
 
     glm::vec3 direction = glm::vec3(0.0);
     if (Input::keys[GLFW_KEY_W]) {
@@ -352,7 +323,7 @@ bool RenderApplication::Update(float delta_time) {
        direction.y=-1;
     }
 
-    //m_camera.GetUniformMut();
+
     if (Input::keys[GLFW_KEY_O]) {
         frustum_test = m_camera;
         frustum_test.direction = direction;
@@ -387,40 +358,13 @@ bool RenderApplication::Update(float delta_time) {
 
 
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<std::uint32_t> dis(0, 5);
-
-    auto rand_int = dis(gen);
 
 
-    //FrameUploadData frame_upload_data = {};
+
     frame_upload_data.camera = m_camera;
-    /*
-    std::unordered_map<AssetHandle<MeshAsset>, std::vector<std::uint32_t>> visible_instances;
-    {
-        PALADIN_SCOPED_CPU_PROFILE("Frustum Cull CPU",ProfileColors::Blue);
-        for (auto& entry : scene.model_entries) {
-            auto model = m_asset_registry->GetAsset<ModelAsset>(entry.model_handle);
-            auto model_tranforms = std::span(scene.all_transforms.data()+entry.transform_index,entry.transform_count);
-            for (auto& transform : model_tranforms) {
-                PALADIN_SCOPED_CPU_PROFILE("Cull Model",ProfileColors::Blue);
-                auto transform_data = transform.GetData();
-                if (m_camera.IsOnFrustrum(model->bounding_box, transform_data)) {
-                    for (int i = 0; i < model->meshes.size(); i++) {
-                       // PALADIN_SCOPED_CPU_PROFILE("Cull Mesh",ProfileColors::Red);
-                        //auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
-                       // if (m_camera.IsOnFrustrum(mesh->bounding_box,transform_data)) {
-                            visible_instances[model->meshes[i]].push_back(frame_upload_data.transforms.size());
-                       // }
-                    }
-                    frame_upload_data.transforms.push_back(transform_data);
-                }
-            }
-        }
-    }*/
+
     std::uint32_t triangle_count = 0;
-    //std::uint64_t vertex_count = 0;
+
     {
         PALADIN_SCOPED_CPU_PROFILE("GPU Extraction Write",ProfileColors::Blue);
         for (auto[mesh_handle, visible_instance_indices] : visible_instances) {
@@ -443,25 +387,9 @@ bool RenderApplication::Update(float delta_time) {
     ImGui::Text("Rendered Triangles: %u", triangle_count);
     ImGui::Text("Rendered Vertices: %u", triangle_count*3);
     ImGui::End();
-/*
-    for (int i = 0; i < AABBs.size(); i++) {
-        if (frustum_test.IsOnFrustrum(AABBs[i],AABB_real_transforms[i].GetData())) {
-            frame_data.debug_aabb_transforms.push_back(AABB_transforms[i].GetData());
-        }
-    }
-    if (frame_data.debug_aabb_transforms.size() > 0) {
-        PALADIN_LOG(INFO,"Not culled:" + std::to_string(frame_data.debug_aabb_transforms.size()));
-    }*/
-
-    //frame_data.camera = m_camera;
-    //m_render_context->UpdateRenderFrameData(frame_data);
-
 
     m_render_context->UpdatePersistantAllocation(m_camera.GetUniformMut());
     m_render_context->UpdateFrameData(frame_upload_data);
-
-
-    //PALADIN_LOG(INFO, "Mouse X:" + std::to_string(mouse_x) + " Mouse Y:" + std::to_string(mouse_y));
 
     return true;
 }
