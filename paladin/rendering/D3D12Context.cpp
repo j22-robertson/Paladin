@@ -1768,9 +1768,7 @@ bool D3D12Context::UpdatePipeline()
     {
         PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Draw Commands", ProfileColors::Green)
 
-        ImGui_ImplDX12_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+
         ImGuiViewport* viewport = ImGui::GetMainViewport();
 
         ImGuiID dockspace_id = ImGui::GetID("EditorWindow");
@@ -1856,11 +1854,6 @@ bool D3D12Context::UpdatePipeline()
                     .StartInstanceLocation = 0,
             },};
             indirect_cmds.push_back(indirect_cmd);
-
-            //m_command_list->SetGraphicsRoot32BitConstants(2,1,&descriptor_index,0);
-           // m_command_list->SetGraphicsRoot32BitConstants(3,1,&mesh.instance_index,0);
-
-            //m_command_list->DrawInstanced(descriptor.index_count,mesh.instance_count,0,0);
         }
         UpdateIndirectCommandBuffer(indirect_cmds);
 

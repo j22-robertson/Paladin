@@ -322,6 +322,9 @@ void RenderApplication::Setup() {
 
 bool RenderApplication::Update(float delta_time) {
     PALADIN_SCOPED_CPU_PROFILE("AppUpdate",ProfileColors::Blue);
+    ImGui_ImplDX12_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
     m_camera.direction = glm::vec3(0.0);
 
     double mouse_x;
@@ -363,7 +366,6 @@ bool RenderApplication::Update(float delta_time) {
     FrameUploadData test_upload_data = {};
 
 
-
     FrameUploadData frame_upload_data = {};
     frame_upload_data.camera = m_camera;
     std::unordered_map<AssetHandle<MeshAsset>, std::vector<std::uint32_t>> visible_instances;
@@ -371,24 +373,26 @@ bool RenderApplication::Update(float delta_time) {
         auto model = m_asset_registry->GetAsset<ModelAsset>(entry.model_handle);
         auto model_tranforms = std::span(scene.all_transforms.data()+entry.transform_index,entry.transform_count);
         for (auto& transform : model_tranforms) {
+            transform.Rotate(Axis::X_AXIS,0.5*delta_time);
             auto transform_data = transform.GetData();
-           // if (m_camera.IsOnFrustrum(model->bounding_box, transform.GetData())) {
+            if (m_camera.IsOnFrustrum(model->bounding_box, transform.GetData())) {
                 for (int i = 0; i < model->meshes.size(); i++) {
-                    auto mesh = m_asset_registry->GetAsset<MeshAsset>(model->meshes[i]);
-                   // if (m_camera.IsOnFrustrum(mesh->bounding_box,transform_data)) {
-                        visible_instances[model->meshes[i]].push_back(frame_upload_data.transforms.size());
-                  //  }
+                    visible_instances[model->meshes[i]].push_back(frame_upload_data.transforms.size());
                 }
                 frame_upload_data.transforms.push_back(transform_data);
-           // }
+
+            }
         }
     }
+
+
 
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<std::uint32_t> dis(0, 5);
 
     auto rand_int = dis(gen);
+
 
     //FrameUploadData frame_upload_data = {};
     frame_upload_data.camera = m_camera;
@@ -415,7 +419,8 @@ bool RenderApplication::Update(float delta_time) {
             }
         }
     }*/
-
+    std::uint32_t triangle_count = 0;
+    //std::uint64_t vertex_count = 0;
     {
         PALADIN_SCOPED_CPU_PROFILE("GPU Extraction Write",ProfileColors::Blue);
         for (auto[mesh_handle, visible_instance_indices] : visible_instances) {
@@ -426,9 +431,18 @@ bool RenderApplication::Update(float delta_time) {
             draw_batch.instance_index = frame_upload_data.instance_indices.size();
             frame_upload_data.instance_indices.insert(frame_upload_data.instance_indices.end(), visible_instance_indices.begin(), visible_instance_indices.end());
             frame_upload_data.visible_meshes.push_back(draw_batch);
+            auto mesh = m_asset_registry->GetAsset<MeshAsset>(mesh_handle);
+            triangle_count+=(mesh->indices.size()/3)*draw_batch.instance_count;
         }
     }
 
+
+    ImGui::Begin("PerformanceStats");
+    ImGui::Text("FPS: %.1f (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+    ImGui::Separator();
+    ImGui::Text("Rendered Triangles: %u", triangle_count);
+    ImGui::Text("Rendered Vertices: %u", triangle_count*3);
+    ImGui::End();
 /*
     for (int i = 0; i < AABBs.size(); i++) {
         if (frustum_test.IsOnFrustrum(AABBs[i],AABB_real_transforms[i].GetData())) {

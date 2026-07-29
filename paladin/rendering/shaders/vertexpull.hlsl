@@ -71,6 +71,7 @@ Vertex LoadVertex(ByteAddressBuffer buffer, uint byteOffset)
     v.uv        = asfloat(buffer.Load2(byteOffset + 64));  // Bytes 64..71
     return v;
 }
+
 ConstantBuffer<DrawIdentifier> draw_id : register(b1);
 ConstantBuffer<InstanceOffset> instance_offset : register(b2);
 ConstantBuffer<PerFrameData> frame_data : register(b3);
@@ -120,8 +121,6 @@ VS_OUTPUT main(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
     float4 world_pos = mul(float4(vertex.pos, 1.0f), model);
     //Opposite order because byte address buffer implicitly transposes to row_major
 
-    //float4 view_pos = mul(view, world_pos);
-   // output.pos = mul(projection,view_pos);
 	output.pos = mul(view_projection,world_pos);
     output.color = vertex.color;
     output.normal = normal;
