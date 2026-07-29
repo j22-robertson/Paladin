@@ -161,13 +161,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     srv_heap_desc.NumDescriptors =100000;
     srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-/*
-    if (auto hr = m_device->CreateDescriptorHeap(&srv_heap_desc,IID_PPV_ARGS(&m_srv_descriptor_heap)); SUCCEEDED(hr)) {
-        PALADIN_LOG(INFO, "Created srv descriptor heap")
-    }
-    else if (FAILED(hr)) {
-        PALADIN_LOG(ERR, ErrorResult("Failed to create srv descriptor heap", hr))
-    }*/
 
     if (m_descriptor_heap.CreateDescriptorHeap(m_device.Get(),PALADIN_HASH("BINDLESS"),srv_heap_desc))
     {
@@ -192,9 +185,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     D3D12_CPU_DESCRIPTOR_HANDLE rtv_cpu_handle(m_rtv_descriptor_heap->GetCPUDescriptorHandleForHeapStart());
 
-    //D3D12_CPU_DESCRIPTOR_HANDLE srv_cpu_handle(m_srv_descriptor_heap->GetCPUDescriptorHandleForHeapStart());
-
-
     D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
     srv_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
     srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -213,9 +203,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
         rtv_cpu_handle.ptr += rtv_descriptor_size;
         e+=1;
-
     }
-
 
     D3D12_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc = {};
     depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT;
@@ -239,7 +227,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     depth_optimized_clear_value.DepthStencil.Depth = 1.0f;
     depth_optimized_clear_value.DepthStencil.Stencil = 0;
 
-
     D3D12MA::ALLOCATION_DESC allocation_desc = {};
     allocation_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
@@ -257,8 +244,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         }
         m_depth_buffer.push_back(std::move(depth_allocation));
     }
-
-
 
     D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
 
@@ -289,8 +274,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         PALADIN_LOG(ERR, ErrorResult("Failed to create command list", hr))
     }
 
-    // m_command_list->Close();
-
     for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++)
     {
         if (auto hr = m_device->CreateFence(0,D3D12_FENCE_FLAG_NONE,IID_PPV_ARGS(&m_fence[i])); SUCCEEDED(hr))
@@ -305,7 +288,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         fence_value[i] = 0;
     }
 
-
     fence_event = CreateEvent(nullptr, false, false, nullptr);
     if (fence_event == nullptr)
     {
@@ -313,12 +295,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
         return;
     }
-
-
-
-
-
-
 
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC bindless_root_signature_desc = {};
 
@@ -452,7 +428,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     }
 
     D3D12_SHADER_BYTECODE fragment_shader_bytecode = {};
-    //fragment_shader = DXShader(FragmentShader, L"fs.frag",L"main");
+
     fragment_shader = DXShader(FragmentShader, L"fragment_vpull.hlsl",L"main");
 
     if (!m_shader_compiler.LoadShader(fragment_shader))
@@ -465,7 +441,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
 
 
-    //test_vs = DXShader(VertexShader, L"test_vs.hlsl", L"main");
     test_vs = DXShader(VertexShader, L"vertexpull.hlsl", L"main");
 
     if (m_shader_compiler.LoadShader(test_vs))
@@ -477,7 +452,7 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
 
     test_state = std::make_unique<PipelineState>(test_vs,fragment_shader,m_bindless_root_signature.Get());
     test_state->gpu_pso.InputLayout = {nullptr, 0};
-    //test_state->input_layout_desc = {nullptr, 0};
+
 
     int channels = 4;
     std::vector<float> blank_data;
@@ -512,7 +487,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
         e+=1;
     }
 
-    PALADIN_LOG(INFO, "E:"+std::to_string(e));
 
     if (auto hr = m_device->CreateGraphicsPipelineState(&test_state->gpu_pso,IID_PPV_ARGS(&m_pipeline_state)); SUCCEEDED(hr))
     {
@@ -522,6 +496,9 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     {
         PALADIN_LOG(ERR, ErrorResult("Failed to create Test pipeline state.", hr))
     }
+
+    //TODO: The Frustum/AABB debugging that should be re-implemented at some point.
+
     /*
     aabb_vs = DXShader(VertexShader, L"frustum_vs.hlsl", L"main");
     m_shader_compiler.LoadShader(aabb_vs);
@@ -554,10 +531,6 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     if (FAILED(hr)) {
         PALADIN_LOG(ERR, ErrorResult("Failed to signal fence.", hr))
     }
-   // vertex_buffer_view.BufferLocation = triangle_vertex_buffer->GetGPUVirtualAddress();
-   // vertex_buffer_view.SizeInBytes = vertex_buffer_size;
-   // vertex_buffer_view.StrideInBytes = sizeof(Vertex);
-
 
     m_viewport.TopLeftX = 0;
     m_viewport.TopLeftY = 0;
@@ -627,6 +600,8 @@ bool D3D12Context::Render()
     if (m_resized)  Resize(m_window_width,m_window_height);
     TracyD3D12Collect(m_tracy_context)
     TracyD3D12NewFrame(m_tracy_context);
+
+    //Here for hot reloading example but unused currently.
 /*
     {
         PALADIN_SCOPED_CPU_PROFILE("VS Hot Reload", ProfileColors::Blue);
@@ -720,10 +695,6 @@ bool D3D12Context::Render()
 
 std::optional<std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>, Microsoft::WRL::ComPtr<D3D12MA::Allocation>>> D3D12Context::CreateAllocation(const D3D12_RESOURCE_DESC& resource_desc, void* data)
 {
-
-    //auto info = m_device->GetResourceAllocationInfo(0,1,&resource_desc);
-
-
     std::size_t num_bytes = 0;
     UINT row = 0;
     UINT64 row_size = 0;
@@ -746,8 +717,6 @@ std::optional<std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>, Microsoft::
         break;
     }
 
-    //PALADIN_LOG(INFO, "GPU Size Bytes: "+ std::to_string(info.SizeInBytes))
-    //PALADIN_LOG(INFO, "CPU Size Bytes: "+ std::to_string(num_bytes))
 
     D3D12MA::ALLOCATION_DESC allocation_desc = {};
     allocation_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
@@ -758,7 +727,6 @@ std::optional<std::pair<Microsoft::WRL::ComPtr<D3D12MA::Allocation>, Microsoft::
     if (resource_desc.Flags == D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) {
         D3D12_CLEAR_VALUE optimized_clear_value = {};
         optimized_clear_value.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-        //optimized_clear_value.Color = {0.1,0.1,0.1,1.0};
 
         hr = m_gpu_allocator->CreateResource(&allocation_desc,
         &resource_desc,
@@ -795,10 +763,6 @@ nullptr);
 
 
         return std::nullopt;
-    }
-    else
-    {
-       // PALADIN_LOG(INFO, "Alloc success");
     }
 
     D3D12MA::ALLOCATION_DESC upload_allocation_desc = {};
@@ -840,10 +804,6 @@ nullptr);
     {
         PALADIN_LOG(ERR, ErrorResult("Failed to create upload allocation", hr))
         return std::nullopt;
-    }
-    else
-    {
-        //PALADIN_LOG(INFO, "Upload Alloc creation success");
     }
 
     if (resource_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
@@ -978,13 +938,6 @@ void D3D12Context::CreateInstanceBuffer() {
 }
 
 
-void D3D12Context::UpdateInstanceBufferT(std::span<TransformData> instance_data) {
-   /* instance_count = instance_data.size();
-    std::size_t total_bytes = sizeof(TransformData)*instance_data.size();
-
-    UINT8* destination = static_cast<UINT8*>(instance_data_destination) + (frame_index * aligned_bytes_per_buffer);
-    std::memcpy(destination, instance_data.data(), total_bytes);*/
-}
 
 
 void D3D12Context::UpdateFrameData(FrameUploadData &render_frame_data) {
@@ -1003,25 +956,6 @@ void D3D12Context::UpdateFrameData(FrameUploadData &render_frame_data) {
     std::memcpy(id_destination, render_frame_data.instance_indices.data(), sizeof(std::uint32_t)*render_frame_data.instance_indices.size());
 }
 
-
-void D3D12Context::UpdateRenderFrameData(RenderFrameData &render_frame_data) {
-/*
-    render_frame_data.aligned_bytes_per_buffer = aligned_bytes_per_buffer;
-    render_frame_data.frame_index = frame_index;
-    render_frame_data.instance_buffer_id = instance_buffer_view.index;
-
-    _frame_data = render_frame_data;
-    UINT8* destination = static_cast<UINT8*>(instance_data_destination) + (frame_index * aligned_bytes_per_buffer);
-    std::size_t byte_offset = 0;
-    for (auto& batch : render_frame_data.batches) {
-        const std::size_t total_bytes = sizeof(TransformData)*batch.transforms.size();
-        std::memcpy(destination +byte_offset, batch.transforms.data(), total_bytes);
-        byte_offset+=total_bytes;
-    }
-    auto aabb_count = _frame_data.debug_aabb_transforms.size();
-    std::size_t aabb_bytes = sizeof(TransformData)*aabb_count;
-    std::memcpy(destination + byte_offset, _frame_data.debug_aabb_transforms.data(), aabb_bytes);*/
-}
 
 
 MaterialIndices D3D12Context::GetMaterialIndices(OpaqueAssetHandle material_handle)
@@ -1472,7 +1406,6 @@ void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::s
     {
         {
             auto [vertex_allocation, vertex_upload_allocation] = allocation_pair.value();
-            //PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Copying Model Data", ProfileColors::Red)
             m_command_list->CopyBufferRegion(vertex_allocation->GetResource(),0,vertex_upload_allocation->GetResource(),0,vertex_total_bytes);
 
             D3D12_VERTEX_BUFFER_VIEW vertex_view = {};
@@ -1494,7 +1427,6 @@ void D3D12Context::UploadModel(std::span<Paladin::Vertex> model_vertices, std::s
     {
         {
             auto [index_allocation, index_upload_allocation] = allocation_pair.value();
-            //PALADIN_SCOPED_GPU_PROFILE_C(m_tracy_context, m_command_list.Get(), "Copying Model Data", ProfileColors::Red)
             m_command_list->CopyBufferRegion(index_allocation->GetResource(),0,index_upload_allocation->GetResource(),0,index_total_bytes);
 
             D3D12_INDEX_BUFFER_VIEW index_buffer_view = {};
@@ -1573,7 +1505,6 @@ bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
 
     for (int i = 0 ; i < FRAME_BUFFER_COUNT ; i++) {
         if (auto hr = m_swap_chain->GetBuffer(i, IID_PPV_ARGS(&m_render_target[i])); SUCCEEDED(hr)) {
-            //PALADIN_LOG(INFO, "Created render target")
         }
         else if (FAILED(hr)) {
             PALADIN_LOG(ERR, ErrorResult("Failed to create render target", hr))
@@ -1586,8 +1517,6 @@ bool D3D12Context::Resize(std::uint32_t new_width, std::uint32_t new_height) {
     std::vector<float> blank_data;
     blank_data.resize(new_width*new_height*channels);
 
-
-    //auto srv_handle  = m_srv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
     auto descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     auto viewport_srv_desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32B32A32_FLOAT,
         new_width,
