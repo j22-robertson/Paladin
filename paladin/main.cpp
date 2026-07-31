@@ -6,6 +6,6 @@ int main()
 {
     PaladinLogger::Get();
     auto app = std::make_unique<RenderApplication>();
-    app->run();
+    app->Run();
     return 0;
 }

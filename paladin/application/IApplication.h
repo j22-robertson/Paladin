@@ -8,7 +8,7 @@ class IApplication {
 public:
     IApplication() = default;
     virtual ~IApplication() = default;
-    virtual void run() = 0;
+    virtual void Run() = 0;
     virtual void Setup() = 0;
     virtual bool Update(float delta_time){return true;};
     virtual void Render(float delta_time)=0;

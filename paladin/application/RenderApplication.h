@@ -50,7 +50,7 @@ public:
 class RenderApplication final : IApplication {
 public:
     ~RenderApplication() override;
-    void run() override;
+    void Run() override;
     void Setup() override;
     bool Update(float delta_time) override;
     void Render(float delta_time) override;
@@ -66,15 +66,23 @@ private:
     Camera m_camera{};
     Camera frustum_test{};
 
+    //TODO: Re-evaluate the data flow of the program, some of these could be removed.
+    //TODO: Refactor and remove unnecessary transform vectors
     std::unique_ptr<AssetRegistry> m_asset_registry = nullptr;
     std::vector<Transform> transforms;
     std::vector<Transform> AABB_transforms;
     std::vector<Transform> AABB_real_transforms;
     std::vector<AABB> AABBs;
     std::vector<TransformData> instancing_test_data;
+    std::vector<Paladin::Vertex> all_vertices = std::vector<Paladin::Vertex>();
+    std::vector<std::uint32_t> all_indices = std::vector<std::uint32_t>();
+    std::vector<MeshDescriptor> mesh_ranges = std::vector<MeshDescriptor>();
+    std::map<OpaqueAssetHandle, MeshDescriptor> mesh_descriptors = std::map<OpaqueAssetHandle, MeshDescriptor>();
+
 
     std::map<OpaqueAssetHandle,std::uint32_t> descriptor_fetch;
 
+    void ExtractModelToGPU(const ModelAsset& model);
     Scene scene;
 
     float rot_test = 0.0;
