@@ -6,6 +6,8 @@ cbuffer Camera : register(b0)
 	float4x4 projection;
 	float4x4 view_projection;
 	float4x4 inv_view_projection;
+    float3 camera_position;
+    float pad0;
 }
 
 struct VS_OUTPUT
@@ -98,14 +100,13 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 
     Texture2D<float4> albedo_tex = ResourceDescriptorHeap[NonUniformResourceIndex(descriptor.albedo_id)];
     float3 albedo = albedo_tex.Sample(sampler_default,input.uv).rgb;
-    //float diff = saturate(dot(world_normal, light_direction));
-    float3 ambient = 0.1 * albedo.rgb;
+    float3 ambient = 0.03 * albedo.rgb;
 
     float3 halfway = normalize(view_direction + light_direction);
     float NdotH = max(0.0, dot(world_normal, halfway));
 
     float NdotV = max(0.0, dot(world_normal, view_direction));
-    float NdotL = saturate(dot(world_normal, light_direction));
+    float NdotL = max(0.0,dot(world_normal, light_direction));
 
 
 
@@ -125,8 +126,8 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     float3 kd = 1.0 - fresnel_schlick;
     kd *= 1.0-metallic;
 
-   float3 brdf = kd *  albedo.xyz/3.14159265359 * specular;
-   float3 Lo = brdf * (float3(1.0,1.0,1.0)*15.0 *NdotL) ;
+   float3 brdf = kd *  albedo.xyz/3.14159265359 +specular;
+   float3 Lo = brdf * (float3(1.0,1.0,1.0)*(5.0*normalize(float3(1.0,0.94,0.85))) *NdotL) ;
    float3 cl = ambient + Lo;
 
    float3 cl2 = cl / (cl + float3(1.0, 1.0, 1.0));

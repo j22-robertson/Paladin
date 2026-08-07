@@ -17,6 +17,7 @@ struct CameraUniform {
     glm::mat4 projection = glm::mat4(1.0);
     glm::mat4 view_projection = glm::mat4(1.0);
     glm::mat4 inv_view_projection = glm::mat4(1.0);
+    glm::vec4 position = glm::vec4(0.0f);
 };
 
 
@@ -45,7 +46,7 @@ public:
 
         auto mapped_direction = (direction.x*right+direction.y*up+ direction.z*forward);
         velocity = mapped_direction*speed;
-        position +=velocity * delta;
+        position += velocity * delta;
         //GetUniform();
        // ViewFrustum();
     }
@@ -62,6 +63,7 @@ public:
             uniform.projection = GetProjection();
             uniform.view_projection = uniform.projection * uniform.view;
             uniform.inv_view_projection = glm::inverse(uniform.view_projection);
+            uniform.position = glm::vec4(position, 1.0f);
             auto m = uniform.view_projection;
             glm::vec4 r0= glm::row(m,0);
             glm::vec4 r1= glm::row(m,1);
@@ -88,6 +90,7 @@ public:
             uniform.projection = GetProjection();
             uniform.view_projection = uniform.projection * uniform.view;
             uniform.inv_view_projection = glm::inverse(uniform.view_projection);
+            uniform.position = glm::vec4(position, 1.0f);
             auto m = uniform.view_projection;
             glm::vec4 r0= glm::row(m,0);
             glm::vec4 r1= glm::row(m,1);
@@ -113,6 +116,7 @@ public:
             uniform.projection = GetProjection();
             uniform.view_projection = uniform.projection * uniform.view;
             uniform.inv_view_projection = glm::inverse(uniform.view_projection);
+            uniform.position = glm::vec4(position, 1.0f);
 
             auto m = uniform.view_projection;
             glm::vec4 r0= glm::row(m,0);

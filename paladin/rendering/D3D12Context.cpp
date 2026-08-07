@@ -1753,7 +1753,7 @@ bool D3D12Context::UpdatePipeline()
 
         m_command_list->SetGraphicsRootSignature(m_bindless_root_signature.Get());
 
-        D3D12_GPU_VIRTUAL_ADDRESS frame_address = m_frame_data->GetResource()->GetGPUVirtualAddress() + (frame_index * 256);
+        D3D12_GPU_VIRTUAL_ADDRESS frame_address = m_frame_data->GetResource()->GetGPUVirtualAddress() + (frame_index * 512);
         m_command_list->SetGraphicsRootConstantBufferView(0,frame_address);
 
         m_command_list->SetGraphicsRootDescriptorTable(1,m_descriptor_heap.GetStartGPUHandle(PALADIN_HASH("BINDLESS")));
