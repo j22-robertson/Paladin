@@ -428,8 +428,16 @@ D3D12Context::D3D12Context(HWND hwnd, std::uint32_t window_width, std::uint32_t 
     }
 
     D3D12_SHADER_BYTECODE fragment_shader_bytecode = {};
-
+/*
     fragment_shader = DXShader(FragmentShader, L"fragment_vpull.hlsl",L"main");
+
+    if (!m_shader_compiler.LoadShader(fragment_shader))
+    {
+        PALADIN_LOG(ERR, "Unable to load: " + ConvertWString(fragment_shader.shader_input_file))
+        return;
+    }*/
+
+    fragment_shader = DXShader(FragmentShader, L"fwd_frag_vpull_pbr.hlsl",L"main");
 
     if (!m_shader_compiler.LoadShader(fragment_shader))
     {
